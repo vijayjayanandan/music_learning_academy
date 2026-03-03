@@ -37,4 +37,7 @@ urlpatterns = [
     # Email verification
     path("verify-email/<uidb64>/<token>/", views.VerifyEmailView.as_view(), name="verify-email"),
     path("verify-email/resend/", views.ResendVerificationView.as_view(), name="resend-verification"),
+    # Parent portal
+    path("parent-dashboard/", views.ParentDashboardView.as_view(), name="parent-dashboard"),
+    path("link-child/", views.LinkChildView.as_view(), name="link-child"),
 ]

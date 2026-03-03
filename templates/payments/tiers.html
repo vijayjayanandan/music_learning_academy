@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Academy Plans{% endblock %}
+{% block unauth_content %}
+<div class="max-w-6xl mx-auto py-12">
+    <h1 class="text-4xl font-bold text-center mb-4">Choose Your Academy Plan</h1>
+    <p class="text-center text-base-content/60 mb-8">Start free, upgrade as you grow</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {% for tier in tiers %}
+        <div class="card bg-base-100 shadow-xl {% if tier.tier_level == 'pro' %}border-2 border-primary{% endif %}">
+            {% if tier.tier_level == 'pro' %}
+            <div class="bg-primary text-primary-content text-center py-1 text-sm font-bold">Most Popular</div>
+            {% endif %}
+            <div class="card-body text-center">
+                <h2 class="card-title justify-center text-2xl">{{ tier.name }}</h2>
+                <p class="text-4xl font-bold my-4">
+                    {% if tier.price_cents == 0 %}Free{% else %}${{ tier.price_cents|divisibleby:100 }}<span class="text-sm">/mo</span>{% endif %}
+                </p>
+                <div class="space-y-2 text-left">
+                    <p>&#10003; Up to {{ tier.max_students }} students</p>
+                    <p>&#10003; Up to {{ tier.max_instructors }} instructors</p>
+                    <p>&#10003; Up to {{ tier.max_courses }} courses</p>
+                    {% for feature in tier.features %}
+                    <p>&#10003; {{ feature }}</p>
+                    {% endfor %}
+                </div>
+                <div class="card-actions justify-center mt-6">
+                    <a href="{% url 'register' %}" class="btn {% if tier.tier_level == 'pro' %}btn-primary{% else %}btn-outline{% endif %} w-full">Get Started</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

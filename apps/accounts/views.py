@@ -110,3 +110,40 @@ class SwitchAcademyView(LoginRequiredMixin, View):
             request.user.current_academy = academy
             request.user.save(update_fields=["current_academy"])
         return redirect("dashboard")
+
+
+class ParentDashboardView(LoginRequiredMixin, View):
+    """FEAT-032: Parent/guardian portal."""
+
+    def get(self, request):
+        children = request.user.children.all()
+        children_data = []
+        for child in children:
+            from apps.enrollments.models import Enrollment
+            from apps.practice.models import PracticeLog
+            enrollments = Enrollment.objects.filter(student=child, status="active")
+            recent_practice = PracticeLog.objects.filter(student=child).order_by("-date")[:5]
+            children_data.append({
+                "user": child,
+                "enrollments": enrollments,
+                "recent_practice": recent_practice,
+            })
+        return render(request, "accounts/parent_dashboard.html", {
+            "children_data": children_data,
+        })
+
+
+class LinkChildView(LoginRequiredMixin, View):
+    """Link a child account to parent."""
+
+    def post(self, request):
+        child_email = request.POST.get("child_email", "")
+        try:
+            child = User.objects.get(email=child_email)
+            child.parent = request.user
+            child.save(update_fields=["parent"])
+            request.user.is_parent = True
+            request.user.save(update_fields=["is_parent"])
+        except User.DoesNotExist:
+            pass
+        return redirect("parent-dashboard")

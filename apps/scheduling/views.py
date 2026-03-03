@@ -9,7 +9,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from apps.academies.mixins import TenantMixin
 from .forms import LiveSessionForm
 from .jitsi import generate_jitsi_room_name, get_jitsi_config
-from .models import LiveSession, SessionAttendance
+from .models import LiveSession, SessionAttendance, InstructorAvailability
 
 
 class ScheduleListView(TenantMixin, ListView):
@@ -204,6 +204,101 @@ class SessionEventsAPIView(TenantMixin, View):
                 },
             })
         return JsonResponse(events, safe=False)
+
+
+class AvailabilityManageView(TenantMixin, View):
+    """FEAT-030: Instructor manages availability slots."""
+
+    def get(self, request):
+        slots = InstructorAvailability.objects.filter(
+            instructor=request.user, academy=self.get_academy(),
+        )
+        return render(request, "scheduling/availability.html", {"slots": slots})
+
+    def post(self, request):
+        InstructorAvailability.objects.create(
+            instructor=request.user,
+            academy=self.get_academy(),
+            day_of_week=int(request.POST.get("day_of_week", 0)),
+            start_time=request.POST.get("start_time"),
+            end_time=request.POST.get("end_time"),
+        )
+        return redirect("availability-manage")
+
+
+class DeleteAvailabilityView(TenantMixin, View):
+    def post(self, request, pk):
+        slot = get_object_or_404(
+            InstructorAvailability, pk=pk, instructor=request.user,
+        )
+        slot.delete()
+        return redirect("availability-manage")
+
+
+class BookSessionView(TenantMixin, View):
+    """FEAT-030: Student self-booking from instructor availability."""
+
+    def get(self, request):
+        from apps.accounts.models import Membership
+        instructors = Membership.objects.filter(
+            academy=self.get_academy(), role="instructor",
+        ).select_related("user")
+        instructor_id = request.GET.get("instructor")
+        slots = []
+        if instructor_id:
+            slots = InstructorAvailability.objects.filter(
+                instructor_id=instructor_id, academy=self.get_academy(), is_active=True,
+            )
+        return render(request, "scheduling/book_session.html", {
+            "instructors": instructors,
+            "slots": slots,
+            "selected_instructor": instructor_id,
+        })
+
+    def post(self, request):
+        from apps.accounts.models import User
+        instructor = get_object_or_404(User, pk=request.POST.get("instructor"))
+        slot = get_object_or_404(InstructorAvailability, pk=request.POST.get("slot"))
+        session_date = request.POST.get("session_date")
+
+        from datetime import datetime
+        start_dt = datetime.combine(
+            datetime.strptime(session_date, "%Y-%m-%d").date(),
+            slot.start_time,
+        )
+        end_dt = datetime.combine(
+            datetime.strptime(session_date, "%Y-%m-%d").date(),
+            slot.end_time,
+        )
+        from django.utils import timezone as tz
+        start_dt = tz.make_aware(start_dt)
+        end_dt = tz.make_aware(end_dt)
+
+        # Check for double-booking
+        existing = LiveSession.objects.filter(
+            instructor=instructor,
+            academy=self.get_academy(),
+            scheduled_start=start_dt,
+            status="scheduled",
+        ).exists()
+        if existing:
+            return render(request, "scheduling/book_session.html", {
+                "error": "This slot is already booked.",
+            })
+
+        session = LiveSession.objects.create(
+            title=f"Lesson with {instructor.get_full_name() or instructor.email}",
+            instructor=instructor,
+            academy=self.get_academy(),
+            scheduled_start=start_dt,
+            scheduled_end=end_dt,
+            session_type="one_on_one",
+            jitsi_room_name=generate_jitsi_room_name(self.get_academy().slug, id(start_dt)),
+        )
+        SessionAttendance.objects.create(
+            session=session, student=request.user, academy=self.get_academy(),
+        )
+        return redirect("session-detail", pk=session.pk)
 
 
 class UpcomingSessionsPartialView(TenantMixin, ListView):

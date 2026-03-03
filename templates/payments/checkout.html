@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Checkout{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Checkout</h1>
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            {% if plan %}
+            <h2 class="card-title">{{ plan.name }}</h2>
+            <p class="text-2xl font-bold">{{ plan.price_display }}/{{ plan.billing_cycle }}</p>
+            {% if plan.trial_days > 0 %}
+            <div class="alert alert-success mt-2">
+                <span>Includes {{ plan.trial_days }}-day free trial!</span>
+            </div>
+            {% endif %}
+            {% elif course %}
+            <h2 class="card-title">{{ course.title }}</h2>
+            <p>Course enrollment</p>
+            {% endif %}
+
+            {% if coupon %}
+            <div class="alert alert-info mt-2">
+                <span>Coupon applied: {{ coupon.code }} - {{ coupon }}</span>
+            </div>
+            {% endif %}
+
+            <div class="divider"></div>
+            <p class="text-sm text-base-content/60">This is a demo checkout. No real payment will be processed.</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">Coupon Code (optional)</span></label>
+                    <div class="input-group">
+                        <input type="text" name="coupon_code" placeholder="SAVE20" class="input input-bordered w-full">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Complete Purchase</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

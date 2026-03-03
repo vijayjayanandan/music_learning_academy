@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Payment History{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Payment History</h1>
+
+    {% if payments %}
+    <div class="overflow-x-auto">
+        <table class="table table-zebra">
+            <thead>
+                <tr>
+                    <th>Invoice</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.invoice_number }}</td>
+                    <td>{{ payment.created_at|date:"M d, Y" }}</td>
+                    <td>{{ payment.get_payment_type_display }}</td>
+                    <td>{{ payment.amount_display }}</td>
+                    <td><span class="badge {% if payment.status == 'completed' %}badge-success{% elif payment.status == 'refunded' %}badge-warning{% else %}badge-error{% endif %}">{{ payment.get_status_display }}</span></td>
+                    <td><a href="{% url 'invoice-detail' payment.pk %}" class="btn btn-ghost btn-xs">Invoice</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No payment records found.</div>
+    {% endif %}
+</div>
+{% endblock %}

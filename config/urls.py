@@ -17,6 +17,7 @@ urlpatterns = [
     path("schedule/", include("apps.scheduling.urls")),
     path("notifications/", include("apps.notifications.urls")),
     path("practice/", include("apps.practice.urls")),
+    path("payments/", include("apps.payments.urls")),
     path("tinymce/", include("tinymce.urls")),
     # Invitation acceptance (top-level for clean URLs)
     path("invitation/<str:token>/accept/", AcceptInvitationView.as_view(), name="accept-invitation"),

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Book a Session{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Book a Session</h1>
+
+    {% if error %}
+    <div class="alert alert-error mb-4">{{ error }}</div>
+    {% endif %}
+
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <form method="get" class="mb-6">
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Select Instructor</span></label>
+                    <select name="instructor" class="select select-bordered w-full" onchange="this.form.submit()">
+                        <option value="">Choose an instructor...</option>
+                        {% for m in instructors %}
+                        <option value="{{ m.user.pk }}" {% if selected_instructor == m.user.pk|stringformat:"d" %}selected{% endif %}>
+                            {{ m.user.get_full_name|default:m.user.email }} ({{ m.instruments|join:", " }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+
+            {% if slots %}
+            <h2 class="font-bold text-lg mb-4">Available Slots</h2>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="instructor" value="{{ selected_instructor }}">
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">Session Date</span></label>
+                    <input type="date" name="session_date" class="input input-bordered" required>
+                </div>
+                <div class="space-y-2 mb-4">
+                    {% for slot in slots %}
+                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-base-200">
+                        <input type="radio" name="slot" value="{{ slot.pk }}" class="radio radio-primary" required>
+                        <span class="font-bold">{{ slot.get_day_of_week_display }}</span>
+                        <span>{{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <button type="submit" class="btn btn-primary">Book Session</button>
+            </form>
+            {% elif selected_instructor %}
+            <div class="alert alert-info">This instructor has no available slots.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

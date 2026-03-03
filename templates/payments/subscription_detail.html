@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Subscription Details{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Subscription Details</h1>
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">{{ subscription.plan.name }}</h2>
+            <p class="text-2xl font-bold">{{ subscription.plan.price_display }}/{{ subscription.plan.billing_cycle }}</p>
+            <div class="badge {% if subscription.is_valid %}badge-success{% else %}badge-error{% endif %}">{{ subscription.get_status_display }}</div>
+            {% if subscription.trial_end %}
+            <p class="text-sm">Trial ends: {{ subscription.trial_end|date:"M d, Y" }}</p>
+            {% endif %}
+            {% if subscription.current_period_start %}
+            <p class="text-sm">Current period: {{ subscription.current_period_start|date:"M d" }} - {{ subscription.current_period_end|date:"M d, Y" }}</p>
+            {% endif %}
+            <div class="card-actions mt-4">
+                <a href="{% url 'my-subscriptions' %}" class="btn btn-outline">Back</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

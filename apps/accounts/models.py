@@ -9,6 +9,11 @@ class User(AbstractUser):
     email_verified = models.BooleanField(default=False)
     timezone = models.CharField(max_length=50, default="UTC")
     email_preferences = models.JSONField(default=dict, blank=True)
+    is_parent = models.BooleanField(default=False)
+    parent = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="children",
+    )
     current_academy = models.ForeignKey(
         "academies.Academy",
         on_delete=models.SET_NULL,

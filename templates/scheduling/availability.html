@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Manage Availability{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">My Availability</h1>
+
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="card-title">Add Availability Slot</h2>
+            <form method="post" class="flex flex-wrap gap-4 items-end">
+                {% csrf_token %}
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Day</span></label>
+                    <select name="day_of_week" class="select select-bordered">
+                        <option value="0">Monday</option>
+                        <option value="1">Tuesday</option>
+                        <option value="2">Wednesday</option>
+                        <option value="3">Thursday</option>
+                        <option value="4">Friday</option>
+                        <option value="5">Saturday</option>
+                        <option value="6">Sunday</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Start Time</span></label>
+                    <input type="time" name="start_time" class="input input-bordered" required>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text">End Time</span></label>
+                    <input type="time" name="end_time" class="input input-bordered" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+        </div>
+    </div>
+
+    {% if slots %}
+    <div class="overflow-x-auto">
+        <table class="table">
+            <thead><tr><th>Day</th><th>Time</th><th></th></tr></thead>
+            <tbody>
+                {% for slot in slots %}
+                <tr>
+                    <td>{{ slot.get_day_of_week_display }}</td>
+                    <td>{{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}</td>
+                    <td>
+                        <form method="post" action="{% url 'availability-delete' slot.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm text-error">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No availability slots set. Add your weekly schedule above.</div>
+    {% endif %}
+</div>
+{% endblock %}

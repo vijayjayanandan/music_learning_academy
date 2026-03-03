@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}My Subscriptions{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">My Subscriptions</h1>
+
+    {% if subscriptions %}
+    <div class="space-y-4">
+        {% for sub in subscriptions %}
+        <div class="card bg-base-100 shadow">
+            <div class="card-body flex-row justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-lg">{{ sub.plan.name }}</h3>
+                    <p class="text-sm text-base-content/60">{{ sub.plan.price_display }}/{{ sub.plan.billing_cycle }}</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="badge {% if sub.is_valid %}badge-success{% else %}badge-error{% endif %}">{{ sub.get_status_display }}</span>
+                    {% if sub.is_valid %}
+                    <form method="post" action="{% url 'cancel-subscription' sub.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-error btn-sm">Cancel</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">You have no active subscriptions. <a href="{% url 'pricing' %}" class="link link-primary">View plans</a></div>
+    {% endif %}
+</div>
+{% endblock %}
