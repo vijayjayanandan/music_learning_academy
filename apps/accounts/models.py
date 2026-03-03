@@ -6,6 +6,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
 
+    email_verified = models.BooleanField(default=False)
     current_academy = models.ForeignKey(
         "academies.Academy",
         on_delete=models.SET_NULL,
