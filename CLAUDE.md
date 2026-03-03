@@ -187,8 +187,62 @@ music_learning_academy/
 - In function views: `@role_required('owner', 'instructor')`
 - In class views: check `self.request.user.get_role_in(self.get_academy())`
 
+## Development Workflow
+
+### Session Start Protocol
+1. Read CLAUDE.md (auto-loaded)
+2. Read BACKLOG.md — find next "Ready" or "pending" feature
+3. Create git branch: `feat/FEAT-XXX-short-name`
+4. Read spec: `docs/specs/feat-XXX-*.md`
+5. Build the feature (models → views → templates → tests)
+6. Run tests: `pytest tests/unit tests/integration -v`
+7. Run E2E tests: `pytest tests/e2e -v` (takes screenshots)
+8. Review screenshots in `screenshots/` dir
+9. Update BACKLOG.md status
+10. Commit to feature branch
+
+### Test Commands
+```bash
+# All unit + integration tests (fast, ~25s)
+python -m pytest tests/unit tests/integration -v
+
+# E2E tests with Playwright (needs server running on port 8002)
+python -m pytest tests/e2e -v
+
+# Run specific test
+python -m pytest tests/unit/test_models.py::TestUserModel -v
+
+# Run with markers
+python -m pytest -m unit -v
+python -m pytest -m integration -v
+python -m pytest -m e2e -v
+```
+
+### Git Branching
+- `main` — stable, working code
+- `feat/FEAT-XXX-name` — feature branches (one per feature)
+- Commit format: `FEAT-XXX: Description`
+- Always commit with `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
+
+### Key Files for Workflow
+- `BACKLOG.md` — prioritized feature list with status
+- `docs/specs/feat-XXX-*.md` — detailed specs per feature
+- `tests/` — unit, integration, e2e test directories
+- `screenshots/` — Playwright E2E screenshots (gitignored)
+- `pytest.ini` — test configuration
+
+### Adding a New Feature (Step by Step)
+1. Check `BACKLOG.md` for next pending feature
+2. Read its spec in `docs/specs/`
+3. Create branch: `git checkout -b feat/FEAT-XXX-name`
+4. Make model changes → `makemigrations` → `migrate`
+5. Add views → URLs → templates
+6. Write tests in appropriate `tests/` subdirectory
+7. Run full test suite
+8. Run E2E, review screenshots
+9. Commit, update BACKLOG.md
+
 ## Known Limitations (PoC)
-- No tests written yet
 - No Django signals for auto-notifications (notifications model exists but not auto-triggered)
 - Chat (ChatMessage model) has no UI yet
 - No file upload storage backend configured (uses local filesystem)
@@ -196,3 +250,4 @@ music_learning_academy/
 - No password reset flow
 - No email sending configured
 - WebSocket notifications consumer exists but no frontend JS to connect yet
+- Jitsi public server (jitsi.member.fsf.org) — requires no auth but no moderator control
