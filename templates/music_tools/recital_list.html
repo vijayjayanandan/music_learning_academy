@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Recitals{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Virtual Recitals</h1>
+        {% if user_role in "owner instructor" %}
+        <a href="{% url 'recital-create' %}" class="btn btn-primary">Schedule Recital</a>
+        {% endif %}
+    </div>
+
+    {% if recitals %}
+    <div class="space-y-4">
+        {% for recital in recitals %}
+        <a href="{% url 'recital-detail' recital.pk %}" class="card bg-base-100 shadow hover:shadow-lg transition-shadow block">
+            <div class="card-body flex-row justify-between items-center">
+                <div>
+                    <h2 class="card-title">{{ recital.title }}</h2>
+                    <p class="text-sm text-base-content/60">{{ recital.scheduled_start|date:"M d, Y H:i" }}</p>
+                </div>
+                <span class="badge {% if recital.status == 'live' %}badge-error{% elif recital.status == 'upcoming' %}badge-info{% else %}badge-ghost{% endif %}">
+                    {{ recital.get_status_display }}
+                </span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">No recitals scheduled yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

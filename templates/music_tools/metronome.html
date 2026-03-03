@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Metronome{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto text-center">
+    <h1 class="text-3xl font-bold mb-6">Metronome</h1>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body items-center">
+            <div id="bpm-display" class="text-6xl font-bold mb-4">120</div>
+            <p class="text-base-content/60 mb-4">BPM</p>
+
+            <input type="range" id="bpm-slider" min="30" max="300" value="120"
+                   class="range range-primary w-full mb-4">
+
+            <div class="flex gap-4 mb-6">
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Beats</span></label>
+                    <select id="beats" class="select select-bordered select-sm">
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4" selected>4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Subdivision</span></label>
+                    <select id="subdivision" class="select select-bordered select-sm">
+                        <option value="4">Quarter</option>
+                        <option value="8">Eighth</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="beat-indicators" class="flex gap-2 mb-6">
+                <div class="w-6 h-6 rounded-full bg-base-300 beat-dot"></div>
+                <div class="w-6 h-6 rounded-full bg-base-300 beat-dot"></div>
+                <div class="w-6 h-6 rounded-full bg-base-300 beat-dot"></div>
+                <div class="w-6 h-6 rounded-full bg-base-300 beat-dot"></div>
+            </div>
+
+            <div class="flex gap-4">
+                <button id="start-btn" class="btn btn-primary btn-lg" onclick="toggleMetronome()">
+                    Start
+                </button>
+                <button class="btn btn-outline" onclick="tapTempo()">
+                    Tap Tempo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let audioCtx = null;
+let isPlaying = false;
+let intervalId = null;
+let currentBeat = 0;
+let tapTimes = [];
+
+function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+}
+
+function playClick(accent) {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = accent ? 1000 : 800;
+    gain.gain.value = accent ? 0.5 : 0.3;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.05);
+}
+
+function updateBeatIndicators() {
+    const beats = parseInt(document.getElementById('beats').value);
+    const container = document.getElementById('beat-indicators');
+    container.innerHTML = '';
+    for (let i = 0; i < beats; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'w-6 h-6 rounded-full bg-base-300 beat-dot';
+        container.appendChild(dot);
+    }
+}
+
+function toggleMetronome() {
+    if (isPlaying) {
+        clearInterval(intervalId);
+        isPlaying = false;
+        document.getElementById('start-btn').textContent = 'Start';
+        document.getElementById('start-btn').classList.remove('btn-error');
+        document.getElementById('start-btn').classList.add('btn-primary');
+    } else {
+        const bpm = parseInt(document.getElementById('bpm-slider').value);
+        const beats = parseInt(document.getElementById('beats').value);
+        currentBeat = 0;
+        isPlaying = true;
+        document.getElementById('start-btn').textContent = 'Stop';
+        document.getElementById('start-btn').classList.remove('btn-primary');
+        document.getElementById('start-btn').classList.add('btn-error');
+
+        intervalId = setInterval(() => {
+            const dots = document.querySelectorAll('.beat-dot');
+            dots.forEach(d => d.classList.remove('bg-primary', 'bg-accent'));
+            if (dots[currentBeat]) {
+                dots[currentBeat].classList.add(currentBeat === 0 ? 'bg-accent' : 'bg-primary');
+            }
+            playClick(currentBeat === 0);
+            currentBeat = (currentBeat + 1) % beats;
+        }, 60000 / bpm);
+    }
+}
+
+function tapTempo() {
+    const now = Date.now();
+    tapTimes.push(now);
+    if (tapTimes.length > 4) tapTimes.shift();
+    if (tapTimes.length >= 2) {
+        let total = 0;
+        for (let i = 1; i < tapTimes.length; i++) {
+            total += tapTimes[i] - tapTimes[i - 1];
+        }
+        const avgMs = total / (tapTimes.length - 1);
+        const bpm = Math.round(60000 / avgMs);
+        if (bpm >= 30 && bpm <= 300) {
+            document.getElementById('bpm-slider').value = bpm;
+            document.getElementById('bpm-display').textContent = bpm;
+        }
+    }
+}
+
+document.getElementById('bpm-slider').addEventListener('input', function() {
+    document.getElementById('bpm-display').textContent = this.value;
+    if (isPlaying) { toggleMetronome(); toggleMetronome(); }
+});
+
+document.getElementById('beats').addEventListener('change', function() {
+    updateBeatIndicators();
+    if (isPlaying) { toggleMetronome(); toggleMetronome(); }
+});
+</script>
+{% endblock %}

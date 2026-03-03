@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ resource.title }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-2">{{ resource.title }}</h1>
+    <div class="flex gap-2 mb-4">
+        <span class="badge badge-primary">{{ resource.get_resource_type_display }}</span>
+        {% if resource.instrument %}<span class="badge badge-ghost">{{ resource.instrument }}</span>{% endif %}
+        {% if resource.genre %}<span class="badge badge-ghost">{{ resource.genre }}</span>{% endif %}
+        {% if resource.difficulty_level %}<span class="badge badge-ghost">{{ resource.get_difficulty_level_display }}</span>{% endif %}
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            {% if resource.description %}
+            <p class="mb-4">{{ resource.description }}</p>
+            {% endif %}
+
+            <div class="mb-4">
+                <p class="text-sm text-base-content/60">
+                    Uploaded by {{ resource.uploaded_by.get_full_name|default:resource.uploaded_by.email }}
+                    on {{ resource.created_at|date:"M d, Y" }}
+                </p>
+                <p class="text-sm text-base-content/60">{{ resource.download_count }} downloads</p>
+            </div>
+
+            {% if resource.file_extension in ".mp3.wav.m4a.ogg.flac" %}
+            <audio controls class="w-full mb-4"><source src="{{ resource.file.url }}"></audio>
+            {% elif resource.file_extension in ".mp4.webm" %}
+            <video controls class="w-full mb-4"><source src="{{ resource.file.url }}"></video>
+            {% elif resource.file_extension in ".png.jpg.jpeg.gif.webp" %}
+            <img src="{{ resource.file.url }}" class="w-full rounded-lg mb-4" alt="{{ resource.title }}">
+            {% endif %}
+
+            <a href="{{ resource.file.url }}" download class="btn btn-primary w-full">Download {{ resource.file_extension }}</a>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'library-list' %}" class="btn btn-ghost">&larr; Back to Library</a>
+    </div>
+</div>
+{% endblock %}

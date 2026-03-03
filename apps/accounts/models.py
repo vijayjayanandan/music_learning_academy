@@ -10,6 +10,8 @@ class User(AbstractUser):
     timezone = models.CharField(max_length=50, default="UTC")
     email_preferences = models.JSONField(default=dict, blank=True)
     is_parent = models.BooleanField(default=False)
+    google_calendar_token = models.JSONField(default=dict, blank=True)
+    ical_feed_token = models.CharField(max_length=64, blank=True)
     parent = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True,
         related_name="children",

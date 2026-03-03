@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.practice",
     "apps.payments",
+    "apps.music_tools",
+    "apps.library",
 ]
 
 MIDDLEWARE = [

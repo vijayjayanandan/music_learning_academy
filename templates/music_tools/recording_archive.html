@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Recording Archive{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">My Recordings</h1>
+    </div>
+
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="card-title">Upload Recording</h2>
+            <form method="post" action="{% url 'recording-upload' %}" enctype="multipart/form-data" class="flex flex-wrap gap-4 items-end">
+                {% csrf_token %}
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Title</span></label>
+                    <input type="text" name="title" class="input input-bordered" required>
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text">Instrument</span></label>
+                    <input type="text" name="instrument" class="input input-bordered" placeholder="Piano">
+                </div>
+                <div class="form-control">
+                    <label class="label"><span class="label-text">File</span></label>
+                    <input type="file" name="recording" class="file-input file-input-bordered" accept="audio/*,video/*" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </form>
+        </div>
+    </div>
+
+    {% if recordings %}
+    <div class="space-y-4">
+        {% for rec in recordings %}
+        <div class="card bg-base-100 shadow">
+            <div class="card-body flex-row gap-4 items-center">
+                <div class="flex-1">
+                    <h3 class="font-bold">{{ rec.title }}</h3>
+                    <p class="text-sm text-base-content/60">
+                        {{ rec.instrument|default:"Unknown" }} | {{ rec.created_at|date:"M d, Y" }}
+                    </p>
+                    {% if rec.notes %}<p class="text-sm mt-1">{{ rec.notes }}</p>{% endif %}
+                </div>
+                {% if rec.is_audio %}
+                <audio controls class="max-w-xs"><source src="{{ rec.recording.url }}"></audio>
+                {% elif rec.is_video %}
+                <video controls class="max-w-xs h-24"><source src="{{ rec.recording.url }}"></video>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">No recordings yet. Upload your first recording above!</div>
+    {% endif %}
+</div>
+{% endblock %}

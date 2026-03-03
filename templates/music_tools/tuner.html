@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Tuner{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto text-center">
+    <h1 class="text-3xl font-bold mb-6">Chromatic Tuner</h1>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body items-center">
+            <div id="note-display" class="text-8xl font-bold mb-2">-</div>
+            <div id="octave-display" class="text-2xl text-base-content/60 mb-2">-</div>
+            <div id="frequency-display" class="text-sm text-base-content/50 mb-4">- Hz</div>
+
+            <div class="w-full h-4 bg-base-300 rounded-full mb-2 relative">
+                <div id="cents-bar" class="absolute top-0 left-1/2 w-1 h-4 bg-primary rounded transition-all"
+                     style="transform: translateX(-50%)"></div>
+                <div class="absolute top-0 left-1/2 w-0.5 h-4 bg-base-content/30"></div>
+            </div>
+            <div class="flex justify-between w-full text-xs text-base-content/50 mb-4">
+                <span>-50</span><span>0</span><span>+50</span>
+            </div>
+
+            <div id="cents-display" class="text-xl mb-6">
+                <span class="badge badge-lg">0 cents</span>
+            </div>
+
+            <button id="tuner-btn" class="btn btn-primary btn-lg" onclick="toggleTuner()">
+                Start Tuner
+            </button>
+            <p class="text-xs text-base-content/50 mt-2">Requires microphone access</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let audioContext = null;
+let analyser = null;
+let mediaStream = null;
+let isListening = false;
+let animationId = null;
+
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+function frequencyToNote(freq) {
+    const noteNum = 12 * (Math.log2(freq / 440)) + 69;
+    const roundedNote = Math.round(noteNum);
+    const cents = Math.round((noteNum - roundedNote) * 100);
+    const noteName = NOTE_NAMES[roundedNote % 12];
+    const octave = Math.floor(roundedNote / 12) - 1;
+    return { name: noteName, octave: octave, cents: cents, frequency: freq };
+}
+
+function autoCorrelate(buf, sampleRate) {
+    let size = buf.length;
+    let rms = 0;
+    for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / size);
+    if (rms < 0.01) return -1;
+
+    let r1 = 0, r2 = size - 1;
+    const thresh = 0.2;
+    for (let i = 0; i < size / 2; i++) { if (Math.abs(buf[i]) < thresh) { r1 = i; break; } }
+    for (let i = 1; i < size / 2; i++) { if (Math.abs(buf[size - i]) < thresh) { r2 = size - i; break; } }
+
+    buf = buf.slice(r1, r2);
+    size = buf.length;
+    const c = new Float32Array(size);
+    for (let i = 0; i < size; i++) {
+        for (let j = 0; j < size - i; j++) c[i] += buf[j] * buf[j + i];
+    }
+
+    let d = 0;
+    while (c[d] > c[d + 1]) d++;
+    let maxval = -1, maxpos = -1;
+    for (let i = d; i < size; i++) {
+        if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+    }
+    let T0 = maxpos;
+    let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+    let a = (x1 + x3 - 2 * x2) / 2;
+    let b = (x3 - x1) / 2;
+    if (a) T0 -= b / (2 * a);
+    return sampleRate / T0;
+}
+
+function updateDisplay() {
+    if (!isListening) return;
+    const buf = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(buf);
+    const freq = autoCorrelate(buf, audioContext.sampleRate);
+
+    if (freq > 0 && freq < 5000) {
+        const note = frequencyToNote(freq);
+        document.getElementById('note-display').textContent = note.name;
+        document.getElementById('octave-display').textContent = note.octave;
+        document.getElementById('frequency-display').textContent = freq.toFixed(1) + ' Hz';
+        document.getElementById('cents-display').querySelector('.badge').textContent = (note.cents >= 0 ? '+' : '') + note.cents + ' cents';
+
+        const centsBar = document.getElementById('cents-bar');
+        const offset = (note.cents / 50) * 50;
+        centsBar.style.left = `calc(50% + ${offset}%)`;
+
+        if (Math.abs(note.cents) < 5) {
+            centsBar.className = 'absolute top-0 w-1 h-4 bg-success rounded transition-all';
+        } else if (Math.abs(note.cents) < 15) {
+            centsBar.className = 'absolute top-0 w-1 h-4 bg-warning rounded transition-all';
+        } else {
+            centsBar.className = 'absolute top-0 w-1 h-4 bg-error rounded transition-all';
+        }
+    }
+    animationId = requestAnimationFrame(updateDisplay);
+}
+
+async function toggleTuner() {
+    if (isListening) {
+        isListening = false;
+        cancelAnimationFrame(animationId);
+        if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+        document.getElementById('tuner-btn').textContent = 'Start Tuner';
+        document.getElementById('tuner-btn').classList.remove('btn-error');
+        document.getElementById('tuner-btn').classList.add('btn-primary');
+        return;
+    }
+
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = audioContext.createMediaStreamSource(mediaStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        isListening = true;
+        document.getElementById('tuner-btn').textContent = 'Stop Tuner';
+        document.getElementById('tuner-btn').classList.remove('btn-primary');
+        document.getElementById('tuner-btn').classList.add('btn-error');
+        updateDisplay();
+    } catch (err) {
+        alert('Microphone access denied. Please allow microphone access to use the tuner.');
+    }
+}
+</script>
+{% endblock %}

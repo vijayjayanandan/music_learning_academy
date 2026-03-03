@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Practice Analysis{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">AI Practice Feedback</h1>
+
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="card-title">Upload Recording for Analysis</h2>
+            <form method="post" enctype="multipart/form-data" class="flex gap-4 items-end">
+                {% csrf_token %}
+                <div class="form-control flex-1">
+                    <label class="label"><span class="label-text">Recording (MP3/WAV/MP4)</span></label>
+                    <input type="file" name="recording" class="file-input file-input-bordered w-full" accept="audio/*,video/*" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Analyze</button>
+            </form>
+        </div>
+    </div>
+
+    {% if analyses %}
+    <h2 class="text-2xl font-bold mb-4">Analysis History</h2>
+    <div class="space-y-4">
+        {% for a in analyses %}
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-base-content/60">{{ a.created_at|date:"M d, Y H:i" }}</span>
+                    {% if a.analyzed_at %}<span class="badge badge-success">Analyzed</span>{% else %}<span class="badge badge-warning">Pending</span>{% endif %}
+                </div>
+                {% if a.analysis_result %}
+                <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
+                    {% for key, value in a.analysis_result.items %}
+                    <div class="stat">
+                        <div class="stat-title">{{ key|title }}</div>
+                        <div class="stat-value text-{% if value >= 85 %}success{% elif value >= 70 %}warning{% else %}error{% endif %}">{{ value }}%</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if a.feedback %}
+                <div class="mt-4 p-3 bg-base-200 rounded-lg">
+                    <p class="font-bold text-sm mb-1">Feedback:</p>
+                    <p>{{ a.feedback }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">No analyses yet. Upload a recording to get AI feedback!</div>
+    {% endif %}
+</div>
+{% endblock %}

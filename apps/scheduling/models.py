@@ -45,6 +45,18 @@ class LiveSession(TenantScopedModel):
 
     jitsi_room_name = models.CharField(max_length=255, unique=True)
 
+    # FEAT-041: Zoom/Google Meet as Jitsi alternative
+    class VideoPlatform(models.TextChoices):
+        JITSI = "jitsi", "Jitsi Meet"
+        ZOOM = "zoom", "Zoom"
+        GOOGLE_MEET = "google_meet", "Google Meet"
+        CUSTOM = "custom", "Custom URL"
+
+    video_platform = models.CharField(
+        max_length=20, choices=VideoPlatform.choices, default=VideoPlatform.JITSI,
+    )
+    external_meeting_url = models.URLField(blank=True, help_text="Zoom/Meet URL if not using Jitsi")
+
     status = models.CharField(
         max_length=20,
         choices=SessionStatus.choices,
