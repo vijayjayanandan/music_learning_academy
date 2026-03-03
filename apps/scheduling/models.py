@@ -51,6 +51,8 @@ class LiveSession(TenantScopedModel):
         default=SessionStatus.SCHEDULED,
     )
 
+    reminder_24h_sent = models.BooleanField(default=False)
+    reminder_1h_sent = models.BooleanField(default=False)
     recording_url = models.URLField(blank=True)
     session_notes = models.TextField(blank=True)
 

@@ -1,32 +1,90 @@
 {% extends "base.html" %}
 {% block title %}Live Sessions - Music Academy{% endblock %}
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<style>
+    .fc-event { cursor: pointer; }
+    .fc .fc-toolbar-title { font-size: 1.25rem; }
+</style>
+{% endblock %}
 {% block content %}
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center flex-wrap gap-4">
         <h1 class="text-3xl font-bold">Live Sessions</h1>
-        {% if user_role == "owner" or user_role == "instructor" %}
-        <a href="{% url 'session-create' %}" class="btn btn-primary">+ Schedule Session</a>
-        {% endif %}
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for session in sessions %}
-        {% include "scheduling/partials/_session_card.html" %}
-        {% empty %}
-        <div class="col-span-full text-center py-12">
-            <p class="text-gray-500 text-lg">No upcoming sessions scheduled.</p>
+        <div class="flex gap-2">
+            <button id="view-calendar" class="btn btn-sm btn-primary">Calendar</button>
+            <button id="view-list" class="btn btn-sm btn-ghost">List</button>
+            {% if user_role == "owner" or user_role == "instructor" %}
+            <a href="{% url 'session-create' %}" class="btn btn-primary btn-sm">+ Schedule</a>
+            {% endif %}
         </div>
-        {% endfor %}
     </div>
 
-    {% if past_sessions %}
-    <div class="mt-8">
-        <h2 class="text-xl font-bold mb-4 text-gray-500">Past Sessions</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75">
-            {% for session in past_sessions %}
-            {% include "scheduling/partials/_session_card.html" %}
-            {% endfor %}
+    <div id="calendar-view" class="card bg-base-100 shadow">
+        <div class="card-body">
+            <div id="calendar"></div>
         </div>
     </div>
-    {% endif %}
+
+    <div id="list-view" class="hidden">
+        <h2 class="text-xl font-bold mb-4">Upcoming Sessions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for session in sessions %}
+            {% include "scheduling/partials/_session_card.html" %}
+            {% empty %}
+            <div class="col-span-full text-center py-12">
+                <p class="text-gray-500 text-lg">No upcoming sessions scheduled.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if past_sessions %}
+        <div class="mt-8">
+            <h2 class="text-xl font-bold mb-4 text-gray-500">Past Sessions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75">
+                {% for session in past_sessions %}
+                {% include "scheduling/partials/_session_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek'
+        },
+        events: '{% url "session-events-api" %}',
+        eventClick: function(info) {
+            info.jsEvent.preventDefault();
+            if (info.event.url) window.location.href = info.event.url;
+        },
+        height: 'auto',
+        nowIndicator: true,
+    });
+    calendar.render();
+
+    document.getElementById('view-calendar').addEventListener('click', function() {
+        document.getElementById('calendar-view').classList.remove('hidden');
+        document.getElementById('list-view').classList.add('hidden');
+        this.classList.replace('btn-ghost', 'btn-primary');
+        document.getElementById('view-list').classList.replace('btn-primary', 'btn-ghost');
+        calendar.updateSize();
+    });
+    document.getElementById('view-list').addEventListener('click', function() {
+        document.getElementById('list-view').classList.remove('hidden');
+        document.getElementById('calendar-view').classList.add('hidden');
+        this.classList.replace('btn-ghost', 'btn-primary');
+        document.getElementById('view-calendar').classList.replace('btn-primary', 'btn-ghost');
+    });
+});
+</script>
 {% endblock %}

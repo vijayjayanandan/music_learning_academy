@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.static import serve
 
-from apps.academies.views import AcceptInvitationView
+from apps.academies.views import AcceptInvitationView, BrandedSignupView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -19,6 +19,7 @@ urlpatterns = [
     path("tinymce/", include("tinymce.urls")),
     # Invitation acceptance (top-level for clean URLs)
     path("invitation/<str:token>/accept/", AcceptInvitationView.as_view(), name="accept-invitation"),
+    path("join/<slug:slug>/", BrandedSignupView.as_view(), name="branded-signup"),
     # Favicon
     path("favicon.ico", serve, {"document_root": settings.STATICFILES_DIRS[0], "path": "favicon.ico"}),
 ]

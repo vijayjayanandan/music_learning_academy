@@ -119,6 +119,13 @@ class SubmitAssignmentView(TenantMixin, View):
             submission.file_upload = request.FILES["file_upload"]
             submission.save()
 
+        if request.FILES.get("recording"):
+            recording = request.FILES["recording"]
+            max_size = 100 * 1024 * 1024  # 100MB
+            if recording.size <= max_size:
+                submission.recording = recording
+                submission.save()
+
         if request.htmx:
             return render(request, "enrollments/partials/_submission_status.html", {
                 "submission": submission,

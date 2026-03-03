@@ -7,6 +7,8 @@ class User(AbstractUser):
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
 
     email_verified = models.BooleanField(default=False)
+    timezone = models.CharField(max_length=50, default="UTC")
+    email_preferences = models.JSONField(default=dict, blank=True)
     current_academy = models.ForeignKey(
         "academies.Academy",
         on_delete=models.SET_NULL,
@@ -24,6 +26,10 @@ class User(AbstractUser):
     def get_role_in(self, academy):
         membership = self.memberships.filter(academy=academy).first()
         return membership.role if membership else None
+
+    def wants_email(self, notification_type):
+        prefs = self.email_preferences or {}
+        return prefs.get(notification_type, True)  # Default: all enabled
 
     def get_academies(self):
         from apps.academies.models import Academy

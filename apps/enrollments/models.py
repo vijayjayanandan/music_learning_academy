@@ -70,6 +70,7 @@ class AssignmentSubmission(TenantScopedModel):
 
     text_response = models.TextField(blank=True)
     recording_url = models.URLField(blank=True)
+    recording = models.FileField(upload_to="recordings/%Y/%m/", blank=True, null=True)
     file_upload = models.FileField(upload_to="submissions/", blank=True, null=True)
     practice_time_minutes = models.PositiveIntegerField(default=0)
 
@@ -89,3 +90,33 @@ class AssignmentSubmission(TenantScopedModel):
 
     class Meta:
         ordering = ["-created_at"]
+
+    @property
+    def is_audio_recording(self):
+        if not self.recording:
+            return False
+        import os
+        ext = os.path.splitext(self.recording.name)[1].lower()
+        return ext in [".mp3", ".wav", ".m4a", ".ogg", ".flac"]
+
+    @property
+    def is_video_recording(self):
+        if not self.recording:
+            return False
+        import os
+        ext = os.path.splitext(self.recording.name)[1].lower()
+        return ext in [".mp4", ".webm", ".mov"]
+
+    @property
+    def recording_size_display(self):
+        if not self.recording:
+            return ""
+        try:
+            size = self.recording.size
+        except (FileNotFoundError, ValueError):
+            return "0 B"
+        for unit in ["B", "KB", "MB", "GB"]:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"

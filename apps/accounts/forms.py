@@ -18,11 +18,37 @@ class RegisterForm(UserCreationForm):
 
 
 class ProfileForm(forms.ModelForm):
+    COMMON_TIMEZONES = [
+        ("UTC", "UTC"),
+        ("US/Eastern", "US/Eastern"),
+        ("US/Central", "US/Central"),
+        ("US/Mountain", "US/Mountain"),
+        ("US/Pacific", "US/Pacific"),
+        ("Europe/London", "Europe/London"),
+        ("Europe/Paris", "Europe/Paris"),
+        ("Europe/Berlin", "Europe/Berlin"),
+        ("Asia/Kolkata", "Asia/Kolkata"),
+        ("Asia/Tokyo", "Asia/Tokyo"),
+        ("Asia/Shanghai", "Asia/Shanghai"),
+        ("Asia/Dubai", "Asia/Dubai"),
+        ("Asia/Singapore", "Asia/Singapore"),
+        ("Australia/Sydney", "Australia/Sydney"),
+        ("Pacific/Auckland", "Pacific/Auckland"),
+        ("America/Sao_Paulo", "America/Sao Paulo"),
+        ("Africa/Lagos", "Africa/Lagos"),
+        ("Africa/Johannesburg", "Africa/Johannesburg"),
+    ]
+
+    timezone = forms.ChoiceField(choices=COMMON_TIMEZONES)
+
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "avatar"]
+        fields = ["first_name", "last_name", "avatar", "timezone"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs["class"] = "input input-bordered w-full"
+        for name, field in self.fields.items():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs["class"] = "select select-bordered w-full"
+            else:
+                field.widget.attrs["class"] = "input input-bordered w-full"

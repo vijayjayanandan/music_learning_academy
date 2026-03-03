@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{% if tab == "sent" %}Sent Messages{% else %}Inbox{% endif %} - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Messages</h1>
+        <a href="{% url 'message-compose' %}" class="btn btn-primary btn-sm">Compose</a>
+    </div>
+    <div class="tabs tabs-boxed">
+        <a href="{% url 'message-inbox' %}" class="tab {% if tab == 'inbox' %}tab-active{% endif %}">
+            Inbox {% if unread_msg_count %}<span class="badge badge-sm badge-primary ml-1">{{ unread_msg_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'message-sent' %}" class="tab {% if tab == 'sent' %}tab-active{% endif %}">Sent</a>
+    </div>
+    <div class="card bg-base-100 shadow">
+        <div class="card-body p-0">
+            {% for msg in messages_list %}
+            <a href="{% url 'message-thread' msg.pk %}" class="flex items-center gap-3 p-4 border-b hover:bg-base-200 {% if not msg.is_read and tab == 'inbox' %}font-bold bg-base-200{% endif %}">
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between">
+                        <span class="truncate">
+                            {% if tab == "sent" %}To: {{ msg.recipient.get_full_name|default:msg.recipient.email }}{% else %}{{ msg.sender.get_full_name|default:msg.sender.email }}{% endif %}
+                        </span>
+                        <span class="text-xs text-gray-500">{{ msg.created_at|timesince }} ago</span>
+                    </div>
+                    <p class="text-sm truncate">{{ msg.subject }}</p>
+                </div>
+            </a>
+            {% empty %}
+            <div class="p-8 text-center text-gray-500">No messages yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

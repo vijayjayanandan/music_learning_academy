@@ -147,6 +147,50 @@ class AcceptInvitationView(View):
         return redirect("dashboard")
 
 
+class BrandedSignupView(View):
+    """Public signup page for a specific academy."""
+
+    def get(self, request, slug):
+        academy = get_object_or_404(Academy, slug=slug)
+        if request.user.is_authenticated:
+            # Already logged in — just add membership
+            Membership.objects.get_or_create(
+                user=request.user, academy=academy,
+                defaults={"role": Membership.Role.STUDENT},
+            )
+            request.user.current_academy = academy
+            request.user.save(update_fields=["current_academy"])
+            return redirect("dashboard")
+        from apps.accounts.forms import RegisterForm
+        return render(request, "academies/branded_signup.html", {
+            "academy": academy,
+            "form": RegisterForm(),
+        })
+
+    def post(self, request, slug):
+        academy = get_object_or_404(Academy, slug=slug)
+        from apps.accounts.forms import RegisterForm
+        from django.contrib.auth import login as auth_login
+        from django.db import transaction
+
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                user = form.save()
+                Membership.objects.create(
+                    user=user, academy=academy,
+                    role=Membership.Role.STUDENT,
+                )
+                user.current_academy = academy
+                user.save(update_fields=["current_academy"])
+                auth_login(request, user)
+            return redirect("dashboard")
+        return render(request, "academies/branded_signup.html", {
+            "academy": academy,
+            "form": form,
+        })
+
+
 class RemoveMemberView(TenantMixin, View):
     def post(self, request, slug, pk):
         academy = get_object_or_404(Academy, slug=slug)

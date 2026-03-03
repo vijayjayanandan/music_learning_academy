@@ -166,6 +166,46 @@ class MarkLeftView(TenantMixin, View):
         })
 
 
+class SessionEventsAPIView(TenantMixin, View):
+    """JSON API for FullCalendar events."""
+
+    def get(self, request):
+        from django.http import JsonResponse
+
+        start = request.GET.get("start")
+        end = request.GET.get("end")
+        qs = LiveSession.objects.filter(academy=self.get_academy())
+        if start:
+            qs = qs.filter(scheduled_end__gte=start)
+        if end:
+            qs = qs.filter(scheduled_start__lte=end)
+        qs = qs.select_related("instructor", "course")
+
+        color_map = {
+            "one_on_one": "#3B82F6",
+            "group": "#10B981",
+            "masterclass": "#8B5CF6",
+            "recital": "#F59E0B",
+        }
+        events = []
+        for s in qs:
+            events.append({
+                "id": s.pk,
+                "title": s.title,
+                "start": s.scheduled_start.isoformat(),
+                "end": s.scheduled_end.isoformat(),
+                "url": f"/schedule/session/{s.pk}/",
+                "color": color_map.get(s.session_type, "#6B7280"),
+                "classNames": ["opacity-50"] if s.status == "cancelled" else [],
+                "extendedProps": {
+                    "type": s.get_session_type_display(),
+                    "instructor": s.instructor.get_full_name() or s.instructor.email,
+                    "status": s.status,
+                },
+            })
+        return JsonResponse(events, safe=False)
+
+
 class UpcomingSessionsPartialView(TenantMixin, ListView):
     model = LiveSession
     template_name = "scheduling/partials/_upcoming_sessions.html"
