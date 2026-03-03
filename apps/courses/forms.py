@@ -1,4 +1,5 @@
 from django import forms
+from tinymce.widgets import TinyMCE
 from .models import Course, Lesson, PracticeAssignment
 
 
@@ -17,10 +18,15 @@ class CourseForm(forms.ModelForm):
             "thumbnail",
             "is_published",
         ]
+        widgets = {
+            "description": TinyMCE(attrs={"cols": 80, "rows": 15}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
+            if isinstance(field.widget, TinyMCE):
+                continue
             if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs["class"] = "checkbox checkbox-primary"
             elif isinstance(field.widget, forms.Select):
@@ -30,9 +36,6 @@ class CourseForm(forms.ModelForm):
                 field.widget.attrs["rows"] = 3
             else:
                 field.widget.attrs["class"] = "input input-bordered w-full"
-        self.fields["description"].widget = forms.Textarea(
-            attrs={"class": "textarea textarea-bordered w-full", "rows": 4}
-        )
 
 
 class LessonForm(forms.ModelForm):
@@ -49,19 +52,21 @@ class LessonForm(forms.ModelForm):
             "order",
             "is_published",
         ]
+        widgets = {
+            "content": TinyMCE(attrs={"cols": 80, "rows": 20}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
+            if isinstance(field.widget, TinyMCE):
+                continue
             if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs["class"] = "checkbox checkbox-primary"
             else:
                 field.widget.attrs["class"] = "input input-bordered w-full"
         self.fields["description"].widget = forms.Textarea(
             attrs={"class": "textarea textarea-bordered w-full", "rows": 2}
-        )
-        self.fields["content"].widget = forms.Textarea(
-            attrs={"class": "textarea textarea-bordered w-full", "rows": 6}
         )
 
 
@@ -79,10 +84,16 @@ class PracticeAssignmentForm(forms.ModelForm):
             "instructions",
             "due_date",
         ]
+        widgets = {
+            "description": TinyMCE(attrs={"cols": 80, "rows": 10}),
+            "instructions": TinyMCE(attrs={"cols": 80, "rows": 10}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
+            if isinstance(field.widget, TinyMCE):
+                continue
             if isinstance(field.widget, forms.Select):
                 field.widget.attrs["class"] = "select select-bordered w-full"
             elif isinstance(field.widget, forms.Textarea):

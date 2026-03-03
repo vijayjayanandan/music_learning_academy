@@ -30,7 +30,7 @@
             <div class="card bg-base-100 shadow">
                 <div class="card-body">
                     <h3 class="card-title">About This Course</h3>
-                    <p>{{ object.description }}</p>
+                    <div class="prose max-w-none">{{ object.description|safe }}</div>
                     {% if object.prerequisites %}
                     <div class="mt-4">
                         <strong>Prerequisites:</strong>

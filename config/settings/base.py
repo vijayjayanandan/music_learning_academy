@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "django_htmx",
     "django_filters",
     "channels",
+    "tinymce",
     # Project apps
     "apps.common",
     "apps.accounts",
@@ -116,6 +117,24 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+}
+
+# TinyMCE configuration
+TINYMCE_DEFAULT_CONFIG = {
+    "theme": "silver",
+    "height": 300,
+    "menubar": False,
+    "plugins": "advlist autolink lists link image charmap preview anchor "
+               "searchreplace visualblocks code fullscreen "
+               "insertdatetime media table code help wordcount",
+    "toolbar": "bold italic underline strikethrough | blocks | "
+               "bullist numlist | link image media | code blockquote | "
+               "undo redo | removeformat",
+    "content_css": "default",
+    "branding": False,
+    "promotion": False,
+    "statusbar": True,
+    "resize": True,
 }
 
 # Jitsi configuration

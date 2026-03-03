@@ -7,3 +7,4 @@ daphne>=4.0
 Pillow>=10.0
 python-dotenv>=1.0
 whitenoise>=6.5
+django-tinymce>=3.6

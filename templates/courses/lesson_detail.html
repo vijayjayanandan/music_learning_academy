@@ -15,7 +15,7 @@
     {% endif %}
     <div class="card bg-base-100 shadow">
         <div class="card-body prose max-w-none">
-            {{ object.content|linebreaks }}
+            {{ object.content|safe }}
         </div>
     </div>
     {% if object.video_url %}
@@ -41,7 +41,7 @@
                     <span class="text-sm text-gray-500">Due: {{ assignment.due_date|date:"M d, Y" }}</span>
                     {% endif %}
                 </div>
-                <p class="text-sm text-gray-600 mt-1">{{ assignment.description }}</p>
+                <div class="text-sm text-gray-600 mt-1 prose prose-sm max-w-none">{{ assignment.description|safe }}</div>
             </div>
             {% endfor %}
         </div>
