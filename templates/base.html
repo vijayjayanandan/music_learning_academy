@@ -175,19 +175,40 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                         My Progress
                     </a></li>
+                    <li><a href="{% url 'book-session' %}">Book Session</a></li>
                     {% endif %}
+
+                    <li class="menu-title mt-4">Music Tools</li>
+                    <li><a href="{% url 'metronome' %}">Metronome</a></li>
+                    <li><a href="{% url 'tuner' %}">Tuner</a></li>
+                    <li><a href="{% url 'notation-renderer' %}">Notation</a></li>
+                    <li><a href="{% url 'ear-training-list' %}">Ear Training</a></li>
+                    <li><a href="{% url 'recording-archive' %}">Recordings</a></li>
+                    <li><a href="{% url 'library-list' %}">Library</a></li>
+
+                    <li class="menu-title mt-4">Events</li>
+                    <li><a href="{% url 'recital-list' %}">Recitals</a></li>
+                    <li><a href="{% url 'academy-announcements' current_academy.slug %}">Announcements</a></li>
 
                     {% if user_role == "owner" or user_role == "instructor" %}
                     <li class="menu-title mt-4">Manage</li>
                     <li><a href="{% url 'course-create' %}">+ New Course</a></li>
                     <li><a href="{% url 'session-create' %}">+ Schedule Session</a></li>
+                    <li><a href="{% url 'availability-manage' %}">My Availability</a></li>
                     {% endif %}
 
                     {% if user_role == "owner" %}
                     <li class="menu-title mt-4">Academy</li>
                     <li><a href="{% url 'academy-members' current_academy.slug %}">Members</a></li>
                     <li><a href="{% url 'academy-settings' current_academy.slug %}">Settings</a></li>
+                    <li><a href="{% url 'coupon-manage' %}">Coupons</a></li>
+                    <li><a href="{% url 'payout-list' %}">Payouts</a></li>
                     {% endif %}
+
+                    <li class="menu-title mt-4">Account</li>
+                    <li><a href="{% url 'pricing' %}">Pricing</a></li>
+                    <li><a href="{% url 'payment-history' %}">Billing</a></li>
+                    <li><a href="{% url 'calendar-sync' %}">Calendar Sync</a></li>
                 </ul>
                 {% else %}
                 <div class="text-center py-8">
