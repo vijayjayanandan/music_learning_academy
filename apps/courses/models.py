@@ -111,3 +111,49 @@ class PracticeAssignment(TenantScopedModel):
 
     class Meta:
         ordering = ["lesson", "created_at"]
+
+
+class LessonAttachment(TenantScopedModel):
+    class FileType(models.TextChoices):
+        SHEET_MUSIC = "sheet_music", "Sheet Music"
+        AUDIO = "audio", "Audio"
+        VIDEO = "video", "Video"
+        IMAGE = "image", "Image"
+        OTHER = "other", "Other"
+
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="attachments"
+    )
+    file = models.FileField(upload_to="lesson_attachments/%Y/%m/")
+    file_type = models.CharField(
+        max_length=20,
+        choices=FileType.choices,
+        default=FileType.OTHER,
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "created_at"]
+
+    def __str__(self):
+        return f"{self.title} ({self.lesson.title})"
+
+    @property
+    def file_size_display(self):
+        """Return human-readable file size."""
+        try:
+            size = self.file.size
+        except (FileNotFoundError, ValueError):
+            return "0 B"
+        for unit in ["B", "KB", "MB", "GB"]:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+
+    @property
+    def file_extension(self):
+        import os
+        return os.path.splitext(self.file.name)[1].lower()

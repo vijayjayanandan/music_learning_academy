@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Lesson, PracticeAssignment
+from .models import Course, Lesson, LessonAttachment, PracticeAssignment
 
 
 class LessonInline(admin.TabularInline):
@@ -26,3 +26,9 @@ class LessonAdmin(admin.ModelAdmin):
 class PracticeAssignmentAdmin(admin.ModelAdmin):
     list_display = ["title", "lesson", "assignment_type", "due_date"]
     list_filter = ["assignment_type"]
+
+
+@admin.register(LessonAttachment)
+class LessonAttachmentAdmin(admin.ModelAdmin):
+    list_display = ["title", "lesson", "file_type", "order"]
+    list_filter = ["file_type"]

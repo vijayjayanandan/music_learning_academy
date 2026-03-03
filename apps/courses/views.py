@@ -8,8 +8,8 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from apps.academies.mixins import TenantMixin
 from apps.accounts.decorators import role_required
 from apps.enrollments.models import Enrollment
-from .forms import CourseForm, LessonForm, PracticeAssignmentForm
-from .models import Course, Lesson, PracticeAssignment
+from .forms import CourseForm, LessonForm, LessonAttachmentForm, PracticeAssignmentForm
+from .models import Course, Lesson, LessonAttachment, PracticeAssignment
 
 
 class CourseListView(TenantMixin, ListView):
@@ -132,7 +132,13 @@ class LessonDetailView(TenantMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx["course"] = self.object.course
         ctx["assignments"] = self.object.assignments.all()
+        ctx["attachments"] = self.object.attachments.all()
+        ctx["attachment_form"] = LessonAttachmentForm()
         ctx["assignment_form"] = PracticeAssignmentForm()
+        ctx["is_instructor"] = (
+            self.object.course.instructor == self.request.user
+            or self.request.user.get_role_in(self.get_academy()) == "owner"
+        )
         return ctx
 
 
@@ -171,3 +177,42 @@ class LessonDeleteView(TenantMixin, View):
                 "lessons": lessons, "course": course, "lesson_form": LessonForm(),
             })
         return redirect("course-detail", slug=slug)
+
+
+class AttachmentUploadView(TenantMixin, View):
+    def post(self, request, slug, pk):
+        lesson = get_object_or_404(Lesson, pk=pk, academy=self.get_academy())
+        form = LessonAttachmentForm(request.POST, request.FILES)
+        if form.is_valid():
+            attachment = form.save(commit=False)
+            attachment.lesson = lesson
+            attachment.academy = self.get_academy()
+            attachment.save()
+            if request.htmx:
+                return render(request, "courses/partials/_attachment_list.html", {
+                    "attachments": lesson.attachments.all(),
+                    "lesson": lesson,
+                    "course": lesson.course,
+                    "is_instructor": True,
+                    "attachment_form": LessonAttachmentForm(),
+                })
+        return redirect("lesson-detail", slug=slug, pk=pk)
+
+
+class AttachmentDeleteView(TenantMixin, View):
+    def post(self, request, slug, pk, attachment_pk):
+        attachment = get_object_or_404(
+            LessonAttachment, pk=attachment_pk, academy=self.get_academy()
+        )
+        lesson = attachment.lesson
+        attachment.file.delete()
+        attachment.delete()
+        if request.htmx:
+            return render(request, "courses/partials/_attachment_list.html", {
+                "attachments": lesson.attachments.all(),
+                "lesson": lesson,
+                "course": lesson.course,
+                "is_instructor": True,
+                "attachment_form": LessonAttachmentForm(),
+            })
+        return redirect("lesson-detail", slug=slug, pk=pk)

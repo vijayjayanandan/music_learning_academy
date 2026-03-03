@@ -12,4 +12,7 @@ urlpatterns = [
     path("<slug:slug>/lessons/<int:pk>/", views.LessonDetailView.as_view(), name="lesson-detail"),
     path("<slug:slug>/lessons/<int:pk>/edit/", views.LessonEditView.as_view(), name="lesson-edit"),
     path("<slug:slug>/lessons/<int:pk>/delete/", views.LessonDeleteView.as_view(), name="lesson-delete"),
+    # Attachments
+    path("<slug:slug>/lessons/<int:pk>/attachments/upload/", views.AttachmentUploadView.as_view(), name="attachment-upload"),
+    path("<slug:slug>/lessons/<int:pk>/attachments/<int:attachment_pk>/delete/", views.AttachmentDeleteView.as_view(), name="attachment-delete"),
 ]
