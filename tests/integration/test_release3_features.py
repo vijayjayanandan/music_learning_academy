@@ -216,15 +216,15 @@ class TestPackageDeals:
         response = auth_client.get(reverse("my-packages"))
         assert response.status_code == 200
 
-    def test_purchase_package(self, auth_client, owner_user, academy, db):
+    def test_purchase_package_redirects_or_errors(self, auth_client, owner_user, academy, db):
+        """Package purchase now goes through Stripe checkout; POST redirects to Stripe or pricing on error."""
         pkg = PackageDeal.objects.create(
             name="5 Lesson Pack", academy=academy,
             price_cents=8000, total_credits=5,
         )
         response = auth_client.post(reverse("package-purchase", args=[pkg.pk]))
+        # Redirects to Stripe checkout URL (302) or back to pricing on Stripe API error
         assert response.status_code == 302
-        purchase = PackagePurchase.objects.get(student=owner_user, package=pkg)
-        assert purchase.credits_remaining == 5
 
 
 @pytest.mark.integration

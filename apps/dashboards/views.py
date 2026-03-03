@@ -36,6 +36,14 @@ class DashboardRedirectView(LoginRequiredMixin, View):
 class AdminDashboardView(TenantMixin, TemplateView):
     template_name = "dashboards/admin_dashboard.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only owners can access admin dashboard
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role != "owner":
+                return redirect("dashboard")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         academy = self.get_academy()
@@ -61,6 +69,14 @@ class AdminDashboardView(TenantMixin, TemplateView):
 
 class InstructorDashboardView(TenantMixin, TemplateView):
     template_name = "dashboards/instructor_dashboard.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can access instructor dashboard
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                return redirect("dashboard")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

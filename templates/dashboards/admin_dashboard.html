@@ -2,30 +2,56 @@
 {% block title %}Admin Dashboard - {{ current_academy.name }}{% endblock %}
 {% block content %}
 <div class="space-y-6">
-    <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+    <div class="flex justify-between items-center flex-wrap gap-4">
+        <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+        <div class="flex gap-2 flex-wrap">
+            <a href="{% url 'course-create' %}" class="btn btn-primary btn-sm">+ New Course</a>
+            <a href="{% url 'session-create' %}" class="btn btn-secondary btn-sm">+ Schedule Session</a>
+            <a href="{% url 'academy-members' current_academy.slug %}" class="btn btn-accent btn-sm">Manage Members</a>
+        </div>
+    </div>
+
+    <!-- Stats Section with loading indicator -->
     <div id="stats-section"
          hx-get="{% url 'dashboard-stats-partial' %}"
          hx-trigger="load, every 60s"
-         hx-swap="innerHTML">
-        <div class="stats shadow w-full">
+         hx-swap="innerHTML"
+         hx-indicator="#stats-loading">
+        <div class="stats shadow w-full bg-base-100 stats-vertical sm:stats-horizontal">
             <div class="stat">
+                <div class="stat-figure text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                </div>
                 <div class="stat-title">Students</div>
                 <div class="stat-value text-primary">{{ total_students }}</div>
             </div>
             <div class="stat">
+                <div class="stat-figure text-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                </div>
                 <div class="stat-title">Instructors</div>
                 <div class="stat-value text-secondary">{{ total_instructors }}</div>
             </div>
             <div class="stat">
+                <div class="stat-figure text-accent">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                </div>
                 <div class="stat-title">Courses</div>
                 <div class="stat-value text-accent">{{ total_courses }}</div>
             </div>
         </div>
+        <span id="stats-loading" class="loading loading-spinner loading-sm htmx-indicator ml-2"></span>
     </div>
+
+    <!-- Two-column layout for sessions and enrollments -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Upcoming Sessions -->
         <div class="card bg-base-100 shadow">
             <div class="card-body">
-                <h2 class="card-title">Upcoming Sessions</h2>
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Upcoming Sessions
+                </h2>
                 {% for session in upcoming_sessions %}
                 <div class="flex items-center justify-between py-2 border-b last:border-0">
                     <div>
@@ -35,13 +61,22 @@
                     <span class="badge badge-sm">{{ session.instructor.get_full_name }}</span>
                 </div>
                 {% empty %}
-                <p class="text-gray-500">No upcoming sessions.</p>
+                <div class="text-center py-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <p class="text-gray-500 mb-3">No upcoming sessions scheduled.</p>
+                    <a href="{% url 'session-create' %}" class="btn btn-secondary btn-sm">Schedule a Session</a>
+                </div>
                 {% endfor %}
             </div>
         </div>
+
+        <!-- Recent Enrollments -->
         <div class="card bg-base-100 shadow">
             <div class="card-body">
-                <h2 class="card-title">Recent Enrollments</h2>
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                    Recent Enrollments
+                </h2>
                 {% for enrollment in recent_enrollments %}
                 <div class="flex items-center justify-between py-2 border-b last:border-0">
                     <div>
@@ -51,15 +86,14 @@
                     <span class="text-xs text-gray-400">{{ enrollment.enrolled_at|date:"M d" }}</span>
                 </div>
                 {% empty %}
-                <p class="text-gray-500">No recent enrollments.</p>
+                <div class="text-center py-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                    <p class="text-gray-500 mb-3">No enrollments yet. Share your courses to attract students!</p>
+                    <a href="{% url 'course-list' %}" class="btn btn-primary btn-sm">View Courses</a>
+                </div>
                 {% endfor %}
             </div>
         </div>
-    </div>
-    <div class="flex gap-4">
-        <a href="{% url 'course-create' %}" class="btn btn-primary">+ New Course</a>
-        <a href="{% url 'session-create' %}" class="btn btn-secondary">+ Schedule Session</a>
-        <a href="{% url 'academy-members' current_academy.slug %}" class="btn btn-accent">Manage Members</a>
     </div>
 </div>
 {% endblock %}

@@ -10,6 +10,14 @@
 {% endblock %}
 {% block content %}
 <div class="space-y-6">
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Live Sessions</li>
+        </ul>
+    </div>
+
     <div class="flex justify-between items-center flex-wrap gap-4">
         <h1 class="text-3xl font-bold">Live Sessions</h1>
         <div class="flex gap-2">
@@ -21,20 +29,33 @@
         </div>
     </div>
 
+    <!-- Calendar View -->
     <div id="calendar-view" class="card bg-base-100 shadow">
         <div class="card-body">
             <div id="calendar"></div>
         </div>
     </div>
 
-    <div id="list-view" class="hidden">
-        <h2 class="text-xl font-bold mb-4">Upcoming Sessions</h2>
+    <!-- List View -->
+    <div id="list-view" class="hidden space-y-6">
+        <h2 class="text-xl font-bold">Upcoming Sessions</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for session in sessions %}
             {% include "scheduling/partials/_session_card.html" %}
             {% empty %}
-            <div class="col-span-full text-center py-12">
-                <p class="text-gray-500 text-lg">No upcoming sessions scheduled.</p>
+            <div class="col-span-full">
+                <div class="card bg-base-100 shadow">
+                    <div class="card-body items-center text-center py-12">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <h3 class="text-lg font-semibold text-gray-600 mb-2">No upcoming sessions</h3>
+                        <p class="text-gray-500 mb-4">There are no live sessions scheduled at this time.</p>
+                        {% if user_role == "owner" or user_role == "instructor" %}
+                        <a href="{% url 'session-create' %}" class="btn btn-primary">Schedule a Session</a>
+                        {% else %}
+                        <p class="text-sm text-gray-400">Check back later or ask your instructor about upcoming sessions.</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
             {% endfor %}
         </div>

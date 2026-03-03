@@ -23,15 +23,21 @@ def _send_verification_email(request, user):
     protocol = "https" if request.is_secure() else "http"
     domain = request.get_host()
     verify_url = f"{protocol}://{domain}/accounts/verify-email/{uid}/{token}/"
-    message = render_to_string("accounts/email_verification_email.html", {
+    html_message = render_to_string("emails/verification_email.html", {
         "user": user,
         "verify_url": verify_url,
     })
+    plain_message = (
+        f"Hi {user.first_name or 'there'},\n\n"
+        f"Please verify your email address by visiting:\n{verify_url}\n\n"
+        f"If you didn't create an account, you can ignore this email."
+    )
     send_mail(
         "Verify your email - Music Learning Academy",
-        message,
+        plain_message,
         None,  # uses DEFAULT_FROM_EMAIL
         [user.email],
+        html_message=html_message,
     )
 
 
@@ -134,16 +140,41 @@ class ParentDashboardView(LoginRequiredMixin, View):
 
 
 class LinkChildView(LoginRequiredMixin, View):
-    """Link a child account to parent."""
+    """Link a child account to parent.
+
+    Security: Only links if the child account has no existing parent
+    and the child is a student in at least one academy that the parent
+    belongs to. This prevents arbitrary account linking.
+    """
 
     def post(self, request):
-        child_email = request.POST.get("child_email", "")
+        from django.contrib import messages as django_messages
+        child_email = request.POST.get("child_email", "").strip()
         try:
             child = User.objects.get(email=child_email)
+            # Security: prevent linking if child already has a parent
+            if child.parent is not None:
+                django_messages.error(request, "This account is already linked to a parent.")
+                return redirect("parent-dashboard")
+            # Security: prevent linking yourself
+            if child == request.user:
+                django_messages.error(request, "You cannot link your own account as a child.")
+                return redirect("parent-dashboard")
+            # Security: verify shared academy membership
+            parent_academy_ids = set(
+                request.user.memberships.values_list("academy_id", flat=True)
+            )
+            child_academy_ids = set(
+                child.memberships.filter(role="student").values_list("academy_id", flat=True)
+            )
+            if not parent_academy_ids & child_academy_ids:
+                django_messages.error(request, "No shared academy found with this student.")
+                return redirect("parent-dashboard")
             child.parent = request.user
             child.save(update_fields=["parent"])
             request.user.is_parent = True
             request.user.save(update_fields=["is_parent"])
+            django_messages.success(request, f"Successfully linked {child_email}.")
         except User.DoesNotExist:
-            pass
+            django_messages.error(request, "No account found with that email.")
         return redirect("parent-dashboard")

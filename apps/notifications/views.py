@@ -24,8 +24,9 @@ class NotificationListView(TenantMixin, ListView):
 
 class MarkReadView(TenantMixin, View):
     def post(self, request, pk):
+        # Security: filter by academy too (tenant isolation)
         notification = get_object_or_404(
-            Notification, pk=pk, recipient=request.user
+            Notification, pk=pk, recipient=request.user, academy=self.get_academy()
         )
         notification.is_read = True
         notification.save()
@@ -123,8 +124,22 @@ class ComposeMessageView(TenantMixin, View):
         academy = self.get_academy()
         from apps.accounts.models import User
         recipient = get_object_or_404(User, pk=request.POST.get("recipient"))
+        # Security: verify recipient is a member of the same academy
+        if not Membership.objects.filter(user=recipient, academy=academy).exists():
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Recipient is not a member of this academy.")
+        # Security: prevent sending messages to yourself
+        if recipient == request.user:
+            from django.contrib import messages
+            messages.error(request, "You cannot send a message to yourself.")
+            return redirect("compose-message")
         parent_id = request.POST.get("parent")
-        parent = Message.objects.filter(pk=parent_id).first() if parent_id else None
+        parent = None
+        if parent_id:
+            # Security: validate parent message belongs to this academy and involves the user
+            parent = Message.objects.filter(
+                pk=parent_id, academy=academy,
+            ).filter(Q(sender=request.user) | Q(recipient=request.user)).first()
         Message.objects.create(
             sender=request.user,
             recipient=recipient,
@@ -138,14 +153,24 @@ class ComposeMessageView(TenantMixin, View):
 
 class MessageThreadView(TenantMixin, View):
     def get(self, request, pk):
-        message = get_object_or_404(Message, pk=pk)
+        # Security: only allow users who are sender or recipient to view the thread (IDOR prevention)
+        message = get_object_or_404(
+            Message, pk=pk, academy=self.get_academy(),
+        )
+        # Verify user is a participant in this message
+        if message.sender != request.user and message.recipient != request.user:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("You do not have permission to view this thread.")
         root = message.thread_root
+        # Also verify the user is a participant in the root message
+        if root.sender != request.user and root.recipient != request.user:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("You do not have permission to view this thread.")
         thread = Message.objects.filter(
             Q(pk=root.pk) | Q(parent=root)
         ).select_related("sender", "recipient").order_by("created_at")
         # Mark as read
         thread.filter(recipient=request.user, is_read=False).update(is_read=True)
-        academy = self.get_academy()
         return render(request, "notifications/thread.html", {
             "thread": thread,
             "root_message": root,

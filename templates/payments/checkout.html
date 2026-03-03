@@ -7,37 +7,58 @@
         <div class="card-body">
             {% if plan %}
             <h2 class="card-title">{{ plan.name }}</h2>
-            <p class="text-2xl font-bold">{{ plan.price_display }}/{{ plan.billing_cycle }}</p>
+            <p class="text-2xl font-bold">{{ plan.price_display }}<span class="text-sm text-base-content/60">/{{ plan.billing_cycle }}</span></p>
             {% if plan.trial_days > 0 %}
             <div class="alert alert-success mt-2">
                 <span>Includes {{ plan.trial_days }}-day free trial!</span>
             </div>
             {% endif %}
+            {% if plan.features %}
+            <ul class="mt-3 space-y-1 text-sm">
+                {% for feature in plan.features %}
+                <li>&#10003; {{ feature }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
             {% elif course %}
             <h2 class="card-title">{{ course.title }}</h2>
-            <p>Course enrollment</p>
+            <p class="text-2xl font-bold">{{ course.price_display }}</p>
+            <p class="text-sm text-base-content/60">One-time course purchase</p>
             {% endif %}
 
             {% if coupon %}
             <div class="alert alert-info mt-2">
-                <span>Coupon applied: {{ coupon.code }} - {{ coupon }}</span>
+                <span>Coupon applied: {{ coupon.code }} &mdash; {{ coupon }}</span>
             </div>
             {% endif %}
 
             <div class="divider"></div>
-            <p class="text-sm text-base-content/60">This is a demo checkout. No real payment will be processed.</p>
 
-            <form method="post">
+            <form method="post" id="checkout-form">
                 {% csrf_token %}
                 <div class="form-control mb-4">
                     <label class="label"><span class="label-text">Coupon Code (optional)</span></label>
-                    <div class="input-group">
-                        <input type="text" name="coupon_code" placeholder="SAVE20" class="input input-bordered w-full">
-                    </div>
+                    <input type="text" name="coupon_code" placeholder="SAVE20" class="input input-bordered w-full" value="{{ coupon.code|default:'' }}">
                 </div>
-                <button type="submit" class="btn btn-primary w-full">Complete Purchase</button>
+                <button type="submit" class="btn btn-primary w-full" id="checkout-btn">
+                    <span id="btn-text">Proceed to Payment</span>
+                    <span id="btn-loading" class="loading loading-spinner loading-sm hidden"></span>
+                </button>
+                <p class="text-xs text-center text-base-content/50 mt-3">
+                    You'll be redirected to Stripe's secure checkout page.
+                </p>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('checkout-form').addEventListener('submit', function() {
+    document.getElementById('btn-text').textContent = 'Redirecting to Stripe...';
+    document.getElementById('btn-loading').classList.remove('hidden');
+    document.getElementById('checkout-btn').disabled = true;
+});
+</script>
 {% endblock %}

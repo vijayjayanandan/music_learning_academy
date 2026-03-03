@@ -13,6 +13,26 @@ SECRET_KEY = os.environ.get(
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+# Stripe
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+# SendGrid (via Django SMTP backend)
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
+if SENDGRID_API_KEY:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.sendgrid.net"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = "apikey"
+    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Music Academy <noreply@musicacademy.app>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
 INSTALLED_APPS = [
     # Channels ASGI server
     "daphne",
@@ -144,6 +164,14 @@ TINYMCE_DEFAULT_CONFIG = {
 
 # Jitsi configuration
 JITSI_DOMAIN = os.environ.get("JITSI_DOMAIN", "jitsi.member.fsf.org")
+
+# Celery
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
 
 # Login URLs
 LOGIN_URL = "/accounts/login/"

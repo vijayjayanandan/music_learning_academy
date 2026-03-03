@@ -37,6 +37,15 @@ class SessionCreateView(TenantMixin, CreateView):
     form_class = LiveSessionForm
     template_name = "scheduling/session_create.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can create sessions
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors and owners can create sessions.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["academy"] = self.get_academy()
@@ -79,6 +88,15 @@ class SessionEditView(TenantMixin, UpdateView):
     template_name = "scheduling/session_edit.html"
     pk_url_kwarg = "pk"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can edit sessions
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors and owners can edit sessions.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["academy"] = self.get_academy()
@@ -90,9 +108,18 @@ class SessionEditView(TenantMixin, UpdateView):
 
 class CancelSessionView(TenantMixin, View):
     def post(self, request, pk):
+        # Security: only the session instructor or academy owner can cancel
+        role = request.user.get_role_in(self.get_academy())
+        if role not in ("owner", "instructor"):
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Only instructors and owners can cancel sessions.")
         session = get_object_or_404(
             LiveSession, pk=pk, academy=self.get_academy()
         )
+        # Additional check: instructors can only cancel their own sessions
+        if role == "instructor" and session.instructor != request.user:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("You can only cancel your own sessions.")
         session.status = LiveSession.SessionStatus.CANCELLED
         session.save()
         if request.htmx:
@@ -143,7 +170,8 @@ class JoinSessionView(TenantMixin, DetailView):
 
 class MarkJoinedView(TenantMixin, View):
     def post(self, request, pk):
-        session = get_object_or_404(LiveSession, pk=pk)
+        # Security: filter by academy (tenant isolation)
+        session = get_object_or_404(LiveSession, pk=pk, academy=self.get_academy())
         SessionAttendance.objects.filter(
             session=session, student=request.user
         ).update(
@@ -157,7 +185,8 @@ class MarkJoinedView(TenantMixin, View):
 
 class MarkLeftView(TenantMixin, View):
     def post(self, request, pk):
-        session = get_object_or_404(LiveSession, pk=pk)
+        # Security: filter by academy (tenant isolation)
+        session = get_object_or_404(LiveSession, pk=pk, academy=self.get_academy())
         SessionAttendance.objects.filter(
             session=session, student=request.user
         ).update(left_at=timezone.now())
@@ -209,6 +238,15 @@ class SessionEventsAPIView(TenantMixin, View):
 class AvailabilityManageView(TenantMixin, View):
     """FEAT-030: Instructor manages availability slots."""
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors (and owners) can manage availability
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors can manage availability.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         slots = InstructorAvailability.objects.filter(
             instructor=request.user, academy=self.get_academy(),
@@ -216,10 +254,16 @@ class AvailabilityManageView(TenantMixin, View):
         return render(request, "scheduling/availability.html", {"slots": slots})
 
     def post(self, request):
+        # Security: validate day_of_week is in range 0-6
+        try:
+            day = int(request.POST.get("day_of_week", 0))
+            day = max(0, min(day, 6))
+        except (ValueError, TypeError):
+            day = 0
         InstructorAvailability.objects.create(
             instructor=request.user,
             academy=self.get_academy(),
-            day_of_week=int(request.POST.get("day_of_week", 0)),
+            day_of_week=day,
             start_time=request.POST.get("start_time"),
             end_time=request.POST.get("end_time"),
         )
@@ -227,9 +271,20 @@ class AvailabilityManageView(TenantMixin, View):
 
 
 class DeleteAvailabilityView(TenantMixin, View):
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors can manage availability
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors can manage availability.")
+        return super().dispatch(request, *args, **kwargs)
+
     def post(self, request, pk):
+        # Security: filter by academy too (tenant isolation)
         slot = get_object_or_404(
             InstructorAvailability, pk=pk, instructor=request.user,
+            academy=self.get_academy(),
         )
         slot.delete()
         return redirect("availability-manage")
@@ -256,9 +311,19 @@ class BookSessionView(TenantMixin, View):
         })
 
     def post(self, request):
-        from apps.accounts.models import User
+        from apps.accounts.models import User, Membership
         instructor = get_object_or_404(User, pk=request.POST.get("instructor"))
-        slot = get_object_or_404(InstructorAvailability, pk=request.POST.get("slot"))
+        # Security: verify instructor is actually an instructor in this academy
+        if not Membership.objects.filter(
+            user=instructor, academy=self.get_academy(), role="instructor"
+        ).exists():
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Invalid instructor for this academy.")
+        # Security: filter slot by academy (tenant isolation)
+        slot = get_object_or_404(
+            InstructorAvailability, pk=request.POST.get("slot"),
+            academy=self.get_academy(),
+        )
         session_date = request.POST.get("session_date")
 
         from datetime import datetime

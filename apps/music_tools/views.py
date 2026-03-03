@@ -98,6 +98,15 @@ class RecitalDetailView(TenantMixin, View):
 class RecitalCreateView(TenantMixin, View):
     """Create a new recital event."""
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can create recitals
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors and owners can create recitals.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request):
         return render(request, "music_tools/recital_create.html")
 
@@ -118,6 +127,8 @@ class RecitalCreateView(TenantMixin, View):
 
 class PracticeAnalysisView(TenantMixin, View):
     """FEAT-038: AI practice feedback."""
+    ALLOWED_RECORDING_EXTENSIONS = {'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.mp4', '.webm', '.mov'}
+    MAX_RECORDING_SIZE = 100 * 1024 * 1024  # 100MB
 
     def get(self, request):
         analyses = PracticeAnalysis.objects.filter(
@@ -128,13 +139,18 @@ class PracticeAnalysisView(TenantMixin, View):
         })
 
     def post(self, request):
+        import os
         analysis = PracticeAnalysis.objects.create(
             student=request.user,
             academy=self.get_academy(),
         )
         if request.FILES.get("recording"):
-            analysis.recording = request.FILES["recording"]
-            analysis.save()
+            recording = request.FILES["recording"]
+            ext = os.path.splitext(recording.name)[1].lower()
+            # Security: validate file type and size
+            if ext in self.ALLOWED_RECORDING_EXTENSIONS and recording.size <= self.MAX_RECORDING_SIZE:
+                analysis.recording = recording
+                analysis.save()
         # In production, would send to analysis pipeline here
         # For PoC, generate mock analysis
         analysis.analysis_result = {
@@ -169,14 +185,28 @@ class RecordingArchiveView(TenantMixin, ListView):
 
 class RecordingUploadView(TenantMixin, View):
     """Upload a new recording to the archive."""
+    ALLOWED_RECORDING_EXTENSIONS = {'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.mp4', '.webm', '.mov'}
+    MAX_RECORDING_SIZE = 100 * 1024 * 1024  # 100MB
 
     def post(self, request):
+        import os
         if request.FILES.get("recording"):
+            recording = request.FILES["recording"]
+            ext = os.path.splitext(recording.name)[1].lower()
+            # Security: validate file type and size
+            if ext not in self.ALLOWED_RECORDING_EXTENSIONS:
+                from django.contrib import messages
+                messages.error(request, f"File type '{ext}' is not allowed for recordings.")
+                return redirect("recording-archive")
+            if recording.size > self.MAX_RECORDING_SIZE:
+                from django.contrib import messages
+                messages.error(request, "Recording exceeds the 100MB size limit.")
+                return redirect("recording-archive")
             RecordingArchive.objects.create(
                 student=request.user,
                 academy=self.get_academy(),
                 title=request.POST.get("title", "Untitled"),
-                recording=request.FILES["recording"],
+                recording=recording,
                 instrument=request.POST.get("instrument", ""),
                 notes=request.POST.get("notes", ""),
             )

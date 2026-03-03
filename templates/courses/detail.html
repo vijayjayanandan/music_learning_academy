@@ -2,16 +2,25 @@
 {% block title %}{{ object.title }} - Music Academy{% endblock %}
 {% block content %}
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'course-list' %}">Courses</a></li>
+            <li>{{ object.title }}</li>
+        </ul>
+    </div>
+
+    <div class="flex justify-between items-start flex-wrap gap-4">
         <div>
             <h1 class="text-3xl font-bold">{{ object.title }}</h1>
-            <div class="flex gap-2 mt-2">
+            <div class="flex gap-2 mt-2 flex-wrap">
                 <span class="badge badge-primary">{{ object.instrument }}</span>
                 <span class="badge badge-secondary">{{ object.get_difficulty_level_display }}</span>
                 {% if object.genre %}<span class="badge badge-accent">{{ object.genre }}</span>{% endif %}
             </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
             {% if is_instructor %}
             <a href="{% url 'course-edit' object.slug %}" class="btn btn-ghost btn-sm">Edit</a>
             {% endif %}
@@ -27,6 +36,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
+            <!-- About This Course -->
             <div class="card bg-base-100 shadow">
                 <div class="card-body">
                     <h3 class="card-title">About This Course</h3>
@@ -40,10 +50,14 @@
                 </div>
             </div>
 
+            <!-- Lessons -->
             <div class="card bg-base-100 shadow">
                 <div class="card-body">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="card-title">Lessons ({{ lessons|length }})</h3>
+                        <h3 class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                            Lessons ({{ lessons|length }})
+                        </h3>
                     </div>
                     <div id="lesson-list">
                         {% include "courses/partials/_lesson_list.html" %}
@@ -52,7 +66,8 @@
                     <div class="divider">Add Lesson</div>
                     <form method="post" action="{% url 'lesson-create' object.slug %}"
                           hx-post="{% url 'lesson-create' object.slug %}"
-                          hx-target="#lesson-list" hx-swap="innerHTML">
+                          hx-target="#lesson-list" hx-swap="innerHTML"
+                          hx-indicator="#add-lesson-loading">
                         {% csrf_token %}
                         <div class="form-control mb-2">
                             <input type="text" name="title" class="input input-bordered w-full" placeholder="Lesson title" required />
@@ -60,22 +75,38 @@
                         <div class="form-control mb-2">
                             <input type="number" name="order" class="input input-bordered w-full" placeholder="Order (1, 2, 3...)" />
                         </div>
-                        <button type="submit" class="btn btn-primary btn-sm">Add Lesson</button>
+                        <div class="flex items-center gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm">Add Lesson</button>
+                            <span id="add-lesson-loading" class="loading loading-spinner loading-sm htmx-indicator"></span>
+                        </div>
                     </form>
                     {% endif %}
                 </div>
             </div>
         </div>
 
+        <!-- Sidebar: Course Info -->
         <div class="space-y-6">
             <div class="card bg-base-100 shadow">
                 <div class="card-body">
                     <h3 class="card-title text-lg">Course Info</h3>
-                    <div class="space-y-2 text-sm">
-                        <p><strong>Instructor:</strong> {{ object.instructor.get_full_name|default:object.instructor.username }}</p>
-                        <p><strong>Duration:</strong> {{ object.estimated_duration_weeks }} weeks</p>
-                        <p><strong>Students:</strong> {{ enrolled_count }}/{{ object.max_students }}</p>
-                        <p><strong>Lessons:</strong> {{ lessons|length }}</p>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                            <span><strong>Instructor:</strong> {{ object.instructor.get_full_name|default:object.instructor.username }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span><strong>Duration:</strong> {{ object.estimated_duration_weeks }} weeks</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                            <span><strong>Students:</strong> {{ enrolled_count }}/{{ object.max_students }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                            <span><strong>Lessons:</strong> {{ lessons|length }}</span>
+                        </div>
                     </div>
                 </div>
             </div>

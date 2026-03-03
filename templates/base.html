@@ -13,7 +13,7 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#6366f1',
+                        primary: '{{ current_academy.primary_color|default:"#6366f1" }}',
                         secondary: '#8b5cf6',
                         accent: '#f59e0b',
                     }
@@ -118,13 +118,40 @@
 
             <!-- Messages -->
             {% if messages %}
-            <div class="p-4">
+            <div class="p-4" id="messages-container">
                 {% for message in messages %}
-                <div class="alert alert-info mb-2">
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' or message.tags == 'danger' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} mb-2 transition-opacity duration-500"
+                     role="alert">
+                    {% if message.tags == 'success' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {% elif message.tags == 'warning' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                    {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {% endif %}
                     <span>{{ message }}</span>
+                    <button class="btn btn-ghost btn-xs" onclick="this.parentElement.remove();" aria-label="Dismiss">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                 </div>
                 {% endfor %}
             </div>
+            <script>
+                setTimeout(function() {
+                    var container = document.getElementById('messages-container');
+                    if (container) {
+                        container.querySelectorAll('.alert').forEach(function(alert) {
+                            alert.style.opacity = '0';
+                            setTimeout(function() { alert.remove(); }, 500);
+                        });
+                        setTimeout(function() {
+                            if (container && container.children.length === 0) container.remove();
+                        }, 600);
+                    }
+                }, 5000);
+            </script>
             {% endif %}
 
             <!-- Page Content -->
@@ -178,16 +205,20 @@
                     <li><a href="{% url 'book-session' %}">Book Session</a></li>
                     {% endif %}
 
+                    {% if academy_features.metronome or academy_features.tuner or academy_features.notation or academy_features.ear_training or academy_features.recordings or academy_features.library %}
                     <li class="menu-title mt-4">Music Tools</li>
-                    <li><a href="{% url 'metronome' %}">Metronome</a></li>
-                    <li><a href="{% url 'tuner' %}">Tuner</a></li>
-                    <li><a href="{% url 'notation-renderer' %}">Notation</a></li>
-                    <li><a href="{% url 'ear-training-list' %}">Ear Training</a></li>
-                    <li><a href="{% url 'recording-archive' %}">Recordings</a></li>
-                    <li><a href="{% url 'library-list' %}">Library</a></li>
+                    {% if academy_features.metronome %}<li><a href="{% url 'metronome' %}">Metronome</a></li>{% endif %}
+                    {% if academy_features.tuner %}<li><a href="{% url 'tuner' %}">Tuner</a></li>{% endif %}
+                    {% if academy_features.notation %}<li><a href="{% url 'notation-renderer' %}">Notation</a></li>{% endif %}
+                    {% if academy_features.ear_training %}<li><a href="{% url 'ear-training-list' %}">Ear Training</a></li>{% endif %}
+                    {% if academy_features.recordings %}<li><a href="{% url 'recording-archive' %}">Recordings</a></li>{% endif %}
+                    {% if academy_features.library %}<li><a href="{% url 'library-list' %}">Library</a></li>{% endif %}
+                    {% endif %}
 
+                    {% if academy_features.recitals %}
                     <li class="menu-title mt-4">Events</li>
                     <li><a href="{% url 'recital-list' %}">Recitals</a></li>
+                    {% endif %}
                     <li><a href="{% url 'academy-announcements' current_academy.slug %}">Announcements</a></li>
 
                     {% if user_role == "owner" or user_role == "instructor" %}

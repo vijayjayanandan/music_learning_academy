@@ -5,6 +5,7 @@ urlpatterns = [
     path("pricing/", views.PricingView.as_view(), name="pricing"),
     path("checkout/plan/<int:plan_id>/", views.CheckoutView.as_view(), name="checkout-plan"),
     path("checkout/course/<slug:course_slug>/", views.CheckoutView.as_view(), name="checkout-course"),
+    path("success/", views.PaymentSuccessView.as_view(), name="payment-success"),
     path("subscriptions/", views.MySubscriptionsView.as_view(), name="my-subscriptions"),
     path("subscriptions/<int:pk>/", views.SubscriptionDetailView.as_view(), name="subscription-detail"),
     path("subscriptions/<int:pk>/cancel/", views.CancelSubscriptionView.as_view(), name="cancel-subscription"),
@@ -15,4 +16,5 @@ urlpatterns = [
     path("packages/", views.MyPackagesView.as_view(), name="my-packages"),
     path("packages/<int:pk>/purchase/", views.PackagePurchaseView.as_view(), name="package-purchase"),
     path("tiers/", views.AcademyTierView.as_view(), name="academy-tiers"),
+    path("webhook/", views.StripeWebhookView.as_view(), name="stripe-webhook"),
 ]

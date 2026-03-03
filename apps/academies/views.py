@@ -49,7 +49,10 @@ class AcademyDetailView(TenantMixin, DetailView):
     slug_url_kwarg = "slug"
 
     def get_queryset(self):
-        return Academy.objects.all()
+        # Security: only allow viewing academies the user is a member of
+        return Academy.objects.filter(
+            memberships__user=self.request.user
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -66,8 +69,18 @@ class AcademySettingsView(TenantMixin, UpdateView):
     template_name = "academies/settings.html"
     slug_url_kwarg = "slug"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only owners can modify academy settings
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role != "owner":
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only academy owners can modify settings.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
-        return Academy.objects.all()
+        # Security: only allow the user's own academies
+        return Academy.objects.filter(memberships__user=self.request.user)
 
     def get_success_url(self):
         return reverse("academy-detail", kwargs={"slug": self.object.slug})
@@ -78,8 +91,18 @@ class MemberListView(TenantMixin, DetailView):
     template_name = "academies/members.html"
     slug_url_kwarg = "slug"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only owners can manage members
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role != "owner":
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only academy owners can manage members.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
-        return Academy.objects.all()
+        # Security: only allow the user's own academies
+        return Academy.objects.filter(memberships__user=self.request.user)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -95,7 +118,16 @@ class MemberListView(TenantMixin, DetailView):
 
 class InviteMemberView(TenantMixin, View):
     def post(self, request, slug):
-        academy = get_object_or_404(Academy, slug=slug)
+        # Security: only owners can invite members
+        academy = self.get_academy()
+        role = request.user.get_role_in(academy)
+        if role != "owner":
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Only academy owners can invite members.")
+        # Security: ensure the slug matches the user's current academy
+        if academy.slug != slug:
+            from django.http import Http404
+            raise Http404("Academy not found.")
         form = InvitationForm(request.POST)
         if form.is_valid():
             token = secrets.token_urlsafe(48)
@@ -193,7 +225,13 @@ class BrandedSignupView(View):
 
 class RemoveMemberView(TenantMixin, View):
     def post(self, request, slug, pk):
-        academy = get_object_or_404(Academy, slug=slug)
+        # Security: only owners can remove members
+        academy = self.get_academy()
+        role = request.user.get_role_in(academy)
+        if role != "owner":
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Only academy owners can remove members.")
+        # Security: use the current academy, not a slug-based lookup
         membership = get_object_or_404(Membership, pk=pk, academy=academy)
         if membership.role != Membership.Role.OWNER:
             membership.delete()
@@ -207,7 +245,8 @@ class RemoveMemberView(TenantMixin, View):
 
 class AnnouncementListView(TenantMixin, View):
     def get(self, request, slug):
-        academy = get_object_or_404(Academy, slug=slug)
+        # Security: use the user's current academy, not an arbitrary slug
+        academy = self.get_academy()
         announcements = Announcement.objects.filter(academy=academy)
         return render(request, "academies/announcements.html", {
             "announcements": announcements,
@@ -215,7 +254,12 @@ class AnnouncementListView(TenantMixin, View):
         })
 
     def post(self, request, slug):
-        academy = get_object_or_404(Academy, slug=slug)
+        # Security: only owners and instructors can create announcements
+        academy = self.get_academy()
+        role = request.user.get_role_in(academy)
+        if role not in ("owner", "instructor"):
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Only owners and instructors can create announcements.")
         Announcement.objects.create(
             academy=academy,
             author=request.user,
@@ -223,4 +267,4 @@ class AnnouncementListView(TenantMixin, View):
             body=request.POST.get("body", ""),
             is_pinned="is_pinned" in request.POST,
         )
-        return redirect("academy-announcements", slug=slug)
+        return redirect("academy-announcements", slug=academy.slug)

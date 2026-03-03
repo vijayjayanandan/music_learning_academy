@@ -1,3 +1,4 @@
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -10,6 +11,24 @@ from apps.accounts.decorators import role_required
 from apps.enrollments.models import Enrollment
 from .forms import CourseForm, LessonForm, LessonAttachmentForm, PracticeAssignmentForm
 from .models import Course, Lesson, LessonAttachment, PracticeAssignment
+
+
+ALLOWED_ATTACHMENT_EXTENSIONS = {
+    '.pdf', '.doc', '.docx', '.txt',
+    '.png', '.jpg', '.jpeg', '.gif', '.svg',
+    '.mp3', '.wav', '.ogg', '.flac', '.m4a',
+    '.mp4', '.webm', '.mov',
+    '.mid', '.midi', '.musicxml', '.mxl',
+}
+MAX_ATTACHMENT_SIZE = 50 * 1024 * 1024  # 50MB
+
+
+def _check_instructor_or_owner(request, academy):
+    """Return HttpResponseForbidden if user is not instructor or owner, else None."""
+    role = request.user.get_role_in(academy)
+    if role not in ("owner", "instructor"):
+        return HttpResponseForbidden("Only instructors and owners can perform this action.")
+    return None
 
 
 class CourseListView(TenantMixin, ListView):
@@ -43,6 +62,14 @@ class CourseCreateView(TenantMixin, CreateView):
     model = Course
     form_class = CourseForm
     template_name = "courses/create.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can create courses
+        if hasattr(request, 'academy') and request.academy:
+            denied = _check_instructor_or_owner(request, request.academy)
+            if denied:
+                return denied
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         course = form.save(commit=False)
@@ -83,28 +110,37 @@ class CourseEditView(TenantMixin, UpdateView):
     template_name = "courses/edit.html"
     slug_url_kwarg = "slug"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only the course instructor or academy owner can edit
+        if hasattr(request, 'academy') and request.academy:
+            denied = _check_instructor_or_owner(request, request.academy)
+            if denied:
+                return denied
+        return super().dispatch(request, *args, **kwargs)
+
     def get_success_url(self):
         return reverse("course-detail", kwargs={"slug": self.object.slug})
 
 
 class CourseDeleteView(TenantMixin, View):
     def post(self, request, slug):
+        # Security: only the course instructor or academy owner can delete
+        denied = _check_instructor_or_owner(request, self.get_academy())
+        if denied:
+            return denied
         course = get_object_or_404(
             Course, slug=slug, academy=self.get_academy()
         )
         course.delete()
         return redirect("course-list")
 
-    def get_academy(self):
-        academy = self.request.academy
-        if not academy:
-            from django.http import Http404
-            raise Http404("No academy selected")
-        return academy
-
 
 class LessonCreateView(TenantMixin, View):
     def post(self, request, slug):
+        # Security: only instructors and owners can create lessons
+        denied = _check_instructor_or_owner(request, self.get_academy())
+        if denied:
+            return denied
         course = get_object_or_404(Course, slug=slug, academy=self.get_academy())
         form = LessonForm(request.POST)
         if form.is_valid():
@@ -143,6 +179,14 @@ class LessonDetailView(TenantMixin, DetailView):
 
 
 class LessonEditView(TenantMixin, View):
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can edit lessons
+        if hasattr(request, 'academy') and request.academy:
+            denied = _check_instructor_or_owner(request, request.academy)
+            if denied:
+                return denied
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request, slug, pk):
         lesson = get_object_or_404(Lesson, pk=pk, academy=self.get_academy())
         form = LessonForm(instance=lesson)
@@ -168,6 +212,10 @@ class LessonEditView(TenantMixin, View):
 
 class LessonDeleteView(TenantMixin, View):
     def post(self, request, slug, pk):
+        # Security: only instructors and owners can delete lessons
+        denied = _check_instructor_or_owner(request, self.get_academy())
+        if denied:
+            return denied
         lesson = get_object_or_404(Lesson, pk=pk, academy=self.get_academy())
         course = lesson.course
         lesson.delete()
@@ -181,9 +229,26 @@ class LessonDeleteView(TenantMixin, View):
 
 class AttachmentUploadView(TenantMixin, View):
     def post(self, request, slug, pk):
+        # Security: only instructors and owners can upload attachments
+        denied = _check_instructor_or_owner(request, self.get_academy())
+        if denied:
+            return denied
         lesson = get_object_or_404(Lesson, pk=pk, academy=self.get_academy())
         form = LessonAttachmentForm(request.POST, request.FILES)
         if form.is_valid():
+            uploaded_file = form.cleaned_data.get("file")
+            # Security: validate file extension and size
+            if uploaded_file:
+                import os
+                ext = os.path.splitext(uploaded_file.name)[1].lower()
+                if ext not in ALLOWED_ATTACHMENT_EXTENSIONS:
+                    from django.contrib import messages
+                    messages.error(request, f"File type '{ext}' is not allowed.")
+                    return redirect("lesson-detail", slug=slug, pk=pk)
+                if uploaded_file.size > MAX_ATTACHMENT_SIZE:
+                    from django.contrib import messages
+                    messages.error(request, "File size exceeds the 50MB limit.")
+                    return redirect("lesson-detail", slug=slug, pk=pk)
             attachment = form.save(commit=False)
             attachment.lesson = lesson
             attachment.academy = self.get_academy()
@@ -201,6 +266,10 @@ class AttachmentUploadView(TenantMixin, View):
 
 class AttachmentDeleteView(TenantMixin, View):
     def post(self, request, slug, pk, attachment_pk):
+        # Security: only instructors and owners can delete attachments
+        denied = _check_instructor_or_owner(request, self.get_academy())
+        if denied:
+            return denied
         attachment = get_object_or_404(
             LessonAttachment, pk=attachment_pk, academy=self.get_academy()
         )

@@ -27,12 +27,53 @@ class Academy(TimeStampedModel):
         help_text='Genres offered, e.g. ["Classical","Jazz","Rock"]',
     )
 
+    # Branding
+    primary_color = models.CharField(max_length=7, default="#6366f1", help_text="Hex color code")
+    welcome_message = models.TextField(blank=True, help_text="Shown on branded signup page")
+
+    # Feature toggles — allows each academy to enable/disable features
+    features = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='e.g. {"practice_logs": true, "ear_training": false, "recordings": true}',
+    )
+
+    # Subscription tier
+    tier = models.ForeignKey(
+        "payments.AcademyTier",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="academies",
+    )
+
     class Meta:
         verbose_name_plural = "academies"
         ordering = ["name"]
 
+    # Default feature flags for new academies
+    DEFAULT_FEATURES = {
+        "courses": True,
+        "live_sessions": True,
+        "practice_logs": True,
+        "messaging": True,
+        "ear_training": True,
+        "metronome": True,
+        "tuner": True,
+        "notation": True,
+        "recordings": True,
+        "library": True,
+        "recitals": True,
+        "ai_feedback": True,
+    }
+
     def __str__(self):
         return self.name
+
+    def has_feature(self, feature_name):
+        """Check if a feature is enabled for this academy."""
+        features = self.features or {}
+        return features.get(feature_name, self.DEFAULT_FEATURES.get(feature_name, True))
 
 
 class Announcement(TimeStampedModel):

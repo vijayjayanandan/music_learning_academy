@@ -14,5 +14,9 @@ INSTALLED_APPS += ["debug_toolbar", "django_extensions"]  # noqa: F405
 MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")  # noqa: F405
 INTERNAL_IPS = ["127.0.0.1"]
 
-# Email — print to console in dev
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Email — use SendGrid if configured, otherwise console
+# Set USE_CONSOLE_EMAIL=1 in .env to force console output during dev
+import os  # noqa: E402
+if os.environ.get("USE_CONSOLE_EMAIL", ""):
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Otherwise, inherits from base.py (SendGrid if API key present, else console)

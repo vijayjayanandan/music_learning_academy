@@ -33,6 +33,11 @@ class Course(TenantScopedModel):
 
     thumbnail = models.ImageField(upload_to="course_thumbnails/", blank=True, null=True)
 
+    price_cents = models.PositiveIntegerField(
+        default=0, help_text="Price in cents. 0 = free course."
+    )
+    currency = models.CharField(max_length=3, default="USD")
+
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     max_students = models.PositiveIntegerField(default=30)
@@ -54,6 +59,16 @@ class Course(TenantScopedModel):
     @property
     def lesson_count(self):
         return self.lessons.count()
+
+    @property
+    def is_free(self):
+        return self.price_cents == 0
+
+    @property
+    def price_display(self):
+        if self.is_free:
+            return "Free"
+        return f"${self.price_cents / 100:.2f}"
 
 
 class Lesson(TenantScopedModel):
