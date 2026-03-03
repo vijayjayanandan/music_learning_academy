@@ -36,6 +36,9 @@ class Course(TenantScopedModel):
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     max_students = models.PositiveIntegerField(default=30)
+    prerequisite_courses = models.ManyToManyField(
+        "self", symmetrical=False, blank=True, related_name="dependent_courses"
+    )
 
     class Meta:
         unique_together = ("academy", "slug")

@@ -33,3 +33,21 @@ class Academy(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+
+class Announcement(TimeStampedModel):
+    academy = models.ForeignKey(
+        Academy, on_delete=models.CASCADE, related_name="announcements"
+    )
+    author = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="announcements"
+    )
+    title = models.CharField(max_length=300)
+    body = models.TextField()
+    is_pinned = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-is_pinned", "-created_at"]
+
+    def __str__(self):
+        return self.title

@@ -79,6 +79,7 @@ class AssignmentSubmission(TenantScopedModel):
     )
     instructor_feedback = models.TextField(blank=True)
     grade = models.CharField(max_length=20, blank=True)
+    rubric_scores = models.JSONField(default=dict, blank=True, help_text="e.g. {\"tone\": 8, \"rhythm\": 7, \"technique\": 9, \"expression\": 8}")
     reviewed_at = models.DateTimeField(null=True, blank=True)
     reviewed_by = models.ForeignKey(
         "accounts.User",

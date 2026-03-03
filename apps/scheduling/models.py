@@ -53,6 +53,15 @@ class LiveSession(TenantScopedModel):
 
     reminder_24h_sent = models.BooleanField(default=False)
     reminder_1h_sent = models.BooleanField(default=False)
+    is_recurring = models.BooleanField(default=False)
+    recurrence_rule = models.CharField(
+        max_length=20, blank=True,
+        choices=[("weekly", "Weekly"), ("biweekly", "Bi-weekly"), ("monthly", "Monthly")],
+    )
+    recurrence_parent = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="recurrence_instances"
+    )
     recording_url = models.URLField(blank=True)
     session_notes = models.TextField(blank=True)
 
@@ -92,3 +101,25 @@ class SessionAttendance(TenantScopedModel):
 
     class Meta:
         unique_together = ("session", "student")
+
+
+class SessionNote(TenantScopedModel):
+    """Private instructor notes about a student for a session."""
+
+    session = models.ForeignKey(
+        LiveSession, on_delete=models.CASCADE, related_name="instructor_notes"
+    )
+    instructor = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="session_notes_written"
+    )
+    student = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="session_notes_about",
+        null=True, blank=True,
+    )
+    content = models.TextField()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Note by {self.instructor.email} for session {self.session.title}"

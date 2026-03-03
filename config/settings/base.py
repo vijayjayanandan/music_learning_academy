@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "apps.scheduling",
     "apps.dashboards",
     "apps.notifications",
+    "apps.practice",
 ]
 
 MIDDLEWARE = [

@@ -131,3 +131,15 @@ class SubmitAssignmentView(TenantMixin, View):
                 "submission": submission,
             })
         return redirect("enrollment-detail", pk=pk)
+
+
+class CertificateView(TenantMixin, View):
+    def get(self, request, pk):
+        enrollment = get_object_or_404(
+            Enrollment, pk=pk, student=request.user, status="completed"
+        )
+        return render(request, "enrollments/certificate.html", {
+            "enrollment": enrollment,
+            "course": enrollment.course,
+            "student": enrollment.student,
+        })

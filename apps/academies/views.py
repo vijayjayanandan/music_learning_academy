@@ -10,7 +10,7 @@ from django.views.generic import CreateView, DetailView, UpdateView
 from apps.accounts.models import Membership, Invitation, User
 from .forms import AcademyForm, InvitationForm
 from .mixins import TenantMixin
-from .models import Academy
+from .models import Academy, Announcement
 
 
 class AcademyCreateView(LoginRequiredMixin, CreateView):
@@ -203,3 +203,24 @@ class RemoveMemberView(TenantMixin, View):
                 "members": members, "academy": academy,
             })
         return redirect("academy-members", slug=slug)
+
+
+class AnnouncementListView(TenantMixin, View):
+    def get(self, request, slug):
+        academy = get_object_or_404(Academy, slug=slug)
+        announcements = Announcement.objects.filter(academy=academy)
+        return render(request, "academies/announcements.html", {
+            "announcements": announcements,
+            "academy": academy,
+        })
+
+    def post(self, request, slug):
+        academy = get_object_or_404(Academy, slug=slug)
+        Announcement.objects.create(
+            academy=academy,
+            author=request.user,
+            title=request.POST.get("title", ""),
+            body=request.POST.get("body", ""),
+            is_pinned="is_pinned" in request.POST,
+        )
+        return redirect("academy-announcements", slug=slug)

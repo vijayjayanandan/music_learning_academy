@@ -152,6 +152,44 @@ class MessageThreadView(TenantMixin, View):
         })
 
 
+class CourseChatView(TenantMixin, View):
+    """FEAT-022: Group chat per course."""
+
+    def get(self, request, slug):
+        from apps.courses.models import Course
+        from .models import ChatMessage
+
+        course = get_object_or_404(Course, slug=slug, academy=self.get_academy())
+        messages = ChatMessage.objects.filter(
+            academy=self.get_academy(),
+        ).select_related("sender").order_by("-created_at")[:50]
+        return render(request, "notifications/chat_room.html", {
+            "course": course,
+            "chat_messages": reversed(list(messages)),
+        })
+
+    def post(self, request, slug):
+        from apps.courses.models import Course
+        from .models import ChatMessage
+
+        course = get_object_or_404(Course, slug=slug, academy=self.get_academy())
+        body = request.POST.get("message", "").strip()
+        if body:
+            ChatMessage.objects.create(
+                academy=self.get_academy(),
+                sender=request.user,
+                message=body,
+            )
+        if request.htmx:
+            messages = ChatMessage.objects.filter(
+                academy=self.get_academy(),
+            ).select_related("sender").order_by("-created_at")[:50]
+            return render(request, "notifications/partials/_chat_messages.html", {
+                "chat_messages": reversed(list(messages)),
+            })
+        return redirect("course-chat", slug=slug)
+
+
 class UnreadMessageCountView(TenantMixin, View):
     def get(self, request):
         count = Message.objects.filter(
