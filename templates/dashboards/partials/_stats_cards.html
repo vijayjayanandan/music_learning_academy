@@ -1,0 +1,25 @@
+<div class="stats shadow w-full">
+    {% if user_role == "owner" %}
+    <div class="stat">
+        <div class="stat-title">Students</div>
+        <div class="stat-value text-primary">{{ total_students|default:"0" }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat-title">Instructors</div>
+        <div class="stat-value text-secondary">{{ total_instructors|default:"0" }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat-title">Courses</div>
+        <div class="stat-value text-accent">{{ total_courses|default:"0" }}</div>
+    </div>
+    {% elif user_role == "instructor" %}
+    <div class="stat">
+        <div class="stat-title">My Courses</div>
+        <div class="stat-value text-primary">{{ my_course_count|default:"0" }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat-title">Pending Reviews</div>
+        <div class="stat-value text-warning">{{ pending_reviews|default:"0" }}</div>
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,31 @@
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for course in courses %}
+    <div class="card bg-base-100 shadow hover:shadow-lg transition-shadow">
+        <div class="card-body">
+            <h2 class="card-title">
+                {{ course.title }}
+                {% if not course.is_published %}<span class="badge badge-warning badge-sm">Draft</span>{% endif %}
+            </h2>
+            <div class="flex gap-2 mb-2">
+                <span class="badge badge-outline">{{ course.instrument }}</span>
+                <span class="badge badge-outline">{{ course.get_difficulty_level_display }}</span>
+                {% if course.genre %}<span class="badge badge-ghost">{{ course.genre }}</span>{% endif %}
+            </div>
+            <p class="text-sm text-gray-600 line-clamp-2">{{ course.description }}</p>
+            <div class="text-sm text-gray-500 mt-2">
+                <span>{{ course.lesson_count }} lessons</span> &middot;
+                <span>{{ course.enrolled_count }} students</span> &middot;
+                <span>{{ course.estimated_duration_weeks }} weeks</span>
+            </div>
+            <p class="text-xs text-gray-400">by {{ course.instructor.get_full_name|default:course.instructor.username }}</p>
+            <div class="card-actions justify-end mt-2">
+                <a href="{% url 'course-detail' course.slug %}" class="btn btn-primary btn-sm">View</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center py-12">
+        <p class="text-gray-500 text-lg">No courses found.</p>
+    </div>
+    {% endfor %}
+</div>

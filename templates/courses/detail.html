@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ object.title }} - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold">{{ object.title }}</h1>
+            <div class="flex gap-2 mt-2">
+                <span class="badge badge-primary">{{ object.instrument }}</span>
+                <span class="badge badge-secondary">{{ object.get_difficulty_level_display }}</span>
+                {% if object.genre %}<span class="badge badge-accent">{{ object.genre }}</span>{% endif %}
+            </div>
+        </div>
+        <div class="flex gap-2">
+            {% if is_instructor %}
+            <a href="{% url 'course-edit' object.slug %}" class="btn btn-ghost btn-sm">Edit</a>
+            {% endif %}
+            {% if not is_instructor and not enrollment %}
+            <div id="enroll-area">
+                {% include "enrollments/partials/_enroll_button.html" with course=object enrollment=enrollment %}
+            </div>
+            {% elif enrollment %}
+            <a href="{% url 'enrollment-detail' enrollment.pk %}" class="btn btn-success btn-sm">View Progress</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <h3 class="card-title">About This Course</h3>
+                    <p>{{ object.description }}</p>
+                    {% if object.prerequisites %}
+                    <div class="mt-4">
+                        <strong>Prerequisites:</strong>
+                        <p class="text-gray-600">{{ object.prerequisites }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="card-title">Lessons ({{ lessons|length }})</h3>
+                    </div>
+                    <div id="lesson-list">
+                        {% include "courses/partials/_lesson_list.html" %}
+                    </div>
+                    {% if is_instructor %}
+                    <div class="divider">Add Lesson</div>
+                    <form method="post" action="{% url 'lesson-create' object.slug %}"
+                          hx-post="{% url 'lesson-create' object.slug %}"
+                          hx-target="#lesson-list" hx-swap="innerHTML">
+                        {% csrf_token %}
+                        <div class="form-control mb-2">
+                            <input type="text" name="title" class="input input-bordered w-full" placeholder="Lesson title" required />
+                        </div>
+                        <div class="form-control mb-2">
+                            <input type="number" name="order" class="input input-bordered w-full" placeholder="Order (1, 2, 3...)" />
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Add Lesson</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-lg">Course Info</h3>
+                    <div class="space-y-2 text-sm">
+                        <p><strong>Instructor:</strong> {{ object.instructor.get_full_name|default:object.instructor.username }}</p>
+                        <p><strong>Duration:</strong> {{ object.estimated_duration_weeks }} weeks</p>
+                        <p><strong>Students:</strong> {{ enrolled_count }}/{{ object.max_students }}</p>
+                        <p><strong>Lessons:</strong> {{ lessons|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

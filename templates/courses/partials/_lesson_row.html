@@ -1,0 +1,18 @@
+<div id="lesson-{{ lesson.pk }}" class="flex items-center justify-between py-3 border-b last:border-0">
+    <div class="flex items-center gap-3">
+        <span class="badge badge-lg badge-outline">{{ lesson.order }}</span>
+        <div>
+            <a href="{% url 'lesson-detail' lesson.course.slug lesson.pk %}" class="font-medium hover:text-primary">
+                {{ lesson.title }}
+            </a>
+            <p class="text-xs text-gray-500">{{ lesson.estimated_duration_minutes }} min</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        {% if lesson.is_published %}
+        <span class="badge badge-success badge-xs">Published</span>
+        {% else %}
+        <span class="badge badge-warning badge-xs">Draft</span>
+        {% endif %}
+    </div>
+</div>

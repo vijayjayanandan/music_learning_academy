@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - {{ current_academy.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-3xl font-bold">Admin Dashboard</h1>
+    <div id="stats-section"
+         hx-get="{% url 'dashboard-stats-partial' %}"
+         hx-trigger="load, every 60s"
+         hx-swap="innerHTML">
+        <div class="stats shadow w-full">
+            <div class="stat">
+                <div class="stat-title">Students</div>
+                <div class="stat-value text-primary">{{ total_students }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Instructors</div>
+                <div class="stat-value text-secondary">{{ total_instructors }}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-title">Courses</div>
+                <div class="stat-value text-accent">{{ total_courses }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="card-title">Upcoming Sessions</h2>
+                {% for session in upcoming_sessions %}
+                <div class="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                        <span class="font-medium">{{ session.title }}</span>
+                        <p class="text-xs text-gray-500">{{ session.scheduled_start|date:"M d, h:i A" }}</p>
+                    </div>
+                    <span class="badge badge-sm">{{ session.instructor.get_full_name }}</span>
+                </div>
+                {% empty %}
+                <p class="text-gray-500">No upcoming sessions.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="card-title">Recent Enrollments</h2>
+                {% for enrollment in recent_enrollments %}
+                <div class="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                        <span class="font-medium">{{ enrollment.student.get_full_name|default:enrollment.student.username }}</span>
+                        <p class="text-xs text-gray-500">{{ enrollment.course.title }}</p>
+                    </div>
+                    <span class="text-xs text-gray-400">{{ enrollment.enrolled_at|date:"M d" }}</span>
+                </div>
+                {% empty %}
+                <p class="text-gray-500">No recent enrollments.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="flex gap-4">
+        <a href="{% url 'course-create' %}" class="btn btn-primary">+ New Course</a>
+        <a href="{% url 'session-create' %}" class="btn btn-secondary">+ Schedule Session</a>
+        <a href="{% url 'academy-members' current_academy.slug %}" class="btn btn-accent">Manage Members</a>
+    </div>
+</div>
+{% endblock %}

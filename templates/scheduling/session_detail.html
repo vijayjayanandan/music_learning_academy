@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{{ object.title }} - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">{{ object.title }}</h1>
+        <div class="flex gap-2">
+            {% if can_join and object.status == "scheduled" %}
+            <a href="{% url 'session-join' object.pk %}" class="btn btn-primary">Join Session</a>
+            {% endif %}
+            {% if is_instructor %}
+            <a href="{% url 'session-edit' object.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <div class="flex gap-2 mb-4">
+                        <span class="badge badge-primary">{{ object.get_session_type_display }}</span>
+                        <span class="badge {% if object.status == 'cancelled' %}badge-error{% else %}badge-info{% endif %}">{{ object.get_status_display }}</span>
+                    </div>
+                    {% if object.description %}<p class="mb-4">{{ object.description }}</p>{% endif %}
+                    <div class="space-y-2 text-sm">
+                        <p><strong>Date:</strong> {{ object.scheduled_start|date:"l, M d, Y" }}</p>
+                        <p><strong>Time:</strong> {{ object.scheduled_start|date:"h:i A" }} - {{ object.scheduled_end|date:"h:i A" }}</p>
+                        <p><strong>Duration:</strong> {{ object.duration_minutes }} minutes</p>
+                        <p><strong>Instructor:</strong> {{ object.instructor.get_full_name }}</p>
+                        {% if object.course %}<p><strong>Course:</strong> {{ object.course.title }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="space-y-6">
+            <div class="card bg-base-100 shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-lg">Participants</h3>
+                    {% if not is_registered and not is_instructor and object.status == "scheduled" %}
+                    <div id="register-btn">
+                        {% include "scheduling/partials/_register_button.html" %}
+                    </div>
+                    {% endif %}
+                    <div class="space-y-2 mt-2">
+                        {% for att in attendances %}
+                        <div class="flex items-center gap-2">
+                            <div class="avatar placeholder">
+                                <div class="bg-neutral text-neutral-content rounded-full w-8">
+                                    <span class="text-xs">{{ att.student.first_name|first|upper }}</span>
+                                </div>
+                            </div>
+                            <span class="text-sm">{{ att.student.get_full_name|default:att.student.username }}</span>
+                            <span class="badge badge-xs">{{ att.get_status_display }}</span>
+                        </div>
+                        {% empty %}
+                        <p class="text-gray-500 text-sm">No participants yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

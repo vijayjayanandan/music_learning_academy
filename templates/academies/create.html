@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Create Academy - Music Academy{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Create Your Academy</h1>
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">{{ field.label }}</span></label>
+                    {{ field }}
+                    {% if field.help_text %}<label class="label"><span class="label-text-alt">{{ field.help_text }}</span></label>{% endif %}
+                    {% for error in field.errors %}
+                    <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                <div class="card-actions justify-end mt-4">
+                    <button type="submit" class="btn btn-primary">Create Academy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

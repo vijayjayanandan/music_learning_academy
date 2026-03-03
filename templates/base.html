@@ -1,0 +1,186 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="musicacademy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Music Learning Academy{% endblock %}</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        accent: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-base-200" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+    {% if user.is_authenticated %}
+    <!-- Navbar -->
+    <div class="navbar bg-base-100 shadow-lg sticky top-0 z-50">
+        <div class="flex-none lg:hidden">
+            <label for="sidebar-drawer" class="btn btn-square btn-ghost">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </label>
+        </div>
+        <div class="flex-1">
+            <a href="{% url 'dashboard' %}" class="btn btn-ghost text-xl">
+                <span class="text-primary">&#9835;</span> Music Academy
+            </a>
+        </div>
+        <div class="flex-none gap-2">
+            {% if current_academy %}
+            <!-- Academy Switcher -->
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
+                    {{ current_academy.name }}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                    {% for acad in user_academies %}
+                    <li>
+                        <form method="post" action="{% url 'switch-academy' acad.slug %}">
+                            {% csrf_token %}
+                            <button type="submit" class="{% if acad == current_academy %}font-bold{% endif %}">
+                                {{ acad.name }}
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                    <li class="border-t mt-1 pt-1">
+                        <a href="{% url 'academy-create' %}">+ New Academy</a>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Notifications -->
+            {% if current_academy %}
+            <div class="indicator"
+                 hx-get="{% url 'notification-badge-partial' %}"
+                 hx-trigger="load, every 30s"
+                 hx-swap="innerHTML">
+                <a href="{% url 'notification-list' %}" class="btn btn-ghost btn-circle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- User Menu -->
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+                    <div class="w-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                        <span class="text-sm font-bold">{{ user.first_name|first|default:"U" }}</span>
+                    </div>
+                </div>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                    <li><a href="{% url 'profile' %}">Profile</a></li>
+                    <li>
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit">Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout with Sidebar -->
+    <div class="drawer lg:drawer-open">
+        <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
+
+        <div class="drawer-content">
+            <!-- Messages -->
+            {% if messages %}
+            <div class="p-4">
+                {% for message in messages %}
+                <div class="alert alert-info mb-2">
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Page Content -->
+            <main class="p-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="drawer-side z-40">
+            <label for="sidebar-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+            <aside class="bg-base-100 w-64 min-h-full p-4 shadow-lg">
+                {% if current_academy %}
+                <div class="mb-6">
+                    <h3 class="font-bold text-lg mb-1">{{ current_academy.name }}</h3>
+                    {% if user_role %}
+                    <span class="badge badge-primary badge-sm">{{ user_role|title }}</span>
+                    {% endif %}
+                </div>
+
+                <ul class="menu w-full">
+                    <li><a href="{% url 'dashboard' %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        Dashboard
+                    </a></li>
+                    <li><a href="{% url 'course-list' %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        Courses
+                    </a></li>
+                    <li><a href="{% url 'schedule-list' %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        Live Sessions
+                    </a></li>
+
+                    {% if user_role == "student" %}
+                    <li><a href="{% url 'enrollment-list' %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                        My Progress
+                    </a></li>
+                    {% endif %}
+
+                    {% if user_role == "owner" or user_role == "instructor" %}
+                    <li class="menu-title mt-4">Manage</li>
+                    <li><a href="{% url 'course-create' %}">+ New Course</a></li>
+                    <li><a href="{% url 'session-create' %}">+ Schedule Session</a></li>
+                    {% endif %}
+
+                    {% if user_role == "owner" %}
+                    <li class="menu-title mt-4">Academy</li>
+                    <li><a href="{% url 'academy-members' current_academy.slug %}">Members</a></li>
+                    <li><a href="{% url 'academy-settings' current_academy.slug %}">Settings</a></li>
+                    {% endif %}
+                </ul>
+                {% else %}
+                <div class="text-center py-8">
+                    <p class="text-gray-500 mb-4">No academy selected</p>
+                    <a href="{% url 'academy-create' %}" class="btn btn-primary btn-sm">Create Academy</a>
+                </div>
+                {% endif %}
+            </aside>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Unauthenticated layout -->
+    <main class="min-h-screen flex items-center justify-center p-6">
+        {% block unauth_content %}{% endblock %}
+    </main>
+    {% endif %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

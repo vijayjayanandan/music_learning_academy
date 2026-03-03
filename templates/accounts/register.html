@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Register - Music Academy{% endblock %}
+{% block unauth_content %}
+<div class="card w-full max-w-md bg-base-100 shadow-xl">
+    <div class="card-body">
+        <h2 class="card-title text-2xl justify-center mb-4">&#9835; Create Account</h2>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-control mb-3">
+                <label class="label"><span class="label-text">{{ field.label }}</span></label>
+                {{ field }}
+                {% for error in field.errors %}
+                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <div class="form-control mt-6">
+                <button type="submit" class="btn btn-primary">Create Account</button>
+            </div>
+        </form>
+        <p class="text-center mt-4 text-sm">
+            Already have an account? <a href="{% url 'login' %}" class="link link-primary">Sign In</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

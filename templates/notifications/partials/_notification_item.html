@@ -1,0 +1,15 @@
+<div class="flex items-center justify-between py-3 border-b last:border-0 {% if not notification.is_read %}bg-base-200 -mx-4 px-4 rounded{% endif %}">
+    <div>
+        <p class="font-medium {% if not notification.is_read %}text-primary{% endif %}">{{ notification.title }}</p>
+        <p class="text-sm text-gray-600">{{ notification.message }}</p>
+        <p class="text-xs text-gray-400 mt-1">{{ notification.created_at|timesince }} ago</p>
+    </div>
+    {% if not notification.is_read %}
+    <form method="post" action="{% url 'notification-mark-read' notification.pk %}"
+          hx-post="{% url 'notification-mark-read' notification.pk %}"
+          hx-target="closest div" hx-swap="outerHTML">
+        {% csrf_token %}
+        <button class="btn btn-ghost btn-xs">Mark read</button>
+    </form>
+    {% endif %}
+</div>

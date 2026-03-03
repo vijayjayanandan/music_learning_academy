@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Members - {{ object.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Members</h1>
+    </div>
+
+    {% if user_role == "owner" %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Invite Member</h3>
+            <form method="post" action="{% url 'academy-invite' object.slug %}"
+                  hx-post="{% url 'academy-invite' object.slug %}"
+                  hx-target="#invitation-list" hx-swap="innerHTML">
+                {% csrf_token %}
+                <div class="flex gap-4 items-end">
+                    <div class="form-control flex-1">
+                        {{ invite_form.email }}
+                    </div>
+                    <div class="form-control w-40">
+                        {{ invite_form.role }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Invite</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Current Members</h3>
+            <div id="member-list">
+                {% include "academies/partials/_member_list.html" %}
+            </div>
+        </div>
+    </div>
+
+    {% if pending_invitations %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Pending Invitations</h3>
+            <div id="invitation-list">
+                {% for inv in pending_invitations %}
+                <div class="flex items-center justify-between py-2 border-b last:border-0">
+                    <span>{{ inv.email }}</span>
+                    <span class="badge badge-outline">{{ inv.role|title }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

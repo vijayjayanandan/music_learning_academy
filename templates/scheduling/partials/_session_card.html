@@ -1,0 +1,19 @@
+<div id="session-{{ session.pk }}" class="card bg-base-100 shadow">
+    <div class="card-body">
+        <h2 class="card-title">{{ session.title }}</h2>
+        <div class="flex gap-2 mb-2">
+            <span class="badge badge-primary">{{ session.get_session_type_display }}</span>
+            {% if session.instrument_focus %}<span class="badge badge-outline">{{ session.instrument_focus }}</span>{% endif %}
+            <span class="badge {% if session.status == 'cancelled' %}badge-error{% else %}badge-success{% endif %} badge-sm">{{ session.get_status_display }}</span>
+        </div>
+        <div class="text-sm space-y-1">
+            <p><strong>Date:</strong> {{ session.scheduled_start|date:"M d, Y" }}</p>
+            <p><strong>Time:</strong> {{ session.scheduled_start|date:"h:i A" }} - {{ session.scheduled_end|date:"h:i A" }}</p>
+            <p><strong>Instructor:</strong> {{ session.instructor.get_full_name|default:session.instructor.username }}</p>
+            {% if session.course %}<p><strong>Course:</strong> {{ session.course.title }}</p>{% endif %}
+        </div>
+        <div class="card-actions justify-end mt-4">
+            <a href="{% url 'session-detail' session.pk %}" class="btn btn-ghost btn-sm">Details</a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ object.name }} - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">{{ object.name }}</h1>
+        {% if user_role == "owner" %}
+        <a href="{% url 'academy-settings' object.slug %}" class="btn btn-ghost btn-sm">Settings</a>
+        {% endif %}
+    </div>
+    <div class="stats shadow w-full">
+        <div class="stat">
+            <div class="stat-title">Members</div>
+            <div class="stat-value text-primary">{{ member_count }}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-title">Courses</div>
+            <div class="stat-value text-secondary">{{ object.course_set.count }}</div>
+        </div>
+    </div>
+    {% if object.description %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <p>{{ object.description }}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

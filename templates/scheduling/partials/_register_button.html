@@ -1,0 +1,10 @@
+{% if is_registered %}
+<span class="badge badge-success gap-2 p-3">&#10003; Registered</span>
+{% else %}
+<form method="post" action="{% url 'session-register' session.pk %}"
+      hx-post="{% url 'session-register' session.pk %}"
+      hx-target="#register-btn" hx-swap="innerHTML">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary btn-sm w-full">Register</button>
+</form>
+{% endif %}

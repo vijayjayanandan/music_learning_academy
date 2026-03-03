@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Live Sessions - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Live Sessions</h1>
+        {% if user_role == "owner" or user_role == "instructor" %}
+        <a href="{% url 'session-create' %}" class="btn btn-primary">+ Schedule Session</a>
+        {% endif %}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for session in sessions %}
+        {% include "scheduling/partials/_session_card.html" %}
+        {% empty %}
+        <div class="col-span-full text-center py-12">
+            <p class="text-gray-500 text-lg">No upcoming sessions scheduled.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if past_sessions %}
+    <div class="mt-8">
+        <h2 class="text-xl font-bold mb-4 text-gray-500">Past Sessions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75">
+            {% for session in past_sessions %}
+            {% include "scheduling/partials/_session_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

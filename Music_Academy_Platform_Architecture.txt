@@ -1,0 +1,1213 @@
+Music Learning Platform - Complete Architecture Document
+1. System Overview
+1.1 Platform Vision
+An open-source, feature-rich online music education platform that enables music teachers to deliver high-quality lessons globally, with self-hosting capabilities for individual instructors and scalability for institutional use.
+1.2 Core Architecture Principles
+
+Progressive Complexity: Start with monolith, evolve to microservices
+Self-Hostable: Can run on a single VPS or scale to cloud infrastructure
+No Vendor Lock-in: Use open-source alternatives wherever possible
+Learning-Oriented: Each component demonstrates important technical concepts
+Cost-Efficient: Minimize operational costs for individual teachers
+
+2. Technology Stack
+2.1 Core Stack
+typescriptconst techStack = {
+  // Backend
+  runtime: "Node.js 20 LTS",
+  framework: "NestJS", // Modular, TypeScript-first, enterprise patterns
+  api: "GraphQL + REST", // GraphQL for complex queries, REST for simple ops
+  realtime: "Socket.io + WebRTC",
+  
+  // Frontend  
+  framework: "Next.js 14",
+  ui: "Tailwind CSS + Shadcn/ui",
+  state: "Zustand + React Query",
+  
+  // Database
+  primary: "PostgreSQL 15",
+  cache: "Redis",
+  search: "MeiliSearch", // Open-source alternative to Algolia
+  
+  // Infrastructure
+  containerization: "Docker",
+  orchestration: "Docker Compose → Kubernetes",
+  reverseProxy: "Caddy", // Automatic HTTPS
+  storage: "MinIO", // Self-hosted S3-compatible
+  
+  // Monitoring
+  metrics: "Prometheus + Grafana",
+  logs: "Loki",
+  errors: "Sentry (self-hosted)",
+  
+  // Development
+  language: "TypeScript",
+  testing: "Jest + Playwright",
+  ci: "GitHub Actions",
+  documentation: "TypeDoc + Docusaurus"
+}
+```
+
+## 3. System Architecture
+
+### 3.1 High-Level Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         Frontend (Next.js)                   │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  │Student  │ │Teacher  │ │Admin    │ │Public   │           │
+│  │Portal   │ │Portal   │ │Portal   │ │Website  │           │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘           │
+└─────────────────────────────────────────────────────────────┘
+                               │
+                    ┌──────────┴──────────┐
+                    │   API Gateway        │
+                    │   (Caddy + Auth)     │
+                    └──────────┬──────────┘
+                               │
+┌─────────────────────────────────────────────────────────────┐
+│                     Backend Services (NestJS)                │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │Auth Module   │  │Course Module │  │Schedule      │      │
+│  │- User mgmt   │  │- Curriculum  │  │Module        │      │
+│  │- Sessions    │  │- Content     │  │- Bookings    │      │
+│  │- Roles       │  │- Progress    │  │- Calendar    │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │Media Module  │  │Practice      │  │Payment       │      │
+│  │- WebRTC      │  │Module        │  │Module        │      │
+│  │- Recording   │  │- Assignments │  │- Billing     │      │
+│  │- Streaming   │  │- AI Analysis │  │- Escrow      │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │Community     │  │Analytics     │  │Notification  │      │
+│  │Module        │  │Module        │  │Module        │      │
+│  │- Forums      │  │- Metrics     │  │- Email       │      │
+│  │- Messages    │  │- Reports     │  │- Push        │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        │                      │                      │
+┌───────▼────────┐  ┌──────────▼──────────┐  ┌───────▼────────┐
+│  PostgreSQL    │  │     Redis Cache     │  │   MinIO S3     │
+│  - Core Data   │  │  - Sessions         │  │  - Media       │
+│  - Time Series │  │  - Queue            │  │  - Documents   │
+└────────────────┘  └─────────────────────┘  └────────────────┘
+4. Database Design
+4.1 Core Schema
+sql-- Enable necessary extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm"; -- For fuzzy search
+CREATE EXTENSION IF NOT EXISTS "btree_gist"; -- For exclusion constraints
+
+-- Enum types
+CREATE TYPE user_role AS ENUM ('student', 'teacher', 'admin', 'parent');
+CREATE TYPE class_status AS ENUM ('scheduled', 'in_progress', 'completed', 'cancelled', 'no_show');
+CREATE TYPE payment_status AS ENUM ('pending', 'processing', 'completed', 'failed', 'refunded');
+CREATE TYPE content_type AS ENUM ('video', 'audio', 'document', 'image', 'other');
+
+-- Users table with multi-tenancy support
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255),
+    role user_role NOT NULL DEFAULT 'student',
+    profile JSONB DEFAULT '{}',
+    preferences JSONB DEFAULT '{}',
+    is_active BOOLEAN DEFAULT true,
+    email_verified BOOLEAN DEFAULT false,
+    school_id UUID, -- For multi-tenancy
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ, -- Soft delete
+    
+    -- Indexes
+    INDEX idx_users_email ON users(email),
+    INDEX idx_users_school ON users(school_id) WHERE school_id IS NOT NULL,
+    INDEX idx_users_role ON users(role),
+    INDEX idx_users_active ON users(is_active) WHERE is_active = true
+);
+
+-- Courses table
+CREATE TABLE courses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+    category VARCHAR(100),
+    difficulty_level INTEGER CHECK (difficulty_level BETWEEN 1 AND 10),
+    curriculum JSONB DEFAULT '{}', -- Flexible curriculum structure
+    requirements JSONB DEFAULT '[]',
+    outcomes JSONB DEFAULT '[]',
+    price DECIMAL(10, 2),
+    currency VARCHAR(3) DEFAULT 'USD',
+    duration_weeks INTEGER,
+    is_published BOOLEAN DEFAULT false,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Full text search
+    search_vector tsvector GENERATED ALWAYS AS (
+        setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
+        setweight(to_tsvector('english', coalesce(description, '')), 'B')
+    ) STORED,
+    
+    INDEX idx_courses_teacher ON courses(teacher_id),
+    INDEX idx_courses_published ON courses(is_published) WHERE is_published = true,
+    INDEX idx_courses_search ON courses USING GIN(search_vector)
+);
+
+-- Class sessions with scheduling constraints
+CREATE TABLE class_sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    scheduled_at TIMESTAMPTZ NOT NULL,
+    duration_minutes INTEGER DEFAULT 60,
+    status class_status DEFAULT 'scheduled',
+    meeting_room_id VARCHAR(255), -- WebRTC room identifier
+    recording_url TEXT,
+    notes TEXT,
+    teacher_feedback JSONB,
+    student_rating INTEGER CHECK (student_rating BETWEEN 1 AND 5),
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Prevent double-booking for teachers
+    EXCLUDE USING gist (
+        teacher_id WITH =,
+        tstzrange(scheduled_at, scheduled_at + make_interval(mins => duration_minutes)) WITH &&
+    ),
+    
+    -- Prevent double-booking for students  
+    EXCLUDE USING gist (
+        student_id WITH =,
+        tstzrange(scheduled_at, scheduled_at + make_interval(mins => duration_minutes)) WITH &&
+    ),
+    
+    INDEX idx_sessions_status ON class_sessions(status),
+    INDEX idx_sessions_scheduled ON class_sessions(scheduled_at)
+);
+
+-- Assignments and practice
+CREATE TABLE assignments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+    type VARCHAR(50), -- 'practice', 'theory', 'performance'
+    due_date TIMESTAMPTZ,
+    resources JSONB DEFAULT '[]', -- Links to resources
+    rubric JSONB, -- Grading criteria
+    max_attempts INTEGER DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    INDEX idx_assignments_course ON assignments(course_id),
+    INDEX idx_assignments_due ON assignments(due_date)
+);
+
+-- Student submissions
+CREATE TABLE submissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    submission_url TEXT, -- Link to uploaded file
+    submission_data JSONB, -- For text/structured submissions
+    ai_analysis JSONB, -- AI feedback results
+    teacher_feedback JSONB,
+    grade DECIMAL(5, 2),
+    attempt_number INTEGER DEFAULT 1,
+    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+    graded_at TIMESTAMPTZ,
+    
+    UNIQUE(assignment_id, student_id, attempt_number),
+    INDEX idx_submissions_student ON submissions(student_id),
+    INDEX idx_submissions_assignment ON submissions(assignment_id)
+);
+
+-- Practice logs for analytics
+CREATE TABLE practice_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    student_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    course_id UUID REFERENCES courses(id) ON DELETE SET NULL,
+    tool_type VARCHAR(50), -- 'metronome', 'tuner', 'recording'
+    duration_seconds INTEGER,
+    performance_metrics JSONB, -- Tool-specific metrics
+    session_data JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    INDEX idx_practice_student ON practice_logs(student_id),
+    INDEX idx_practice_date ON practice_logs(created_at)
+);
+
+-- Payment and billing
+CREATE TABLE payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    payer_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    recipient_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    session_id UUID REFERENCES class_sessions(id) ON DELETE SET NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'USD',
+    status payment_status DEFAULT 'pending',
+    payment_method VARCHAR(50),
+    processor VARCHAR(50), -- 'stripe', 'paypal', 'manual'
+    processor_transaction_id VARCHAR(255),
+    escrow_release_at TIMESTAMPTZ, -- For escrow functionality
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    INDEX idx_payments_payer ON payments(payer_id),
+    INDEX idx_payments_status ON payments(status)
+);
+
+-- Community features
+CREATE TABLE forum_posts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    author_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    parent_id UUID REFERENCES forum_posts(id) ON DELETE CASCADE,
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    title VARCHAR(500),
+    content TEXT NOT NULL,
+    tags TEXT[],
+    upvotes INTEGER DEFAULT 0,
+    is_pinned BOOLEAN DEFAULT false,
+    is_locked BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    INDEX idx_forum_author ON forum_posts(author_id),
+    INDEX idx_forum_course ON forum_posts(course_id),
+    INDEX idx_forum_parent ON forum_posts(parent_id)
+);
+
+-- Gamification
+CREATE TABLE achievements (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    icon_url TEXT,
+    points INTEGER DEFAULT 0,
+    criteria JSONB NOT NULL, -- Rules for earning
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE user_achievements (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    achievement_id UUID REFERENCES achievements(id) ON DELETE CASCADE,
+    earned_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (user_id, achievement_id)
+);
+
+-- Audit log for compliance
+CREATE TABLE audit_logs (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID,
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    changes JSONB,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    INDEX idx_audit_user ON audit_logs(user_id),
+    INDEX idx_audit_entity ON audit_logs(entity_type, entity_id),
+    INDEX idx_audit_created ON audit_logs(created_at)
+);
+5. API Design
+5.1 GraphQL Schema
+graphql# Core types
+type User {
+  id: ID!
+  email: String!
+  role: UserRole!
+  profile: UserProfile!
+  courses: [Course!]!
+  sessions: [ClassSession!]!
+  achievements: [Achievement!]!
+  stats: UserStats!
+}
+
+type Course {
+  id: ID!
+  title: String!
+  description: String!
+  teacher: User!
+  curriculum: Curriculum!
+  students: [User!]!
+  sessions: [ClassSession!]!
+  assignments: [Assignment!]!
+}
+
+type ClassSession {
+  id: ID!
+  course: Course!
+  teacher: User!
+  student: User!
+  scheduledAt: DateTime!
+  status: SessionStatus!
+  meetingUrl: String
+  recording: Recording
+}
+
+# Queries
+type Query {
+  # User queries
+  me: User!
+  user(id: ID!): User
+  
+  # Course queries  
+  courses(filter: CourseFilter, pagination: Pagination): CourseConnection!
+  course(id: ID!): Course
+  
+  # Session queries
+  upcomingSessions: [ClassSession!]!
+  sessionHistory(studentId: ID, teacherId: ID): [ClassSession!]!
+  
+  # Practice analytics
+  practiceStats(userId: ID!, timeRange: TimeRange!): PracticeStats!
+}
+
+# Mutations
+type Mutation {
+  # Auth
+  signup(input: SignupInput!): AuthPayload!
+  login(email: String!, password: String!): AuthPayload!
+  
+  # Courses
+  createCourse(input: CourseInput!): Course!
+  enrollInCourse(courseId: ID!): Enrollment!
+  
+  # Sessions
+  scheduleSession(input: SessionInput!): ClassSession!
+  joinSession(sessionId: ID!): SessionCredentials!
+  
+  # Assignments
+  submitAssignment(input: SubmissionInput!): Submission!
+  gradeSubmission(submissionId: ID!, grade: Float!, feedback: String): Submission!
+}
+
+# Subscriptions
+type Subscription {
+  # Real-time updates
+  sessionStarted(sessionId: ID!): ClassSession!
+  messageReceived(channelId: ID!): Message!
+  practiceUpdate(userId: ID!): PracticeMetrics!
+}
+5.2 REST Endpoints
+typescript// Critical REST endpoints for operations not suited for GraphQL
+const restEndpoints = {
+  // File operations
+  "POST /api/upload": "File upload with multipart/form-data",
+  "GET /api/download/:fileId": "File download with streaming",
+  
+  // WebRTC signaling
+  "WS /api/rtc/signal": "WebSocket for WebRTC signaling",
+  "POST /api/rtc/turn-credentials": "Get TURN server credentials",
+  
+  // Webhooks
+  "POST /api/webhooks/stripe": "Stripe payment webhooks",
+  "POST /api/webhooks/video-processed": "Video processing complete",
+  
+  // Health checks
+  "GET /api/health": "Service health check",
+  "GET /api/metrics": "Prometheus metrics endpoint"
+}
+6. Module Specifications
+6.1 Authentication Module
+typescript// auth.module.ts
+@Module({
+  imports: [
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '7d' }
+    })
+  ],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    GoogleStrategy, // OAuth providers
+    PasswordService, // Argon2 hashing
+    SessionService,
+    MfaService // Optional 2FA
+  ]
+})
+export class AuthModule {
+  // Features:
+  // - JWT-based authentication
+  // - OAuth2 social login
+  // - Session management with Redis
+  // - Password reset flow
+  // - Email verification
+  // - Role-based access control (RBAC)
+  // - Optional 2FA with TOTP
+}
+6.2 Media/WebRTC Module
+typescript// media.module.ts
+interface MediaModuleConfig {
+  webrtc: {
+    // Custom signaling server
+    signalingServer: 'wss://signal.yourdomain.com',
+    
+    // ICE servers configuration
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { 
+        urls: 'turn:turn.yourdomain.com:3478',
+        username: 'dynamic',
+        credential: 'generated'
+      }
+    ],
+    
+    // Audio optimization for music
+    audioConstraints: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      sampleRate: 48000,
+      channelCount: 2
+    },
+    
+    // Adaptive bitrate
+    videoBitrates: {
+      low: 500000,
+      medium: 1000000,
+      high: 2500000
+    }
+  },
+  
+  recording: {
+    provider: 'local', // or 'aws', 'gcp'
+    format: 'webm',
+    videoCodec: 'vp9',
+    audioCodec: 'opus'
+  },
+  
+  streaming: {
+    protocol: 'HLS',
+    segmentDuration: 6,
+    adaptiveBitrate: true
+  }
+}
+
+@Injectable()
+export class MediaService {
+  // Core functions
+  async createRoom(sessionId: string): Promise<RoomCredentials> {}
+  async generateTurnCredentials(userId: string): Promise<IceCredentials> {}
+  async startRecording(roomId: string): Promise<void> {}
+  async processRecording(recordingId: string): Promise<void> {}
+  async generateStreamUrl(videoId: string): Promise<string> {}
+}
+6.3 Practice/AI Module
+typescript// practice.module.ts
+interface PracticeModuleConfig {
+  audioAnalysis: {
+    // Client-side tools
+    pitchDetection: {
+      algorithm: 'YIN', // or 'CREPE', 'MPM'
+      windowSize: 2048,
+      hopSize: 512
+    },
+    
+    // Server-side AI analysis
+    aiProvider: 'local', // or 'external'
+    models: {
+      pitchAccuracy: '/models/pitch_model.onnx',
+      rhythmAnalysis: '/models/rhythm_model.onnx',
+      toneQuality: '/models/tone_model.onnx'
+    }
+  },
+  
+  practiceTools: {
+    metronome: {
+      minBPM: 40,
+      maxBPM: 300,
+      sounds: ['click', 'beep', 'drum']
+    },
+    tuner: {
+      referenceFreq: 440,
+      noteRange: ['C0', 'B8']
+    },
+    droneGenerator: {
+      instruments: ['tanpura', 'harmonium', 'shruti']
+    }
+  }
+}
+
+@Injectable()
+export class PracticeAnalysisService {
+  async analyzePitchAccuracy(audioBuffer: Float32Array): Promise<PitchAnalysis> {
+    // Implement YIN algorithm
+    const fundamental = this.detectPitch(audioBuffer);
+    const targetNote = this.getTargetNote(fundamental);
+    const cents = this.calculateCents(fundamental, targetNote);
+    
+    return {
+      frequency: fundamental,
+      note: targetNote,
+      accuracy: Math.abs(cents) < 10 ? 'perfect' : 'needs_work',
+      deviationCents: cents
+    };
+  }
+  
+  async analyzeRhythm(audioBuffer: Float32Array, targetBPM: number): Promise<RhythmAnalysis> {
+    // Onset detection
+    const onsets = this.detectOnsets(audioBuffer);
+    const tempo = this.estimateTempo(onsets);
+    const timing = this.analyzeTimingAccuracy(onsets, targetBPM);
+    
+    return {
+      detectedBPM: tempo,
+      targetBPM,
+      timingAccuracy: timing.accuracy,
+      rushingOrDragging: timing.tendency
+    };
+  }
+}
+6.4 Payment Module
+typescript// payment.module.ts
+interface PaymentModuleConfig {
+  providers: {
+    stripe: {
+      publicKey: string;
+      secretKey: string;
+      webhookSecret: string;
+    };
+    // Add other providers as needed
+  };
+  
+  escrow: {
+    enabled: true,
+    releaseAfterHours: 24,
+    disputePeriodDays: 7
+  };
+  
+  commission: {
+    platformFee: 0.15, // 15%
+    processingFee: 0.029, // 2.9% + 30c
+    minPayout: 10.00
+  };
+}
+
+@Injectable()
+export class PaymentService {
+  async createPaymentIntent(session: ClassSession): Promise<PaymentIntent> {
+    // Calculate amounts
+    const amount = session.course.price;
+    const platformFee = amount * this.config.commission.platformFee;
+    const teacherEarning = amount - platformFee;
+    
+    // Create Stripe payment intent
+    const intent = await this.stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      metadata: {
+        sessionId: session.id,
+        studentId: session.student.id,
+        teacherId: session.teacher.id
+      }
+    });
+    
+    // Store in database with escrow
+    await this.createEscrowPayment({
+      sessionId: session.id,
+      amount,
+      teacherEarning,
+      releaseAt: addHours(new Date(), this.config.escrow.releaseAfterHours)
+    });
+    
+    return intent;
+  }
+  
+  async processEscrowReleases(): Promise<void> {
+    // Cron job to release escrow payments
+    const readyPayments = await this.getReleasableEscrowPayments();
+    
+    for (const payment of readyPayments) {
+      await this.releaseToTeacher(payment);
+    }
+  }
+}
+7. Implementation Phases
+Phase 1: Foundation (Weeks 1-4)
+typescriptconst phase1 = {
+  setup: [
+    "Initialize NestJS project",
+    "Setup PostgreSQL with migrations",
+    "Configure Docker development environment",
+    "Setup Next.js with TypeScript"
+  ],
+  
+  features: [
+    "User authentication (JWT)",
+    "Basic user profiles",
+    "Course CRUD operations",
+    "File upload system",
+    "Email notifications"
+  ],
+  
+  deliverables: [
+    "Working auth system",
+    "Teacher can create courses",
+    "Students can browse courses",
+    "Basic admin panel"
+  ]
+}
+Phase 2: Core Learning (Weeks 5-8)
+typescriptconst phase2 = {
+  features: [
+    "Class scheduling system",
+    "Calendar integration",
+    "Assignment creation and submission",
+    "Basic video calls (using Daily.co initially)",
+    "Payment processing with Stripe"
+  ],
+  
+  deliverables: [
+    "Students can book classes",
+    "Teachers can manage schedule",
+    "Working payment flow",
+    "Assignment workflow complete"
+  ]
+}
+Phase 3: Real-time Features (Weeks 9-12)
+typescriptconst phase3 = {
+  features: [
+    "Custom WebRTC implementation",
+    "In-browser practice tools",
+    "Real-time messaging",
+    "Live collaborative features",
+    "Recording and playback"
+  ],
+  
+  learning: [
+    "WebRTC fundamentals",
+    "WebSocket programming",
+    "Web Audio API",
+    "Media streaming protocols"
+  ]
+}
+Phase 4: AI & Analytics (Weeks 13-16)
+typescriptconst phase4 = {
+  features: [
+    "AI-powered practice feedback",
+    "Performance analytics",
+    "Progress tracking",
+    "Recommendation engine",
+    "Advanced reporting"
+  ],
+  
+  technologies: [
+    "TensorFlow.js integration",
+    "Audio analysis algorithms",
+    "Data visualization with D3",
+    "Time-series analysis"
+  ]
+}
+Phase 5: Community & Scale (Weeks 17-20)
+typescriptconst phase5 = {
+  features: [
+    "Community forums",
+    "Gamification system",
+    "Performance showcases",
+    "Multi-tenancy support",
+    "Advanced admin tools"
+  ],
+  
+  infrastructure: [
+    "Kubernetes deployment",
+    "Auto-scaling setup",
+    "CDN configuration",
+    "Monitoring and alerting"
+  ]
+}
+8. Deployment Configuration
+8.1 Docker Compose (Development/Small Deployment)
+yamlversion: '3.8'
+
+services:
+  # Application
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://user:pass@postgres:5432/music_platform
+      REDIS_URL: redis://redis:6379
+      MINIO_URL: http://minio:9000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run start:prod
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: ws://localhost:3000
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+
+  # Databases
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: music_platform
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+  # Storage
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  # Search
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    environment:
+      MEILI_MASTER_KEY: masterKey
+      MEILI_ENV: production
+    volumes:
+      - meilisearch_data:/data.ms
+    ports:
+      - "7700:7700"
+
+  # WebRTC TURN Server
+  coturn:
+    image: coturn/coturn:latest
+    network_mode: host
+    volumes:
+      - ./coturn/turnserver.conf:/etc/turnserver.conf
+    command: -c /etc/turnserver.conf
+
+  # Reverse Proxy
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  meilisearch_data:
+  caddy_data:
+  caddy_config:
+8.2 Kubernetes Manifests (Production)
+yaml# namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: music-platform
+
+---
+# backend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: music-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: your-registry/music-platform-backend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+---
+# horizontal-pod-autoscaler.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: music-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+9. Environment Configuration
+9.1 Environment Variables
+bash# .env.production
+# Application
+NODE_ENV=production
+PORT=3000
+API_URL=https://api.yourdomain.com
+FRONTEND_URL=https://yourdomain.com
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/music_platform
+DATABASE_POOL_SIZE=20
+DATABASE_SSL=true
+
+# Redis
+REDIS_URL=redis://localhost:6379
+REDIS_PASSWORD=your-redis-password
+
+# Storage
+MINIO_ENDPOINT=localhost
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=music-platform
+
+# Authentication
+JWT_SECRET=your-very-long-random-string
+JWT_EXPIRY=7d
+REFRESH_TOKEN_EXPIRY=30d
+
+# OAuth (optional)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Email
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASS=your-sendgrid-api-key
+EMAIL_FROM=noreply@yourdomain.com
+
+# Payment
+STRIPE_PUBLIC_KEY=pk_live_xxx
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+
+# WebRTC
+TURN_SERVER_URL=turn:turn.yourdomain.com:3478
+TURN_SERVER_USERNAME=username
+TURN_SERVER_PASSWORD=password
+
+# Analytics
+SENTRY_DSN=https://xxx@sentry.io/xxx
+PROMETHEUS_METRICS=true
+
+# AI Services (optional)
+OPENAI_API_KEY=sk-xxx
+TENSORFLOW_MODEL_URL=https://models.yourdomain.com
+10. Testing Strategy
+10.1 Test Structure
+typescript// test-setup.ts
+const testingStrategy = {
+  unit: {
+    coverage: 80,
+    tools: ['Jest', 'ts-jest'],
+    focus: ['Services', 'Utilities', 'Validators']
+  },
+  
+  integration: {
+    coverage: 70,
+    tools: ['Supertest', 'Test Containers'],
+    focus: ['API endpoints', 'Database operations', 'External services']
+  },
+  
+  e2e: {
+    coverage: 'Critical paths',
+    tools: ['Playwright', 'Cypress'],
+    scenarios: [
+      'User signup and login',
+      'Course enrollment',
+      'Class scheduling and joining',
+      'Payment flow',
+      'Assignment submission'
+    ]
+  },
+  
+  performance: {
+    tools: ['k6', 'Artillery'],
+    targets: {
+      avgResponseTime: '<200ms',
+      p95ResponseTime: '<500ms',
+      errorRate: '<0.1%',
+      concurrentUsers: 1000
+    }
+  }
+}
+11. Monitoring and Observability
+11.1 Metrics and Logging
+typescript// monitoring.config.ts
+const monitoringStack = {
+  metrics: {
+    system: ['CPU', 'Memory', 'Disk', 'Network'],
+    application: [
+      'Request rate',
+      'Response time',
+      'Error rate',
+      'Active users',
+      'WebRTC quality'
+    ],
+    business: [
+      'Sign-ups per day',
+      'Classes completed',
+      'Revenue',
+      'Student engagement',
+      'Teacher utilization'
+    ]
+  },
+  
+  logging: {
+    levels: ['ERROR', 'WARN', 'INFO', 'DEBUG'],
+    structured: true,
+    correlation: true,
+    retention: '30 days'
+  },
+  
+  alerts: {
+    critical: [
+      'Service down',
+      'Payment failures > 5%',
+      'Database connection lost'
+    ],
+    warning: [
+      'High response time',
+      'Disk space < 20%',
+      'Failed login attempts spike'
+    ]
+  }
+}
+12. Security Checklist
+typescriptconst securityMeasures = {
+  authentication: [
+    '✓ Bcrypt/Argon2 for passwords',
+    '✓ JWT with refresh tokens',
+    '✓ Rate limiting on auth endpoints',
+    '✓ Account lockout after failed attempts'
+  ],
+  
+  api: [
+    '✓ Input validation with class-validator',
+    '✓ SQL injection prevention with parameterized queries',
+    '✓ XSS protection with helmet',
+    '✓ CORS properly configured',
+    '✓ API rate limiting per user'
+  ],
+  
+  data: [
+    '✓ Encryption at rest',
+    '✓ TLS for all connections',
+    '✓ PII data masking in logs',
+    '✓ GDPR compliance tools'
+  ],
+  
+  infrastructure: [
+    '✓ Secrets management with environment variables',
+    '✓ Regular security updates',
+    '✓ Network segmentation',
+    '✓ DDoS protection'
+  ]
+}
+13. Development Workflow
+13.1 Git Workflow
+bash# Branch structure
+main                 # Production-ready code
+├── develop          # Integration branch
+├── feature/*        # New features
+├── bugfix/*         # Bug fixes
+├── hotfix/*         # Emergency fixes
+└── release/*        # Release preparation
+13.2 CI/CD Pipeline
+yaml# .github/workflows/ci.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run linting
+        run: npm run lint
+        
+      - name: Run unit tests
+        run: npm run test:unit
+        
+      - name: Run integration tests
+        run: npm run test:integration
+        
+      - name: Build application
+        run: npm run build
+        
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to production
+        run: |
+          # Deployment scripts
+          echo "Deploying to production"
+```
+
+## 14. Directory Structure
+```
+music-learning-platform/
+├── backend/
+│   ├── src/
+│   │   ├── modules/
+│   │   │   ├── auth/
+│   │   │   ├── courses/
+│   │   │   ├── sessions/
+│   │   │   ├── payments/
+│   │   │   ├── media/
+│   │   │   ├── practice/
+│   │   │   └── community/
+│   │   ├── common/
+│   │   │   ├── guards/
+│   │   │   ├── interceptors/
+│   │   │   ├── pipes/
+│   │   │   └── filters/
+│   │   ├── database/
+│   │   │   ├── migrations/
+│   │   │   ├── seeds/
+│   │   │   └── entities/
+│   │   └── main.ts
+│   ├── test/
+│   ├── docker/
+│   └── package.json
+│
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── (auth)/
+│   │   │   ├── (dashboard)/
+│   │   │   ├── (public)/
+│   │   │   └── api/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── lib/
+│   │   └── styles/
+│   ├── public/
+│   └── package.json
+│
+├── infrastructure/
+│   ├── docker/
+│   ├── kubernetes/
+│   ├── terraform/
+│   └── scripts/
+│
+├── docs/
+│   ├── api/
+│   ├── architecture/
+│   └── deployment/
+│
+├── docker-compose.yml
+├── Caddyfile
+├── .env.example
+└── README.md
+This architecture document provides a comprehensive blueprint for building your music learning platform. It's designed to be implemented progressively, allowing you to learn each technical component while building a production-ready system that can scale from a single teacher to thousands of users.
+The architecture prioritizes open-source technologies and self-hosting capabilities, ensuring that music teachers with limited budgets can use the platform while also providing a rich learning experience for you as the developer.

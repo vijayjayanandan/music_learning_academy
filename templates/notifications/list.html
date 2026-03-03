@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Notifications - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Notifications</h1>
+        <form method="post" action="{% url 'notification-mark-all-read' %}"
+              hx-post="{% url 'notification-mark-all-read' %}"
+              hx-swap="none">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-sm">Mark all as read</button>
+        </form>
+    </div>
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            {% for notification in notifications %}
+            {% include "notifications/partials/_notification_item.html" %}
+            {% empty %}
+            <p class="text-gray-500 text-center py-4">No notifications.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

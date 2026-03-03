@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ object.course.title }} Progress - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'enrollment-list' %}">My Courses</a></li>
+            <li>{{ object.course.title }}</li>
+        </ul>
+    </div>
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">{{ object.course.title }}</h1>
+        <div class="radial-progress text-primary" style="--value:{{ progress_percent }};--size:5rem;--thickness:4px;">
+            {{ progress_percent }}%
+        </div>
+    </div>
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title">Lessons</h3>
+            {% for item in lesson_data %}
+            <div id="progress-{{ item.lesson.pk }}" class="flex items-center justify-between py-3 border-b last:border-0">
+                <div class="flex items-center gap-3">
+                    <form method="post" action="{% url 'mark-lesson-complete' object.pk item.lesson.pk %}"
+                          hx-post="{% url 'mark-lesson-complete' object.pk item.lesson.pk %}"
+                          hx-target="#progress-{{ item.lesson.pk }}" hx-swap="outerHTML">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-circle btn-sm {% if item.is_completed %}btn-success{% else %}btn-outline{% endif %}">
+                            {% if item.is_completed %}&#10003;{% endif %}
+                        </button>
+                    </form>
+                    <div>
+                        <a href="{% url 'lesson-detail' object.course.slug item.lesson.pk %}" class="font-medium hover:text-primary {% if item.is_completed %}line-through text-gray-400{% endif %}">
+                            {{ item.lesson.order }}. {{ item.lesson.title }}
+                        </a>
+                        <p class="text-xs text-gray-500">{{ item.lesson.estimated_duration_minutes }} min</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

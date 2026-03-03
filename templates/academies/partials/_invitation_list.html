@@ -1,0 +1,8 @@
+{% for inv in pending_invitations %}
+<div class="flex items-center justify-between py-2 border-b last:border-0">
+    <span>{{ inv.email }}</span>
+    <span class="badge badge-outline">{{ inv.role|title }}</span>
+</div>
+{% empty %}
+<p class="text-gray-500 text-sm">No pending invitations.</p>
+{% endfor %}

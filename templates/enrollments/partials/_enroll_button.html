@@ -1,0 +1,12 @@
+{% if enrollment %}
+<span class="badge badge-success gap-2 p-3">
+    &#10003; Enrolled
+</span>
+{% else %}
+<form method="post" action="{% url 'enroll' course.slug %}"
+      hx-post="{% url 'enroll' course.slug %}"
+      hx-target="#enroll-area" hx-swap="innerHTML">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary btn-sm">Enroll Now</button>
+</form>
+{% endif %}

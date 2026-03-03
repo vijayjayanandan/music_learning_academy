@@ -1,0 +1,9 @@
+Django>=4.2,<5.0
+djangorestframework>=3.14
+django-htmx>=1.17
+django-filter>=23.0
+channels>=4.0
+daphne>=4.0
+Pillow>=10.0
+python-dotenv>=1.0
+whitenoise>=6.5

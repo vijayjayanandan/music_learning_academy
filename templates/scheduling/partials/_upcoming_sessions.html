@@ -1,0 +1,11 @@
+{% for session in sessions %}
+<div class="flex items-center justify-between py-3 border-b last:border-0">
+    <div>
+        <a href="{% url 'session-detail' session.pk %}" class="font-medium hover:text-primary">{{ session.title }}</a>
+        <p class="text-xs text-gray-500">{{ session.scheduled_start|date:"M d, h:i A" }} - {{ session.instructor.get_full_name }}</p>
+    </div>
+    <span class="badge badge-primary badge-sm">{{ session.get_session_type_display }}</span>
+</div>
+{% empty %}
+<p class="text-gray-500 text-sm">No upcoming sessions.</p>
+{% endfor %}

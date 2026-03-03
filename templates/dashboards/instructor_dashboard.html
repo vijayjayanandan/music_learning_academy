@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Instructor Dashboard - {{ current_academy.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-3xl font-bold">Welcome, {{ user.first_name|default:user.username }}</h1>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="card-title">My Courses</h2>
+                {% for course in my_courses %}
+                <div class="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                        <a href="{% url 'course-detail' course.slug %}" class="font-medium hover:text-primary">{{ course.title }}</a>
+                        <p class="text-xs text-gray-500">{{ course.enrolled_count }} students</p>
+                    </div>
+                    <span class="badge badge-outline">{{ course.instrument }}</span>
+                </div>
+                {% empty %}
+                <p class="text-gray-500">No courses yet. <a href="{% url 'course-create' %}" class="link link-primary">Create one</a>.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h2 class="card-title">Upcoming Sessions</h2>
+                {% for session in upcoming_sessions %}
+                <div class="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                        <a href="{% url 'session-detail' session.pk %}" class="font-medium hover:text-primary">{{ session.title }}</a>
+                        <p class="text-xs text-gray-500">{{ session.scheduled_start|date:"M d, h:i A" }}</p>
+                    </div>
+                    <span class="badge badge-primary badge-sm">{{ session.get_session_type_display }}</span>
+                </div>
+                {% empty %}
+                <p class="text-gray-500">No upcoming sessions.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% if pending_submissions %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h2 class="card-title">Pending Reviews</h2>
+            {% for sub in pending_submissions %}
+            <div class="flex items-center justify-between py-2 border-b last:border-0">
+                <div>
+                    <span class="font-medium">{{ sub.assignment.title }}</span>
+                    <p class="text-xs text-gray-500">by {{ sub.student.get_full_name|default:sub.student.username }}</p>
+                </div>
+                <span class="badge badge-warning badge-sm">Needs Review</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

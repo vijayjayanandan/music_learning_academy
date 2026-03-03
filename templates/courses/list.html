@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Courses - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Courses</h1>
+        {% if user_role == "owner" or user_role == "instructor" %}
+        <a href="{% url 'course-create' %}" class="btn btn-primary">+ New Course</a>
+        {% endif %}
+    </div>
+    <div class="flex gap-4 items-center">
+        <input type="search" name="q" placeholder="Search courses..."
+               class="input input-bordered flex-1"
+               hx-get="{% url 'course-list' %}" hx-trigger="keyup changed delay:300ms"
+               hx-target="#course-grid" hx-swap="innerHTML"
+               hx-include="[name='instrument'],[name='difficulty']" />
+        <select name="instrument" class="select select-bordered"
+                hx-get="{% url 'course-list' %}" hx-trigger="change"
+                hx-target="#course-grid" hx-swap="innerHTML"
+                hx-include="[name='q'],[name='difficulty']">
+            <option value="">All Instruments</option>
+            <option value="piano">Piano</option>
+            <option value="guitar">Guitar</option>
+            <option value="violin">Violin</option>
+            <option value="vocals">Vocals</option>
+            <option value="drums">Drums</option>
+        </select>
+        <select name="difficulty" class="select select-bordered"
+                hx-get="{% url 'course-list' %}" hx-trigger="change"
+                hx-target="#course-grid" hx-swap="innerHTML"
+                hx-include="[name='q'],[name='instrument']">
+            <option value="">All Levels</option>
+            <option value="beginner">Beginner</option>
+            <option value="elementary">Elementary</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+        </select>
+    </div>
+    <div id="course-grid">
+        {% include "courses/partials/_course_grid.html" %}
+    </div>
+</div>
+{% endblock %}
