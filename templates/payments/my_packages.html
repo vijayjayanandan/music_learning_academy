@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}My Packages{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">My Packages</h1>
+
+    {% if purchases %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for purchase in purchases %}
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h3 class="card-title">{{ purchase.package.name }}</h3>
+                <p>{{ purchase.package.description }}</p>
+                <div class="stats stats-vertical lg:stats-horizontal shadow">
+                    <div class="stat">
+                        <div class="stat-title">Credits Remaining</div>
+                        <div class="stat-value text-primary">{{ purchase.credits_remaining }}</div>
+                        <div class="stat-desc">of {{ purchase.package.total_credits }} total</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert">No packages purchased. <a href="{% url 'pricing' %}" class="link link-primary">Browse packages</a></div>
+    {% endif %}
+</div>
+{% endblock %}

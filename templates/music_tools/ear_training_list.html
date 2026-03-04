@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Ear Training{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Ear Training Exercises</h1>
+
+    {% if exercises %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for exercise in exercises %}
+        <a href="{% url 'ear-training-play' exercise.pk %}" class="card bg-base-100 shadow hover:shadow-lg transition-shadow">
+            <div class="card-body">
+                <h2 class="card-title">{{ exercise.title }}</h2>
+                <p class="text-sm text-base-content/60">{{ exercise.get_exercise_type_display }}</p>
+                <div class="flex items-center gap-2 mt-2">
+                    <span class="text-xs">Difficulty:</span>
+                    {% for i in "12345" %}
+                    <span class="{% if forloop.counter <= exercise.difficulty %}text-warning{% else %}text-base-300{% endif %}">&#9733;</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert">
+        No ear training exercises available yet. Ask your instructor to create some!
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

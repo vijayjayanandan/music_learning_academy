@@ -1,4 +1,6 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
+from django.db.models import Exists, OuterRef
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views import View
@@ -6,7 +8,7 @@ from django.views.generic import TemplateView
 
 from apps.academies.mixins import TenantMixin
 from apps.accounts.models import Membership
-from apps.courses.models import Course
+from apps.courses.models import Course, PracticeAssignment
 from apps.enrollments.models import Enrollment, AssignmentSubmission
 from apps.scheduling.models import LiveSession
 
@@ -36,18 +38,36 @@ class DashboardRedirectView(LoginRequiredMixin, View):
 class AdminDashboardView(TenantMixin, TemplateView):
     template_name = "dashboards/admin_dashboard.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only owners can access admin dashboard
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role != "owner":
+                return redirect("dashboard")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         academy = self.get_academy()
-        ctx["total_students"] = Membership.objects.filter(
-            academy=academy, role="student", is_active=True
-        ).count()
-        ctx["total_instructors"] = Membership.objects.filter(
-            academy=academy, role="instructor", is_active=True
-        ).count()
-        ctx["total_courses"] = Course.objects.filter(
-            academy=academy, is_published=True
-        ).count()
+
+        # Cache aggregate stats for 5 minutes (tenant-scoped key)
+        cache_key = f"admin_dashboard_stats_{academy.pk}"
+        stats = cache.get(cache_key)
+        if stats is None:
+            stats = {
+                "total_students": Membership.objects.filter(
+                    academy=academy, role="student", is_active=True
+                ).count(),
+                "total_instructors": Membership.objects.filter(
+                    academy=academy, role="instructor", is_active=True
+                ).count(),
+                "total_courses": Course.objects.filter(
+                    academy=academy, is_published=True
+                ).count(),
+            }
+            cache.set(cache_key, stats, 300)  # 5 minutes
+        ctx.update(stats)
+
         ctx["upcoming_sessions"] = LiveSession.objects.filter(
             academy=academy,
             status="scheduled",
@@ -62,6 +82,14 @@ class AdminDashboardView(TenantMixin, TemplateView):
 class InstructorDashboardView(TenantMixin, TemplateView):
     template_name = "dashboards/instructor_dashboard.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can access instructor dashboard
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                return redirect("dashboard")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         academy = self.get_academy()
@@ -69,7 +97,7 @@ class InstructorDashboardView(TenantMixin, TemplateView):
 
         ctx["my_courses"] = Course.objects.filter(
             academy=academy, instructor=user
-        )
+        ).prefetch_related("lessons")
         ctx["upcoming_sessions"] = LiveSession.objects.filter(
             academy=academy,
             instructor=user,
@@ -103,14 +131,20 @@ class StudentDashboardView(TenantMixin, TemplateView):
             attendances__student=user,
         ).select_related("instructor", "course")[:5]
 
-        ctx["pending_assignments"] = []
-        for enrollment in ctx["enrollments"]:
-            for lesson in enrollment.course.lessons.all():
-                for assignment in lesson.assignments.filter(due_date__gte=timezone.now()):
-                    if not AssignmentSubmission.objects.filter(
-                        assignment=assignment, student=user
-                    ).exists():
-                        ctx["pending_assignments"].append(assignment)
+        # Single query: pending assignments for enrolled courses, not yet submitted
+        enrolled_course_ids = ctx["enrollments"].values_list("course_id", flat=True)
+        submitted_subquery = AssignmentSubmission.objects.filter(
+            assignment=OuterRef("pk"), student=user
+        )
+        ctx["pending_assignments"] = list(
+            PracticeAssignment.objects.filter(
+                lesson__course_id__in=enrolled_course_ids,
+                lesson__course__academy=academy,
+                due_date__gte=timezone.now(),
+            )
+            .exclude(Exists(submitted_subquery))
+            .select_related("lesson", "lesson__course")
+        )
 
         return ctx
 
@@ -122,23 +156,37 @@ class DashboardStatsPartialView(TenantMixin, View):
         ctx = {"current_academy": academy, "user_role": role}
 
         if role == "owner":
-            ctx["total_students"] = Membership.objects.filter(
-                academy=academy, role="student", is_active=True
-            ).count()
-            ctx["total_instructors"] = Membership.objects.filter(
-                academy=academy, role="instructor", is_active=True
-            ).count()
-            ctx["total_courses"] = Course.objects.filter(
-                academy=academy, is_published=True
-            ).count()
+            cache_key = f"stats_partial_owner_{academy.pk}"
+            stats = cache.get(cache_key)
+            if stats is None:
+                stats = {
+                    "total_students": Membership.objects.filter(
+                        academy=academy, role="student", is_active=True
+                    ).count(),
+                    "total_instructors": Membership.objects.filter(
+                        academy=academy, role="instructor", is_active=True
+                    ).count(),
+                    "total_courses": Course.objects.filter(
+                        academy=academy, is_published=True
+                    ).count(),
+                }
+                cache.set(cache_key, stats, 30)  # 30 seconds
+            ctx.update(stats)
         elif role == "instructor":
-            ctx["my_course_count"] = Course.objects.filter(
-                academy=academy, instructor=request.user
-            ).count()
-            ctx["pending_reviews"] = AssignmentSubmission.objects.filter(
-                academy=academy,
-                assignment__lesson__course__instructor=request.user,
-                status="submitted",
-            ).count()
+            cache_key = f"stats_partial_instructor_{academy.pk}_{request.user.pk}"
+            stats = cache.get(cache_key)
+            if stats is None:
+                stats = {
+                    "my_course_count": Course.objects.filter(
+                        academy=academy, instructor=request.user
+                    ).count(),
+                    "pending_reviews": AssignmentSubmission.objects.filter(
+                        academy=academy,
+                        assignment__lesson__course__instructor=request.user,
+                        status="submitted",
+                    ).count(),
+                }
+                cache.set(cache_key, stats, 30)  # 30 seconds
+            ctx.update(stats)
 
         return render(request, "dashboards/partials/_stats_cards.html", ctx)

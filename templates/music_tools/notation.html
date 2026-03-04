@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Notation Renderer{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Music Notation Renderer</h1>
+
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title">Enter ABC Notation</h2>
+            <p class="text-sm text-base-content/60 mb-2">
+                Type or paste ABC notation below to render sheet music.
+                <a href="https://abcnotation.com/learn" target="_blank" class="link link-primary">Learn ABC notation</a>
+            </p>
+            <textarea id="abc-input" class="textarea textarea-bordered w-full font-mono" rows="6">X:1
+T:C Major Scale
+M:4/4
+L:1/4
+K:C
+C D E F | G A B c |]</textarea>
+            <button class="btn btn-primary mt-2" onclick="renderNotation()">Render</button>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">Rendered Score</h2>
+            <div id="notation-output" class="w-full min-h-[200px] flex items-center justify-center text-base-content/50">
+                Click "Render" to see the notation
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.3/dist/abcjs-basic-min.js"></script>
+<script>
+function renderNotation() {
+    const abc = document.getElementById('abc-input').value;
+    const output = document.getElementById('notation-output');
+    output.innerHTML = '';
+    if (typeof ABCJS !== 'undefined') {
+        ABCJS.renderAbc(output, abc, {
+            responsive: 'resize',
+            staffwidth: 700,
+            paddingright: 0,
+            paddingleft: 0,
+        });
+    } else {
+        output.innerHTML = '<p class="text-error">ABCJS library failed to load. Check your internet connection.</p>';
+    }
+}
+
+// Render on page load
+document.addEventListener('DOMContentLoaded', renderNotation);
+</script>
+{% endblock %}

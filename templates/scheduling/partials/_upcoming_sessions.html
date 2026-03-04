@@ -7,5 +7,9 @@
     <span class="badge badge-primary badge-sm">{{ session.get_session_type_display }}</span>
 </div>
 {% empty %}
-<p class="text-gray-500 text-sm">No upcoming sessions.</p>
+<div class="text-center py-6">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+    <p class="text-gray-500 text-sm">No upcoming sessions scheduled.</p>
+    <a href="{% url 'schedule-list' %}" class="link link-primary text-sm mt-1 inline-block">View all sessions</a>
+</div>
 {% endfor %}

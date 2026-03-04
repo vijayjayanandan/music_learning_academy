@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Parent Dashboard{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Parent Dashboard</h1>
+
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="card-title">Link a Child Account</h2>
+            <form method="post" action="{% url 'link-child' %}" class="flex gap-4 items-end">
+                {% csrf_token %}
+                <div class="form-control flex-1">
+                    <label class="label"><span class="label-text">Child's Email</span></label>
+                    <input type="email" name="child_email" class="input input-bordered w-full" placeholder="child@example.com" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Link</button>
+            </form>
+        </div>
+    </div>
+
+    {% if children_data %}
+    {% for child in children_data %}
+    <div class="card bg-base-100 shadow mb-4">
+        <div class="card-body">
+            <h2 class="card-title">{{ child.user.get_full_name|default:child.user.email }}</h2>
+
+            {% if child.enrollments %}
+            <h3 class="font-bold mt-2">Active Courses</h3>
+            <div class="space-y-1">
+                {% for enrollment in child.enrollments %}
+                <div class="flex justify-between items-center p-2 bg-base-200 rounded">
+                    <span>{{ enrollment.course.title }}</span>
+                    <progress class="progress progress-primary w-24" value="{{ enrollment.progress_percent }}" max="100"></progress>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if child.recent_practice %}
+            <h3 class="font-bold mt-4">Recent Practice</h3>
+            <div class="overflow-x-auto">
+                <table class="table table-sm">
+                    <thead><tr><th>Date</th><th>Duration</th><th>Instrument</th></tr></thead>
+                    <tbody>
+                        {% for log in child.recent_practice %}
+                        <tr>
+                            <td>{{ log.date|date:"M d" }}</td>
+                            <td>{{ log.duration_minutes }} min</td>
+                            <td>{{ log.instrument }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert">No children linked yet. Use the form above to link a child's account.</div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -6,12 +6,32 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-n(g7=3is@a^1adtmhqa2#i7b(evs^de3^q)i9vk08&ykh9x5h#",
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY environment variable is required.")
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+# Stripe
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+# SendGrid (via Django SMTP backend)
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
+if SENDGRID_API_KEY:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.sendgrid.net"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = "apikey"
+    EMAIL_HOST_PASSWORD = SENDGRID_API_KEY
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Music Academy <noreply@musicacademy.app>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 INSTALLED_APPS = [
     # Channels ASGI server
@@ -28,6 +48,7 @@ INSTALLED_APPS = [
     "django_htmx",
     "django_filters",
     "channels",
+    "tinymce",
     # Project apps
     "apps.common",
     "apps.accounts",
@@ -37,6 +58,10 @@ INSTALLED_APPS = [
     "apps.scheduling",
     "apps.dashboards",
     "apps.notifications",
+    "apps.practice",
+    "apps.payments",
+    "apps.music_tools",
+    "apps.library",
 ]
 
 MIDDLEWARE = [
@@ -50,6 +75,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "apps.academies.middleware.TenantMiddleware",
+    "apps.accounts.middleware.TimezoneMiddleware",
+    "apps.common.middleware.RatelimitMiddleware",
+    "apps.common.middleware.SecurityHeadersMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -118,10 +146,51 @@ REST_FRAMEWORK = {
     ],
 }
 
+# TinyMCE configuration
+TINYMCE_DEFAULT_CONFIG = {
+    "theme": "silver",
+    "height": 300,
+    "menubar": False,
+    "plugins": "advlist autolink lists link image charmap preview anchor "
+               "searchreplace visualblocks fullscreen "
+               "insertdatetime media table help wordcount",
+    "toolbar": "bold italic underline strikethrough | blocks | "
+               "bullist numlist | link image media | blockquote | "
+               "undo redo | removeformat",
+    "valid_elements": "p[class|style],a[href|target|rel|title],strong/b,em/i,u,"
+                      "h1,h2,h3,h4,h5,h6,blockquote,ul,ol,li,br,hr,img[src|alt|width|height],"
+                      "table,thead,tbody,tr,th[colspan|rowspan],td[colspan|rowspan],"
+                      "span[class|style],sub,sup,pre,div[class|style],abbr[title]",
+    "content_css": "default",
+    "branding": False,
+    "promotion": False,
+    "statusbar": True,
+    "resize": True,
+}
+
 # Jitsi configuration
 JITSI_DOMAIN = os.environ.get("JITSI_DOMAIN", "jitsi.member.fsf.org")
+
+# Celery
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
 
 # Login URLs
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+# Cache (LocMemCache for dev — overridden to Redis in prod.py)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+# Rate limiting (django-ratelimit)
+RATELIMIT_USE_CACHE = "default"
+RATELIMIT_FAIL_OPEN = True

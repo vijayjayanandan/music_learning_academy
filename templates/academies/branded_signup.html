@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Join {{ academy.name }} - Music Academy{% endblock %}
+{% block unauth_content %}
+<div class="card bg-base-100 shadow-xl w-full max-w-md">
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <h1 class="text-2xl font-bold text-primary">{{ academy.name }}</h1>
+            {% if academy.description %}
+            <p class="text-sm text-gray-500 mt-2">{{ academy.description|truncatewords:30 }}</p>
+            {% endif %}
+            {% if academy.instruments %}
+            <div class="flex flex-wrap gap-1 justify-center mt-2">
+                {% for inst in academy.instruments %}
+                <span class="badge badge-sm badge-outline">{{ inst }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="divider text-sm">Create your student account</div>
+        <form method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-error mb-4">
+                {% for error in form.non_field_errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% for field in form %}
+            <div class="form-control mb-3">
+                <label class="label"><span class="label-text">{{ field.label }}</span></label>
+                {{ field }}
+                {% for error in field.errors %}
+                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary w-full mt-4">Join {{ academy.name }}</button>
+        </form>
+        <p class="text-center text-sm mt-4">
+            Already have an account? <a href="{% url 'login' %}" class="link link-primary">Sign in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -6,7 +6,7 @@
                 {{ course.title }}
                 {% if not course.is_published %}<span class="badge badge-warning badge-sm">Draft</span>{% endif %}
             </h2>
-            <div class="flex gap-2 mb-2">
+            <div class="flex gap-2 mb-2 flex-wrap">
                 <span class="badge badge-outline">{{ course.instrument }}</span>
                 <span class="badge badge-outline">{{ course.get_difficulty_level_display }}</span>
                 {% if course.genre %}<span class="badge badge-ghost">{{ course.genre }}</span>{% endif %}
@@ -24,8 +24,17 @@
         </div>
     </div>
     {% empty %}
-    <div class="col-span-full text-center py-12">
-        <p class="text-gray-500 text-lg">No courses found.</p>
+    <div class="col-span-full">
+        <div class="card bg-base-100 shadow">
+            <div class="card-body items-center text-center py-12">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                <h3 class="text-lg font-semibold text-gray-600 mb-2">No courses found</h3>
+                <p class="text-gray-500 mb-4">Try adjusting your search or filters, or create a new course to get started.</p>
+                {% if user_role == "owner" or user_role == "instructor" %}
+                <a href="{% url 'course-create' %}" class="btn btn-primary">Create Your First Course</a>
+                {% endif %}
+            </div>
+        </div>
     </div>
     {% endfor %}
 </div>

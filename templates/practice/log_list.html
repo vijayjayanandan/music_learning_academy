@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Practice Journal - Music Academy{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Practice Journal</li>
+        </ul>
+    </div>
+    <h1 class="text-3xl font-bold">Practice Journal</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="stat bg-base-100 shadow rounded-box">
+            <div class="stat-title">Current Streak</div>
+            <div class="stat-value text-primary">{{ streak }}</div>
+            <div class="stat-desc">consecutive days</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-box">
+            <div class="stat-title">This Week</div>
+            <div class="stat-value">{{ weekly_minutes }}</div>
+            <div class="stat-desc">minutes practiced</div>
+        </div>
+        <div class="stat bg-base-100 shadow rounded-box">
+            <div class="stat-title">Weekly Goal</div>
+            <div class="stat-value text-lg">{% if goal %}{{ weekly_minutes }}/{{ goal.weekly_minutes_target }}{% else %}Not set{% endif %}</div>
+            <div class="stat-desc">
+                <form method="post" action="{% url 'practice-set-goal' %}" class="flex gap-1 mt-1">
+                    {% csrf_token %}
+                    <input type="number" name="weekly_minutes_target" value="{% if goal %}{{ goal.weekly_minutes_target }}{% else %}120{% endif %}" class="input input-bordered input-xs w-20">
+                    <button type="submit" class="btn btn-xs btn-ghost">Set</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if goal %}
+    <progress class="progress progress-primary w-full" value="{{ weekly_minutes }}" max="{{ goal.weekly_minutes_target }}"></progress>
+    {% endif %}
+
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title">Log Practice Session</h3>
+            <form method="post" action="{% url 'practice-log-create' %}">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Date</span></label>
+                        {{ form.date }}
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Minutes</span></label>
+                        {{ form.duration_minutes }}
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Instrument</span></label>
+                        {{ form.instrument }}
+                    </div>
+                </div>
+                <div class="form-control mt-3">
+                    <label class="label"><span class="label-text">Pieces Worked On</span></label>
+                    {{ form.pieces_worked_on }}
+                </div>
+                <div class="form-control mt-3">
+                    <label class="label"><span class="label-text">Notes</span></label>
+                    {{ form.notes }}
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm mt-4">Log Practice</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title">Practice History</h3>
+            {% for log in logs %}
+            <div class="flex justify-between items-center py-3 border-b last:border-0">
+                <div>
+                    <span class="font-medium">{{ log.date|date:"M d, Y" }}</span>
+                    <span class="badge badge-sm ml-2">{{ log.instrument }}</span>
+                    {% if log.pieces_worked_on %}
+                    <p class="text-sm text-gray-500">{{ log.pieces_worked_on|truncatewords:10 }}</p>
+                    {% endif %}
+                </div>
+                <span class="text-lg font-bold">{{ log.duration_minutes }}m</span>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 py-4 text-center">No practice logged yet. Start practicing!</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

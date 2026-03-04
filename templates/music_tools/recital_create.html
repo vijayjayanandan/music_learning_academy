@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Schedule Recital{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Schedule Virtual Recital</h1>
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">Title</span></label>
+                    <input type="text" name="title" class="input input-bordered w-full" required>
+                </div>
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">Description</span></label>
+                    <textarea name="description" class="textarea textarea-bordered w-full" rows="3"></textarea>
+                </div>
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">Start</span></label>
+                    <input type="datetime-local" name="scheduled_start" class="input input-bordered w-full" required>
+                </div>
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">End</span></label>
+                    <input type="datetime-local" name="scheduled_end" class="input input-bordered w-full" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Create Recital</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -9,4 +9,6 @@ urlpatterns = [
     # Enroll/unenroll via course slug
     path("enroll/<slug:slug>/", views.EnrollView.as_view(), name="enroll"),
     path("unenroll/<slug:slug>/", views.UnenrollView.as_view(), name="unenroll"),
+    path("<int:pk>/certificate/", views.CertificateView.as_view(), name="certificate"),
+    path("<int:pk>/certificate/pdf/", views.CertificatePDFView.as_view(), name="certificate-pdf"),
 ]

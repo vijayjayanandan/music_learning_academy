@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Music Learning Academy{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Online music learning platform for academies — courses, live sessions, practice tracking, and more.{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}Music Learning Academy{% endblock %}">
+    <meta property="og:description" content="Online music learning platform for academies.">
+    <meta property="og:type" content="website">
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,7 +17,7 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#6366f1',
+                        primary: '{{ current_academy.primary_color|default:"#6366f1" }}',
                         secondary: '#8b5cf6',
                         accent: '#f59e0b',
                     }
@@ -24,28 +28,39 @@
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="min-h-screen bg-base-200" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="min-h-screen bg-base-200 flex flex-col" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' {% if current_academy %}data-academy-slug="{{ current_academy.slug }}"{% endif %}>
+
+    <!-- Skip to main content (accessibility) -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-primary focus:text-primary-content">Skip to main content</a>
+
+    <!-- HTMX global progress bar -->
+    <div id="htmx-progress" class="fixed top-0 left-0 w-full h-1 z-[999] hidden">
+        <div class="h-full bg-primary animate-pulse"></div>
+    </div>
 
     {% if user.is_authenticated %}
     <!-- Navbar -->
-    <div class="navbar bg-base-100 shadow-lg sticky top-0 z-50">
+    <div class="navbar bg-base-100 shadow-lg sticky top-0 z-50" role="banner" aria-label="Main navigation">
         <div class="flex-none lg:hidden">
             <label for="sidebar-drawer" class="btn btn-square btn-ghost">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </label>
         </div>
-        <div class="flex-1">
-            <a href="{% url 'dashboard' %}" class="btn btn-ghost text-xl">
+        <div class="flex-1 min-w-0">
+            <a href="{% url 'dashboard' %}" class="btn btn-ghost text-xl hidden sm:inline-flex">
                 <span class="text-primary">&#9835;</span> Music Academy
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn btn-ghost text-lg sm:hidden">
+                <span class="text-primary">&#9835;</span>
             </a>
         </div>
         <div class="flex-none gap-2">
             {% if current_academy %}
             <!-- Academy Switcher -->
             <div class="dropdown dropdown-end">
-                <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
-                    {{ current_academy.name }}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                <div tabindex="0" role="button" class="btn btn-ghost btn-sm max-w-[10rem] sm:max-w-none">
+                    <span class="truncate">{{ current_academy.name }}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                 </div>
                 <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
                     {% for acad in user_academies %}
@@ -102,19 +117,60 @@
         <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
 
         <div class="drawer-content">
-            <!-- Messages -->
-            {% if messages %}
-            <div class="p-4">
-                {% for message in messages %}
-                <div class="alert alert-info mb-2">
-                    <span>{{ message }}</span>
-                </div>
-                {% endfor %}
+            <!-- Email verification banner -->
+            {% if user.is_authenticated and not user.email_verified %}
+            <div id="verification-banner" class="alert alert-warning rounded-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                <span>Please verify your email address. Check your inbox for a verification link.</span>
+                <form method="post" action="{% url 'resend-verification' %}"
+                      hx-post="{% url 'resend-verification' %}"
+                      hx-target="#verification-banner" hx-swap="outerHTML">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-ghost">Resend</button>
+                </form>
             </div>
             {% endif %}
 
+            <!-- Messages -->
+            {% if messages %}
+            <div class="p-4" id="messages-container">
+                {% for message in messages %}
+                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' or message.tags == 'danger' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} mb-2 transition-opacity duration-500"
+                     role="alert">
+                    {% if message.tags == 'success' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {% elif message.tags == 'warning' %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                    {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {% endif %}
+                    <span>{{ message }}</span>
+                    <button class="btn btn-ghost btn-xs" onclick="this.parentElement.remove();" aria-label="Dismiss">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            <script>
+                setTimeout(function() {
+                    var container = document.getElementById('messages-container');
+                    if (container) {
+                        container.querySelectorAll('.alert').forEach(function(alert) {
+                            alert.style.opacity = '0';
+                            setTimeout(function() { alert.remove(); }, 500);
+                        });
+                        setTimeout(function() {
+                            if (container && container.children.length === 0) container.remove();
+                        }, 600);
+                    }
+                }, 5000);
+            </script>
+            {% endif %}
+
             <!-- Page Content -->
-            <main class="p-6">
+            <main id="main-content" class="p-6 flex-1" role="main">
                 {% block content %}{% endblock %}
             </main>
         </div>
@@ -122,7 +178,7 @@
         <!-- Sidebar -->
         <div class="drawer-side z-40">
             <label for="sidebar-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
-            <aside class="bg-base-100 w-64 min-h-full p-4 shadow-lg">
+            <aside class="bg-base-100 w-64 min-h-full p-4 shadow-lg" role="navigation" aria-label="Sidebar navigation">
                 {% if current_academy %}
                 <div class="mb-6">
                     <h3 class="font-bold text-lg mb-1">{{ current_academy.name }}</h3>
@@ -131,39 +187,77 @@
                     {% endif %}
                 </div>
 
+                {% with nav_path=request.path %}
                 <ul class="menu w-full">
-                    <li><a href="{% url 'dashboard' %}">
+                    <li><a href="{% url 'dashboard' %}" {% if nav_path == '/' or '/dashboard/' in nav_path %}class="active"{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                         Dashboard
                     </a></li>
-                    <li><a href="{% url 'course-list' %}">
+                    <li><a href="{% url 'course-list' %}" {% if '/courses/' in nav_path %}class="active"{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                         Courses
                     </a></li>
-                    <li><a href="{% url 'schedule-list' %}">
+                    <li><a href="{% url 'schedule-list' %}" {% if '/schedule/' in nav_path %}class="active"{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         Live Sessions
                     </a></li>
 
+                    <li><a href="{% url 'message-inbox' %}" {% if '/messages/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Messages
+                        <span hx-get="{% url 'message-unread-count' %}" hx-trigger="load, every 30s" hx-swap="innerHTML"></span>
+                    </a></li>
+
+                    <li><a href="{% url 'practice-log-list' %}" {% if '/practice/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Practice
+                    </a></li>
+
                     {% if user_role == "student" %}
-                    <li><a href="{% url 'enrollment-list' %}">
+                    <li><a href="{% url 'enrollment-list' %}" {% if '/enrollments/' in nav_path %}class="active"{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                         My Progress
                     </a></li>
+                    <li><a href="{% url 'book-session' %}" {% if '/book-session/' in nav_path %}class="active"{% endif %}>Book Session</a></li>
                     {% endif %}
+
+                    {% if academy_features.metronome or academy_features.tuner or academy_features.notation or academy_features.ear_training or academy_features.recordings or academy_features.library %}
+                    <li class="menu-title mt-4">Music Tools</li>
+                    {% if academy_features.metronome %}<li><a href="{% url 'metronome' %}" {% if '/tools/metronome/' in nav_path %}class="active"{% endif %}>Metronome</a></li>{% endif %}
+                    {% if academy_features.tuner %}<li><a href="{% url 'tuner' %}" {% if '/tools/tuner/' in nav_path %}class="active"{% endif %}>Tuner</a></li>{% endif %}
+                    {% if academy_features.notation %}<li><a href="{% url 'notation-renderer' %}" {% if '/tools/notation/' in nav_path %}class="active"{% endif %}>Notation</a></li>{% endif %}
+                    {% if academy_features.ear_training %}<li><a href="{% url 'ear-training-list' %}" {% if '/tools/ear-training/' in nav_path %}class="active"{% endif %}>Ear Training</a></li>{% endif %}
+                    {% if academy_features.recordings %}<li><a href="{% url 'recording-archive' %}" {% if '/tools/recordings/' in nav_path %}class="active"{% endif %}>Recordings</a></li>{% endif %}
+                    {% if academy_features.library %}<li><a href="{% url 'library-list' %}" {% if '/library/' in nav_path %}class="active"{% endif %}>Library</a></li>{% endif %}
+                    {% endif %}
+
+                    {% if academy_features.recitals %}
+                    <li class="menu-title mt-4">Events</li>
+                    <li><a href="{% url 'recital-list' %}" {% if '/recitals/' in nav_path %}class="active"{% endif %}>Recitals</a></li>
+                    {% endif %}
+                    <li><a href="{% url 'academy-announcements' current_academy.slug %}" {% if '/announcements/' in nav_path %}class="active"{% endif %}>Announcements</a></li>
 
                     {% if user_role == "owner" or user_role == "instructor" %}
                     <li class="menu-title mt-4">Manage</li>
                     <li><a href="{% url 'course-create' %}">+ New Course</a></li>
                     <li><a href="{% url 'session-create' %}">+ Schedule Session</a></li>
+                    <li><a href="{% url 'availability-manage' %}" {% if '/availability/' in nav_path %}class="active"{% endif %}>My Availability</a></li>
                     {% endif %}
 
                     {% if user_role == "owner" %}
                     <li class="menu-title mt-4">Academy</li>
-                    <li><a href="{% url 'academy-members' current_academy.slug %}">Members</a></li>
-                    <li><a href="{% url 'academy-settings' current_academy.slug %}">Settings</a></li>
+                    <li><a href="{% url 'academy-members' current_academy.slug %}" {% if '/members/' in nav_path %}class="active"{% endif %}>Members</a></li>
+                    <li><a href="{% url 'academy-settings' current_academy.slug %}" {% if '/settings/' in nav_path %}class="active"{% endif %}>Settings</a></li>
+                    <li><a href="{% url 'coupon-manage' %}" {% if '/coupons/' in nav_path %}class="active"{% endif %}>Coupons</a></li>
+                    <li><a href="{% url 'payout-list' %}" {% if '/payouts/' in nav_path %}class="active"{% endif %}>Payouts</a></li>
                     {% endif %}
+
+                    <li class="menu-title mt-4">Account</li>
+                    <li><a href="{% url 'pricing' %}" {% if '/payments/pricing/' in nav_path %}class="active"{% endif %}>Pricing</a></li>
+                    <li><a href="{% url 'payment-history' %}" {% if '/payments/history/' in nav_path %}class="active"{% endif %}>Billing</a></li>
+                    <li><a href="{% url 'calendar-sync' %}" {% if '/calendar/' in nav_path %}class="active"{% endif %}>Calendar Sync</a></li>
                 </ul>
+                {% endwith %}
                 {% else %}
                 <div class="text-center py-8">
                     <p class="text-gray-500 mb-4">No academy selected</p>
@@ -176,11 +270,49 @@
 
     {% else %}
     <!-- Unauthenticated layout -->
-    <main class="min-h-screen flex items-center justify-center p-6">
+    <main id="main-content" class="min-h-screen flex items-center justify-center p-6 flex-1" role="main">
         {% block unauth_content %}{% endblock %}
     </main>
     {% endif %}
 
+    <!-- Footer -->
+    <footer class="footer footer-center p-6 bg-base-300 text-base-content mt-auto">
+        <div>
+            <p>&copy; {% now "Y" %} {% if current_academy %}{{ current_academy.name }}{% else %}Music Learning Academy{% endif %}. All rights reserved.</p>
+            <div class="flex gap-4">
+                <a href="{% url 'terms' %}" class="link link-hover">Terms of Service</a>
+                <a href="{% url 'privacy' %}" class="link link-hover">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Delete Confirmation Modal -->
+    <dialog id="confirm-dialog" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Confirm Action</h3>
+            <p class="py-4" id="confirm-dialog-message">Are you sure you want to proceed?</p>
+            <div class="modal-action">
+                <button class="btn" id="confirm-dialog-cancel">Cancel</button>
+                <button class="btn btn-error" id="confirm-dialog-ok">Delete</button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
+
+    {% if user.is_authenticated and current_academy %}
+    <script src="{% static 'js/notifications_ws.js' %}"></script>
+    {% endif %}
+    <script src="{% static 'js/confirm.js' %}"></script>
+    <script>
+        // HTMX global progress bar
+        (function() {
+            var bar = document.getElementById('htmx-progress');
+            if (!bar) return;
+            document.body.addEventListener('htmx:beforeRequest', function() { bar.classList.remove('hidden'); });
+            document.body.addEventListener('htmx:afterRequest', function() { bar.classList.add('hidden'); });
+            document.body.addEventListener('htmx:responseError', function() { bar.classList.add('hidden'); });
+        })();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

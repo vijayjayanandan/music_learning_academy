@@ -6,6 +6,17 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
 
+    email_verified = models.BooleanField(default=False)
+    timezone = models.CharField(max_length=50, default="UTC")
+    email_preferences = models.JSONField(default=dict, blank=True)
+    is_parent = models.BooleanField(default=False)
+    google_calendar_token = models.JSONField(default=dict, blank=True)
+    ical_feed_token = models.CharField(max_length=64, blank=True)
+    stripe_customer_id = models.CharField(max_length=100, blank=True)
+    parent = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="children",
+    )
     current_academy = models.ForeignKey(
         "academies.Academy",
         on_delete=models.SET_NULL,
@@ -23,6 +34,10 @@ class User(AbstractUser):
     def get_role_in(self, academy):
         membership = self.memberships.filter(academy=academy).first()
         return membership.role if membership else None
+
+    def wants_email(self, notification_type):
+        prefs = self.email_preferences or {}
+        return prefs.get(notification_type, True)  # Default: all enabled
 
     def get_academies(self):
         from apps.academies.models import Academy

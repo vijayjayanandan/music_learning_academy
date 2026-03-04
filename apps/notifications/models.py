@@ -35,6 +35,39 @@ class Notification(TimeStampedModel):
         ]
 
 
+class Message(TimeStampedModel):
+    """Direct messaging between academy members."""
+
+    sender = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="messages_sent"
+    )
+    recipient = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="messages_received"
+    )
+    academy = models.ForeignKey(
+        "academies.Academy", on_delete=models.CASCADE, related_name="messages"
+    )
+    subject = models.CharField(max_length=300)
+    body = models.TextField()
+    parent = models.ForeignKey(
+        "self", on_delete=models.CASCADE, null=True, blank=True, related_name="replies"
+    )
+    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.sender.email} → {self.recipient.email}: {self.subject}"
+
+    @property
+    def thread_root(self):
+        msg = self
+        while msg.parent:
+            msg = msg.parent
+        return msg
+
+
 class ChatMessage(TimeStampedModel):
     academy = models.ForeignKey(
         "academies.Academy", on_delete=models.CASCADE, related_name="chat_messages"

@@ -9,7 +9,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from apps.academies.mixins import TenantMixin
 from .forms import LiveSessionForm
 from .jitsi import generate_jitsi_room_name, get_jitsi_config
-from .models import LiveSession, SessionAttendance
+from .models import LiveSession, SessionAttendance, InstructorAvailability
 
 
 class ScheduleListView(TenantMixin, ListView):
@@ -36,6 +36,15 @@ class SessionCreateView(TenantMixin, CreateView):
     model = LiveSession
     form_class = LiveSessionForm
     template_name = "scheduling/session_create.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can create sessions
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors and owners can create sessions.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -79,6 +88,15 @@ class SessionEditView(TenantMixin, UpdateView):
     template_name = "scheduling/session_edit.html"
     pk_url_kwarg = "pk"
 
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors and owners can edit sessions
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors and owners can edit sessions.")
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["academy"] = self.get_academy()
@@ -90,9 +108,18 @@ class SessionEditView(TenantMixin, UpdateView):
 
 class CancelSessionView(TenantMixin, View):
     def post(self, request, pk):
+        # Security: only the session instructor or academy owner can cancel
+        role = request.user.get_role_in(self.get_academy())
+        if role not in ("owner", "instructor"):
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Only instructors and owners can cancel sessions.")
         session = get_object_or_404(
             LiveSession, pk=pk, academy=self.get_academy()
         )
+        # Additional check: instructors can only cancel their own sessions
+        if role == "instructor" and session.instructor != request.user:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("You can only cancel your own sessions.")
         session.status = LiveSession.SessionStatus.CANCELLED
         session.save()
         if request.htmx:
@@ -143,7 +170,8 @@ class JoinSessionView(TenantMixin, DetailView):
 
 class MarkJoinedView(TenantMixin, View):
     def post(self, request, pk):
-        session = get_object_or_404(LiveSession, pk=pk)
+        # Security: filter by academy (tenant isolation)
+        session = get_object_or_404(LiveSession, pk=pk, academy=self.get_academy())
         SessionAttendance.objects.filter(
             session=session, student=request.user
         ).update(
@@ -157,13 +185,185 @@ class MarkJoinedView(TenantMixin, View):
 
 class MarkLeftView(TenantMixin, View):
     def post(self, request, pk):
-        session = get_object_or_404(LiveSession, pk=pk)
+        # Security: filter by academy (tenant isolation)
+        session = get_object_or_404(LiveSession, pk=pk, academy=self.get_academy())
         SessionAttendance.objects.filter(
             session=session, student=request.user
         ).update(left_at=timezone.now())
         return render(request, "scheduling/partials/_attendance_status.html", {
             "status": "left",
         })
+
+
+class SessionEventsAPIView(TenantMixin, View):
+    """JSON API for FullCalendar events."""
+
+    def get(self, request):
+        from django.http import JsonResponse
+
+        start = request.GET.get("start")
+        end = request.GET.get("end")
+        qs = LiveSession.objects.filter(academy=self.get_academy())
+        if start:
+            qs = qs.filter(scheduled_end__gte=start)
+        if end:
+            qs = qs.filter(scheduled_start__lte=end)
+        qs = qs.select_related("instructor", "course")
+
+        color_map = {
+            "one_on_one": "#3B82F6",
+            "group": "#10B981",
+            "masterclass": "#8B5CF6",
+            "recital": "#F59E0B",
+        }
+        events = []
+        for s in qs:
+            events.append({
+                "id": s.pk,
+                "title": s.title,
+                "start": s.scheduled_start.isoformat(),
+                "end": s.scheduled_end.isoformat(),
+                "url": f"/schedule/session/{s.pk}/",
+                "color": color_map.get(s.session_type, "#6B7280"),
+                "classNames": ["opacity-50"] if s.status == "cancelled" else [],
+                "extendedProps": {
+                    "type": s.get_session_type_display(),
+                    "instructor": s.instructor.get_full_name() or s.instructor.email,
+                    "status": s.status,
+                },
+            })
+        return JsonResponse(events, safe=False)
+
+
+class AvailabilityManageView(TenantMixin, View):
+    """FEAT-030: Instructor manages availability slots."""
+
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors (and owners) can manage availability
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors can manage availability.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        slots = InstructorAvailability.objects.filter(
+            instructor=request.user, academy=self.get_academy(),
+        )
+        return render(request, "scheduling/availability.html", {"slots": slots})
+
+    def post(self, request):
+        # Security: validate day_of_week is in range 0-6
+        try:
+            day = int(request.POST.get("day_of_week", 0))
+            day = max(0, min(day, 6))
+        except (ValueError, TypeError):
+            day = 0
+        InstructorAvailability.objects.create(
+            instructor=request.user,
+            academy=self.get_academy(),
+            day_of_week=day,
+            start_time=request.POST.get("start_time"),
+            end_time=request.POST.get("end_time"),
+        )
+        return redirect("availability-manage")
+
+
+class DeleteAvailabilityView(TenantMixin, View):
+    def dispatch(self, request, *args, **kwargs):
+        # Security: only instructors can manage availability
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role not in ("owner", "instructor"):
+                from django.http import HttpResponseForbidden
+                return HttpResponseForbidden("Only instructors can manage availability.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk):
+        # Security: filter by academy too (tenant isolation)
+        slot = get_object_or_404(
+            InstructorAvailability, pk=pk, instructor=request.user,
+            academy=self.get_academy(),
+        )
+        slot.delete()
+        return redirect("availability-manage")
+
+
+class BookSessionView(TenantMixin, View):
+    """FEAT-030: Student self-booking from instructor availability."""
+
+    def get(self, request):
+        from apps.accounts.models import Membership
+        instructors = Membership.objects.filter(
+            academy=self.get_academy(), role="instructor",
+        ).select_related("user")
+        instructor_id = request.GET.get("instructor")
+        slots = []
+        if instructor_id:
+            slots = InstructorAvailability.objects.filter(
+                instructor_id=instructor_id, academy=self.get_academy(), is_active=True,
+            )
+        return render(request, "scheduling/book_session.html", {
+            "instructors": instructors,
+            "slots": slots,
+            "selected_instructor": instructor_id,
+        })
+
+    def post(self, request):
+        from apps.accounts.models import User, Membership
+        instructor = get_object_or_404(User, pk=request.POST.get("instructor"))
+        # Security: verify instructor is actually an instructor in this academy
+        if not Membership.objects.filter(
+            user=instructor, academy=self.get_academy(), role="instructor"
+        ).exists():
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Invalid instructor for this academy.")
+        # Security: filter slot by academy (tenant isolation)
+        slot = get_object_or_404(
+            InstructorAvailability, pk=request.POST.get("slot"),
+            academy=self.get_academy(),
+        )
+        session_date = request.POST.get("session_date")
+
+        from datetime import datetime
+        start_dt = datetime.combine(
+            datetime.strptime(session_date, "%Y-%m-%d").date(),
+            slot.start_time,
+        )
+        end_dt = datetime.combine(
+            datetime.strptime(session_date, "%Y-%m-%d").date(),
+            slot.end_time,
+        )
+        from django.utils import timezone as tz
+        start_dt = tz.make_aware(start_dt)
+        end_dt = tz.make_aware(end_dt)
+
+        # Check for double-booking
+        existing = LiveSession.objects.filter(
+            instructor=instructor,
+            academy=self.get_academy(),
+            scheduled_start=start_dt,
+            status="scheduled",
+        ).exists()
+        if existing:
+            return render(request, "scheduling/book_session.html", {
+                "error": "This slot is already booked.",
+            })
+
+        session = LiveSession.objects.create(
+            title=f"Lesson with {instructor.get_full_name() or instructor.email}",
+            instructor=instructor,
+            academy=self.get_academy(),
+            scheduled_start=start_dt,
+            scheduled_end=end_dt,
+            session_type="one_on_one",
+            jitsi_room_name=generate_jitsi_room_name(self.get_academy().slug, id(start_dt)),
+        )
+        SessionAttendance.objects.create(
+            session=session, student=request.user, academy=self.get_academy(),
+        )
+        return redirect("session-detail", pk=session.pk)
 
 
 class UpcomingSessionsPartialView(TenantMixin, ListView):

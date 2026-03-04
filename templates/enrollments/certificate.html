@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificate of Completion</title>
+    <style>
+        @media print { body { margin: 0; } .no-print { display: none; } }
+        body { font-family: Georgia, serif; text-align: center; }
+        .cert { border: 8px double #6366f1; padding: 60px 40px; margin: 40px auto; max-width: 800px; }
+        .cert h1 { font-size: 36px; color: #6366f1; margin-bottom: 10px; }
+        .cert .subtitle { font-size: 18px; color: #666; margin-bottom: 30px; }
+        .cert .name { font-size: 32px; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #333; display: inline-block; padding: 0 40px 5px; }
+        .cert .course-title { font-size: 24px; color: #333; margin: 15px 0; }
+        .cert .date { font-size: 16px; color: #666; margin-top: 30px; }
+        .cert .instructor { font-size: 16px; color: #666; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    {% if not pdf_mode %}
+    <div class="no-print" style="text-align: center; margin: 20px;">
+        <button onclick="window.print()" style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #6366f1; color: white; border: none; border-radius: 8px;">
+            Print Certificate
+        </button>
+        <a href="{% url 'certificate-pdf' enrollment.pk %}" style="padding: 10px 30px; font-size: 16px; cursor: pointer; background: #10b981; color: white; border: none; border-radius: 8px; text-decoration: none; display: inline-block; margin-left: 10px;">
+            Download PDF
+        </a>
+        <a href="{% url 'enrollment-detail' enrollment.pk %}" style="margin-left: 10px; color: #6366f1;">Back to Course</a>
+    </div>
+    {% endif %}
+    <div class="cert">
+        <h1>Certificate of Completion</h1>
+        <p class="subtitle">This certifies that</p>
+        <div class="name">{{ student.get_full_name|default:student.email }}</div>
+        <p class="subtitle">has successfully completed</p>
+        <div class="course-title">{{ course.title }}</div>
+        <p class="date">Completed on {{ enrollment.completed_at|date:"F d, Y" }}</p>
+        <p class="instructor">Instructor: {{ course.instructor.get_full_name|default:course.instructor.email }}</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Pricing{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Pricing</li>
+        </ul>
+    </div>
+    <h1 class="text-3xl font-bold mb-6">Pricing Plans</h1>
+
+    {% if plans %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {% for plan in plans %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body text-center">
+                <h2 class="card-title justify-center text-2xl">{{ plan.name }}</h2>
+                <p class="text-4xl font-bold my-4">{{ plan.price_display }}<span class="text-sm text-base-content/60">/{{ plan.billing_cycle }}</span></p>
+                {% if plan.trial_days > 0 %}
+                <div class="badge badge-success">{{ plan.trial_days }}-day free trial</div>
+                {% endif %}
+                <p class="text-base-content/70">{{ plan.description }}</p>
+                {% if plan.features %}
+                <ul class="text-left mt-4 space-y-2">
+                    {% for feature in plan.features %}
+                    <li>&#10003; {{ feature }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                <div class="card-actions justify-center mt-4">
+                    <a href="{% url 'checkout-plan' plan.pk %}" class="btn btn-primary">Subscribe</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert mb-8">No subscription plans available yet.</div>
+    {% endif %}
+
+    {% if packages %}
+    <h2 class="text-2xl font-bold mb-4">Package Deals</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for pkg in packages %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title">{{ pkg.name }}</h3>
+                <p>{{ pkg.description }}</p>
+                <p class="text-2xl font-bold">${{ pkg.price_cents|divisibleby:100 }} <span class="text-sm">for {{ pkg.total_credits }} credits</span></p>
+                <form method="post" action="{% url 'package-purchase' pkg.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary">Purchase</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

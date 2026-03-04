@@ -33,13 +33,25 @@ class Course(TenantScopedModel):
 
     thumbnail = models.ImageField(upload_to="course_thumbnails/", blank=True, null=True)
 
+    price_cents = models.PositiveIntegerField(
+        default=0, help_text="Price in cents. 0 = free course."
+    )
+    currency = models.CharField(max_length=3, default="USD")
+
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     max_students = models.PositiveIntegerField(default=30)
+    prerequisite_courses = models.ManyToManyField(
+        "self", symmetrical=False, blank=True, related_name="dependent_courses"
+    )
 
     class Meta:
         unique_together = ("academy", "slug")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["academy", "is_published"]),
+            models.Index(fields=["instructor", "academy"]),
+        ]
 
     def __str__(self):
         return self.title
@@ -51,6 +63,16 @@ class Course(TenantScopedModel):
     @property
     def lesson_count(self):
         return self.lessons.count()
+
+    @property
+    def is_free(self):
+        return self.price_cents == 0
+
+    @property
+    def price_display(self):
+        if self.is_free:
+            return "Free"
+        return f"${self.price_cents / 100:.2f}"
 
 
 class Lesson(TenantScopedModel):
@@ -75,6 +97,9 @@ class Lesson(TenantScopedModel):
 
     class Meta:
         ordering = ["course", "order"]
+        indexes = [
+            models.Index(fields=["course", "order"]),
+        ]
 
     def __str__(self):
         return f"{self.course.title} - Lesson {self.order}: {self.title}"
@@ -111,3 +136,49 @@ class PracticeAssignment(TenantScopedModel):
 
     class Meta:
         ordering = ["lesson", "created_at"]
+
+
+class LessonAttachment(TenantScopedModel):
+    class FileType(models.TextChoices):
+        SHEET_MUSIC = "sheet_music", "Sheet Music"
+        AUDIO = "audio", "Audio"
+        VIDEO = "video", "Video"
+        IMAGE = "image", "Image"
+        OTHER = "other", "Other"
+
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="attachments"
+    )
+    file = models.FileField(upload_to="lesson_attachments/%Y/%m/")
+    file_type = models.CharField(
+        max_length=20,
+        choices=FileType.choices,
+        default=FileType.OTHER,
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "created_at"]
+
+    def __str__(self):
+        return f"{self.title} ({self.lesson.title})"
+
+    @property
+    def file_size_display(self):
+        """Return human-readable file size."""
+        try:
+            size = self.file.size
+        except (FileNotFoundError, ValueError):
+            return "0 B"
+        for unit in ["B", "KB", "MB", "GB"]:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+
+    @property
+    def file_extension(self):
+        import os
+        return os.path.splitext(self.file.name)[1].lower()

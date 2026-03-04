@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Payouts{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Instructor Payouts</h1>
+
+    {% if payouts %}
+    <div class="overflow-x-auto">
+        <table class="table table-zebra">
+            <thead>
+                <tr><th>Instructor</th><th>Period</th><th>Amount</th><th>Status</th><th>Paid</th></tr>
+            </thead>
+            <tbody>
+                {% for payout in payouts %}
+                <tr>
+                    <td>{{ payout.instructor.get_full_name|default:payout.instructor.email }}</td>
+                    <td>{{ payout.period_start|date:"M d" }} - {{ payout.period_end|date:"M d, Y" }}</td>
+                    <td>${{ payout.amount_cents|divisibleby:100 }}</td>
+                    <td><span class="badge {% if payout.status == 'completed' %}badge-success{% elif payout.status == 'pending' %}badge-warning{% else %}badge-error{% endif %}">{{ payout.get_status_display }}</span></td>
+                    <td>{{ payout.paid_at|date:"M d, Y"|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert">No payout records found.</div>
+    {% endif %}
+</div>
+{% endblock %}

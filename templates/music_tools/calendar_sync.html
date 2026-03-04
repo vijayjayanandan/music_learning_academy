@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Calendar Sync{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Calendar Sync</h1>
+
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title">iCal Feed URL</h2>
+            <p class="text-sm text-base-content/60 mb-4">
+                Copy this URL and add it to Google Calendar, Apple Calendar, or Outlook to sync your sessions.
+            </p>
+            <div class="flex gap-2">
+                <input id="feed-url" type="text" value="{{ feed_url }}" class="input input-bordered flex-1 font-mono text-sm" readonly>
+                <button class="btn btn-primary" onclick="copyUrl()">Copy</button>
+            </div>
+            <div id="copy-success" class="alert alert-success mt-2 hidden">
+                URL copied to clipboard!
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">How to Add</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-bold">Google Calendar</h3>
+                    <ol class="list-decimal list-inside text-sm space-y-1">
+                        <li>Go to Google Calendar Settings</li>
+                        <li>Click "Add other calendars" > "From URL"</li>
+                        <li>Paste the iCal feed URL above</li>
+                        <li>Click "Add Calendar"</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 class="font-bold">Apple Calendar</h3>
+                    <ol class="list-decimal list-inside text-sm space-y-1">
+                        <li>Open Calendar app</li>
+                        <li>File > New Calendar Subscription</li>
+                        <li>Paste the URL and click Subscribe</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 class="font-bold">Outlook</h3>
+                    <ol class="list-decimal list-inside text-sm space-y-1">
+                        <li>Go to Calendar > Add Calendar > From Internet</li>
+                        <li>Paste the URL</li>
+                        <li>Click OK</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyUrl() {
+    const input = document.getElementById('feed-url');
+    navigator.clipboard.writeText(input.value).then(() => {
+        document.getElementById('copy-success').classList.remove('hidden');
+        setTimeout(() => document.getElementById('copy-success').classList.add('hidden'), 3000);
+    });
+}
+</script>
+{% endblock %}

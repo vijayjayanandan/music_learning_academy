@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Compose Message - Music Academy{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Compose Message</h1>
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {% if reply_to %}<input type="hidden" name="parent" value="{{ reply_to }}">{% endif %}
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">To</span></label>
+                    <select name="recipient" class="select select-bordered w-full" required>
+                        <option value="">Select recipient...</option>
+                        {% for m in members %}
+                        <option value="{{ m.user.pk }}" {% if recipient_id == m.user.pk|slugify %}selected{% endif %}>
+                            {{ m.user.get_full_name|default:m.user.email }} ({{ m.get_role_display }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">Subject</span></label>
+                    <input type="text" name="subject" class="input input-bordered w-full" required>
+                </div>
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text">Message</span></label>
+                    <textarea name="body" class="textarea textarea-bordered w-full" rows="6" required></textarea>
+                </div>
+                <div class="card-actions justify-end">
+                    <a href="{% url 'message-inbox' %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

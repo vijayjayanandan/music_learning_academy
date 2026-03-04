@@ -2,6 +2,12 @@
 {% block title %}Profile - Music Academy{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>My Profile</li>
+        </ul>
+    </div>
     <h1 class="text-3xl font-bold mb-6">My Profile</h1>
     <div class="card bg-base-100 shadow">
         <div class="card-body">
@@ -29,6 +35,17 @@
             {% endfor %}
             <div class="card-actions justify-end mt-4">
                 <a href="{% url 'profile-edit' %}" class="btn btn-primary btn-sm">Edit Profile</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow mt-6">
+        <div class="card-body">
+            <h3 class="card-title">Data &amp; Privacy</h3>
+            <p class="text-sm text-base-content/70">You can export all your data or delete your account at any time.</p>
+            <div class="card-actions mt-4">
+                <a href="{% url 'data-export' %}" class="btn btn-outline btn-sm">Export My Data</a>
+                <a href="{% url 'account-delete' %}" class="btn btn-outline btn-error btn-sm">Delete Account</a>
             </div>
         </div>
     </div>
