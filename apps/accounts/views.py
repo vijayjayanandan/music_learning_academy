@@ -1,15 +1,20 @@
+import json
+
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView, LogoutView, PasswordResetView
 from django.core.mail import send_mail
+from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404, render
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy
+from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.views import View
 from django.views.generic import CreateView, TemplateView, UpdateView
+from django_ratelimit.decorators import ratelimit
 
 from apps.academies.models import Academy
 from .forms import RegisterForm, ProfileForm
@@ -41,6 +46,7 @@ def _send_verification_email(request, user):
     )
 
 
+@method_decorator(ratelimit(key="ip", rate="5/5m", method="POST", block=True), name="post")
 class CustomLoginView(LoginView):
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
@@ -50,6 +56,7 @@ class CustomLogoutView(LogoutView):
     next_page = reverse_lazy("login")
 
 
+@method_decorator(ratelimit(key="ip", rate="3/10m", method="POST", block=True), name="post")
 class RegisterView(CreateView):
     model = User
     form_class = RegisterForm
@@ -80,6 +87,7 @@ class VerifyEmailView(View):
             return render(request, "accounts/email_verification_invalid.html")
 
 
+@method_decorator(ratelimit(key="ip", rate="2/10m", method="POST", block=True), name="post")
 class ResendVerificationView(LoginRequiredMixin, View):
     def post(self, request):
         if not request.user.email_verified:
@@ -116,6 +124,15 @@ class SwitchAcademyView(LoginRequiredMixin, View):
             request.user.current_academy = academy
             request.user.save(update_fields=["current_academy"])
         return redirect("dashboard")
+
+
+@method_decorator(ratelimit(key="ip", rate="3/10m", method="POST", block=True), name="post")
+class RateLimitedPasswordResetView(PasswordResetView):
+    template_name = "accounts/password_reset_form.html"
+    email_template_name = "accounts/password_reset_email.html"
+    html_email_template_name = "emails/password_reset_email.html"
+    subject_template_name = "accounts/password_reset_subject.txt"
+    success_url = reverse_lazy("password-reset-done")
 
 
 class ParentDashboardView(LoginRequiredMixin, View):
@@ -178,3 +195,68 @@ class LinkChildView(LoginRequiredMixin, View):
         except User.DoesNotExist:
             django_messages.error(request, "No account found with that email.")
         return redirect("parent-dashboard")
+
+
+class DataExportView(LoginRequiredMixin, View):
+    """GDPR: Export all user data as JSON."""
+
+    def get(self, request):
+        user = request.user
+        from apps.enrollments.models import Enrollment
+        from apps.practice.models import PracticeLog
+
+        data = {
+            "account": {
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "date_joined": user.date_joined.isoformat(),
+                "timezone": str(getattr(user, "timezone", "")),
+            },
+            "memberships": list(
+                user.memberships.select_related("academy").values(
+                    "academy__name", "role", "created_at",
+                )
+            ),
+            "enrollments": list(
+                Enrollment.objects.filter(student=user).values(
+                    "course__title", "status", "enrolled_at",
+                )
+            ),
+            "practice_logs": list(
+                PracticeLog.objects.filter(student=user).values(
+                    "date", "duration_minutes", "instrument", "notes",
+                )
+            ),
+        }
+        response = JsonResponse(data, json_encoder=_DjangoJSONEncoder)
+        response["Content-Disposition"] = 'attachment; filename="my_data_export.json"'
+        return response
+
+
+class AccountDeleteView(LoginRequiredMixin, View):
+    """GDPR: Delete user account after confirmation."""
+
+    def get(self, request):
+        return render(request, "accounts/account_delete.html")
+
+    def post(self, request):
+        confirmation = request.POST.get("confirm_email", "")
+        if confirmation != request.user.email:
+            messages.error(request, "Email confirmation did not match. Account not deleted.")
+            return redirect("account-delete")
+        user = request.user
+        logout(request)
+        user.delete()
+        messages.success(request, "Your account has been permanently deleted.")
+        return redirect("login")
+
+
+class _DjangoJSONEncoder(json.JSONEncoder):
+    """Handles date/datetime serialization."""
+
+    def default(self, obj):
+        from datetime import date, datetime
+        if isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        return super().default(obj)

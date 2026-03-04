@@ -45,7 +45,7 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info">No resources found. {% if user_role in "owner instructor" %}<a href="{% url 'library-upload' %}" class="link">Upload the first one!</a>{% endif %}</div>
+    <div class="alert">No resources found. {% if user_role in "owner instructor" %}<a href="{% url 'library-upload' %}" class="link">Upload the first one!</a>{% endif %}</div>
     {% endif %}
 </div>
 {% endblock %}

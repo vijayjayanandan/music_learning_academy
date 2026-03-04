@@ -23,7 +23,7 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info">No packages purchased. <a href="{% url 'pricing' %}" class="link link-primary">Browse packages</a></div>
+    <div class="alert">No packages purchased. <a href="{% url 'pricing' %}" class="link link-primary">Browse packages</a></div>
     {% endif %}
 </div>
 {% endblock %}

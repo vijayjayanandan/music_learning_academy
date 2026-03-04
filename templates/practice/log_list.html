@@ -2,6 +2,12 @@
 {% block title %}Practice Journal - Music Academy{% endblock %}
 {% block content %}
 <div class="space-y-6">
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Practice Journal</li>
+        </ul>
+    </div>
     <h1 class="text-3xl font-bold">Practice Journal</h1>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -17,7 +23,7 @@
         </div>
         <div class="stat bg-base-100 shadow rounded-box">
             <div class="stat-title">Weekly Goal</div>
-            <div class="stat-value">{% if goal %}{{ goal.weekly_minutes_target }}{% else %}--{% endif %}</div>
+            <div class="stat-value text-lg">{% if goal %}{{ weekly_minutes }}/{{ goal.weekly_minutes_target }}{% else %}Not set{% endif %}</div>
             <div class="stat-desc">
                 <form method="post" action="{% url 'practice-set-goal' %}" class="flex gap-1 mt-1">
                     {% csrf_token %}

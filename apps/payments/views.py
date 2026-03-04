@@ -200,6 +200,33 @@ class InvoiceDetailView(TenantMixin, View):
         return render(request, "payments/invoice.html", {"payment": payment})
 
 
+class InvoicePDFView(TenantMixin, View):
+    """PROD-007: Download invoice as PDF."""
+
+    def get(self, request, pk):
+        from io import BytesIO
+        from xhtml2pdf import pisa
+
+        payment = get_object_or_404(
+            Payment, pk=pk, student=request.user,
+        )
+        html = render(request, "payments/invoice.html", {
+            "payment": payment,
+            "pdf_mode": True,
+        }).content.decode("utf-8")
+
+        buffer = BytesIO()
+        pisa_status = pisa.CreatePDF(html, dest=buffer)
+        if pisa_status.err:
+            logger.error("PDF generation failed for invoice %s", pk)
+            return HttpResponse("PDF generation failed", status=500)
+
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="invoice-{payment.invoice_number}.pdf"'
+        return response
+
+
 class CouponManageView(TenantMixin, View):
     """FEAT-026: Manage coupons (admin)."""
 
@@ -311,12 +338,20 @@ class AcademyTierView(View):
         return render(request, "payments/tiers.html", {"tiers": tiers})
 
 
+from django_ratelimit.decorators import ratelimit
+
+
 @method_decorator(csrf_exempt, name="dispatch")
+@method_decorator(ratelimit(key="ip", rate="100/m", method="POST", block=True), name="post")
 class StripeWebhookView(View):
     """Handle Stripe webhook events."""
 
     def post(self, request):
+        from django.conf import settings as conf_settings
         from .stripe_service import construct_webhook_event, handle_checkout_completed
+
+        if not conf_settings.STRIPE_WEBHOOK_SECRET:
+            return HttpResponse("Webhook not configured", status=400)
 
         payload = request.body
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")

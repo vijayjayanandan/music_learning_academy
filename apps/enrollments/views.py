@@ -1,10 +1,19 @@
+import logging
+
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, DetailView
 
+logger = logging.getLogger(__name__)
+
+from django.core.exceptions import ValidationError as DjangoValidationError
+
 from apps.academies.mixins import TenantMixin
+from apps.common.cache import invalidate_dashboard_cache
+from apps.common.validators import validate_file_upload
 from apps.courses.models import Course, Lesson
 from .models import Enrollment, LessonProgress, AssignmentSubmission
 
@@ -31,14 +40,14 @@ class EnrollmentDetailView(TenantMixin, DetailView):
         return Enrollment.objects.filter(
             student=self.request.user,
             academy=self.get_academy(),
-        )
+        ).select_related("course", "course__instructor")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         lessons = self.object.course.lessons.all()
         progress_map = {
             lp.lesson_id: lp
-            for lp in self.object.lesson_progress.all()
+            for lp in self.object.lesson_progress.select_related("lesson").all()
         }
         lesson_data = []
         for lesson in lessons:
@@ -85,6 +94,8 @@ class EnrollView(TenantMixin, View):
             course=course,
             academy=self.get_academy(),
         )
+        if created:
+            invalidate_dashboard_cache(self.get_academy().pk)
         if request.htmx:
             return render(request, "enrollments/partials/_enroll_button.html", {
                 "course": course, "enrollment": enrollment,
@@ -98,6 +109,7 @@ class UnenrollView(TenantMixin, View):
         Enrollment.objects.filter(
             student=request.user, course=course
         ).update(status="dropped")
+        invalidate_dashboard_cache(self.get_academy().pk)
         if request.htmx:
             return render(request, "enrollments/partials/_enroll_button.html", {
                 "course": course, "enrollment": None,
@@ -143,7 +155,6 @@ class SubmitAssignmentView(TenantMixin, View):
     MAX_RECORDING_SIZE = 100 * 1024 * 1024  # 100MB
 
     def post(self, request, pk, assignment_pk):
-        import os
         from apps.courses.models import PracticeAssignment
 
         enrollment = get_object_or_404(
@@ -170,17 +181,21 @@ class SubmitAssignmentView(TenantMixin, View):
 
         if request.FILES.get("file_upload"):
             uploaded = request.FILES["file_upload"]
-            ext = os.path.splitext(uploaded.name)[1].lower()
-            if ext in self.ALLOWED_FILE_EXTENSIONS and uploaded.size <= self.MAX_FILE_SIZE:
+            try:
+                validate_file_upload(uploaded, self.ALLOWED_FILE_EXTENSIONS, self.MAX_FILE_SIZE)
                 submission.file_upload = uploaded
                 submission.save()
+            except DjangoValidationError:
+                pass  # silently skip invalid files
 
         if request.FILES.get("recording"):
             recording = request.FILES["recording"]
-            ext = os.path.splitext(recording.name)[1].lower()
-            if ext in self.ALLOWED_RECORDING_EXTENSIONS and recording.size <= self.MAX_RECORDING_SIZE:
+            try:
+                validate_file_upload(recording, self.ALLOWED_RECORDING_EXTENSIONS, self.MAX_RECORDING_SIZE)
                 submission.recording = recording
                 submission.save()
+            except DjangoValidationError:
+                pass  # silently skip invalid files
 
         if request.htmx:
             return render(request, "enrollments/partials/_submission_status.html", {
@@ -201,3 +216,34 @@ class CertificateView(TenantMixin, View):
             "course": enrollment.course,
             "student": enrollment.student,
         })
+
+
+class CertificatePDFView(TenantMixin, View):
+    """PROD-007: Download certificate as PDF."""
+
+    def get(self, request, pk):
+        from io import BytesIO
+        from xhtml2pdf import pisa
+
+        enrollment = get_object_or_404(
+            Enrollment, pk=pk, student=request.user, status="completed",
+            academy=self.get_academy()
+        )
+        html = render(request, "enrollments/certificate.html", {
+            "enrollment": enrollment,
+            "course": enrollment.course,
+            "student": enrollment.student,
+            "pdf_mode": True,
+        }).content.decode("utf-8")
+
+        buffer = BytesIO()
+        pisa_status = pisa.CreatePDF(html, dest=buffer)
+        if pisa_status.err:
+            logger.error("PDF generation failed for certificate %s", pk)
+            return HttpResponse("PDF generation failed", status=500)
+
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type="application/pdf")
+        slug = enrollment.course.slug
+        response["Content-Disposition"] = f'attachment; filename="certificate-{slug}.pdf"'
+        return response

@@ -2,6 +2,12 @@
 {% block title %}Courses - Music Academy{% endblock %}
 {% block content %}
 <div class="space-y-6">
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Courses</li>
+        </ul>
+    </div>
     <div class="flex justify-between items-center flex-wrap gap-4">
         <h1 class="text-3xl font-bold">Courses</h1>
         {% if user_role == "owner" or user_role == "instructor" %}

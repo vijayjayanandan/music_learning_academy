@@ -40,8 +40,13 @@ Thumbs.db
 .clarity/
 data/
 
-# Test screenshots
+# SSL certificates (generated locally)
+deployment/ssl/
+
+# Test screenshots & coverage
 screenshots/
+.coverage
+htmlcov/
 
 # Claude settings
 .claude/

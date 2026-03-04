@@ -48,6 +48,10 @@ class Course(TenantScopedModel):
     class Meta:
         unique_together = ("academy", "slug")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["academy", "is_published"]),
+            models.Index(fields=["instructor", "academy"]),
+        ]
 
     def __str__(self):
         return self.title
@@ -93,6 +97,9 @@ class Lesson(TenantScopedModel):
 
     class Meta:
         ordering = ["course", "order"]
+        indexes = [
+            models.Index(fields=["course", "order"]),
+        ]
 
     def __str__(self):
         return f"{self.course.title} - Lesson {self.order}: {self.title}"

@@ -17,11 +17,17 @@ COPY requirements/base.txt requirements/base.txt
 RUN pip install --no-cache-dir -r requirements/base.txt \
     && pip install --no-cache-dir gunicorn psycopg2-binary channels-redis
 
-# Copy project
-COPY . .
+# Create non-root user
+RUN groupadd -r app && useradd -r -g app -d /app -s /sbin/nologin app
 
-# Collect static files
+# Copy project
+COPY --chown=app:app . .
+
+# Collect static files (as root, before switching user)
 RUN python manage.py collectstatic --noinput 2>/dev/null || true
+
+# Switch to non-root user
+USER app
 
 EXPOSE 8000
 

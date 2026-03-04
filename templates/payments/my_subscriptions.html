@@ -16,7 +16,7 @@
                 <div class="flex items-center gap-4">
                     <span class="badge {% if sub.is_valid %}badge-success{% else %}badge-error{% endif %}">{{ sub.get_status_display }}</span>
                     {% if sub.is_valid %}
-                    <form method="post" action="{% url 'cancel-subscription' sub.pk %}">
+                    <form method="post" action="{% url 'cancel-subscription' sub.pk %}" data-confirm="Cancel your {{ sub.plan.name }} subscription? It will remain active until the end of your billing period.">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-outline btn-error btn-sm">Cancel</button>
                     </form>
@@ -27,7 +27,7 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info">You have no active subscriptions. <a href="{% url 'pricing' %}" class="link link-primary">View plans</a></div>
+    <div class="alert">You have no active subscriptions. <a href="{% url 'pricing' %}" class="link link-primary">View plans</a></div>
     {% endif %}
 </div>
 {% endblock %}

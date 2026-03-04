@@ -2,6 +2,12 @@
 {% block title %}Payment History{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Payment History</li>
+        </ul>
+    </div>
     <h1 class="text-3xl font-bold mb-6">Payment History</h1>
 
     {% if payments %}
@@ -32,7 +38,7 @@
         </table>
     </div>
     {% else %}
-    <div class="alert alert-info">No payment records found.</div>
+    <div class="alert">No payment records found.</div>
     {% endif %}
 </div>
 {% endblock %}

@@ -3,6 +3,22 @@ from .base import *  # noqa: F401,F403
 
 DEBUG = False
 
+# Sentry (optional — only activates when SENTRY_DSN is set)
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+if SENTRY_DSN:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        send_default_pii=False,
+        integrations=[
+            sentry_sdk.integrations.django.DjangoIntegration(),
+            sentry_sdk.integrations.celery.CeleryIntegration(),
+            sentry_sdk.integrations.redis.RedisIntegration(),
+        ],
+    )
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -27,6 +43,10 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = int(os.environ.get("SESSION_COOKIE_AGE", 86400))  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -37,6 +57,14 @@ CHANNEL_LAYERS = {
         "CONFIG": {
             "hosts": [os.environ.get("REDIS_URL", "redis://localhost:6379")],
         },
+    }
+}
+
+# Redis cache (DB 2 — separate from Channels DB 0 and Celery DB 1)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.environ.get("REDIS_CACHE_URL", "redis://localhost:6379/2"),
     }
 }
 
@@ -60,11 +88,18 @@ if os.environ.get("R2_ACCESS_KEY_ID") or os.environ.get("AWS_ACCESS_KEY_ID"):
     AWS_QUERYSTRING_AUTH = True
     AWS_QUERYSTRING_EXPIRE = 3600  # 1 hour signed URLs
 
+# Request ID middleware (structured logging)
+MIDDLEWARE += ["apps.common.middleware.RequestIDMiddleware"]  # noqa: F405
+
 # Logging
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
+        "json": {
+            "()": "pythonjsonlogger.json.JsonFormatter",
+            "format": "%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s",
+        },
         "verbose": {
             "format": "[{asctime}] {levelname} {name} {message}",
             "style": "{",
@@ -73,12 +108,12 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "json",
         },
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO",
+        "level": os.environ.get("LOG_LEVEL", "INFO"),
     },
     "loggers": {
         "apps.payments": {

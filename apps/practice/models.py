@@ -18,6 +18,9 @@ class PracticeLog(TenantScopedModel):
 
     class Meta:
         ordering = ["-date"]
+        indexes = [
+            models.Index(fields=["student", "date"]),
+        ]
 
     def __str__(self):
         return f"{self.student.email} - {self.date} - {self.instrument} ({self.duration_minutes}min)"

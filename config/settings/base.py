@@ -6,10 +6,10 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-n(g7=3is@a^1adtmhqa2#i7b(evs^de3^q)i9vk08&ykh9x5h#",
-)
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY environment variable is required.")
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
@@ -76,6 +76,8 @@ MIDDLEWARE = [
     "django_htmx.middleware.HtmxMiddleware",
     "apps.academies.middleware.TenantMiddleware",
     "apps.accounts.middleware.TimezoneMiddleware",
+    "apps.common.middleware.RatelimitMiddleware",
+    "apps.common.middleware.SecurityHeadersMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -150,11 +152,15 @@ TINYMCE_DEFAULT_CONFIG = {
     "height": 300,
     "menubar": False,
     "plugins": "advlist autolink lists link image charmap preview anchor "
-               "searchreplace visualblocks code fullscreen "
-               "insertdatetime media table code help wordcount",
+               "searchreplace visualblocks fullscreen "
+               "insertdatetime media table help wordcount",
     "toolbar": "bold italic underline strikethrough | blocks | "
-               "bullist numlist | link image media | code blockquote | "
+               "bullist numlist | link image media | blockquote | "
                "undo redo | removeformat",
+    "valid_elements": "p[class|style],a[href|target|rel|title],strong/b,em/i,u,"
+                      "h1,h2,h3,h4,h5,h6,blockquote,ul,ol,li,br,hr,img[src|alt|width|height],"
+                      "table,thead,tbody,tr,th[colspan|rowspan],td[colspan|rowspan],"
+                      "span[class|style],sub,sup,pre,div[class|style],abbr[title]",
     "content_css": "default",
     "branding": False,
     "promotion": False,
@@ -177,3 +183,14 @@ CELERY_TIMEZONE = "UTC"
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+# Cache (LocMemCache for dev — overridden to Redis in prod.py)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+# Rate limiting (django-ratelimit)
+RATELIMIT_USE_CACHE = "default"
+RATELIMIT_FAIL_OPEN = True

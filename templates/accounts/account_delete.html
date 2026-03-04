@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Delete Account — Music Learning Academy{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'profile' %}">My Profile</a></li>
+            <li>Delete Account</li>
+        </ul>
+    </div>
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h1 class="text-2xl font-bold text-error mb-4">Delete Your Account</h1>
+            <div class="alert alert-warning mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                <span>This action is <strong>permanent</strong> and cannot be undone. All your data (enrollments, practice logs, submissions, and messages) will be deleted.</span>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-control mb-4">
+                    <label class="label" for="id_confirm_email">
+                        <span class="label-text">Type your email (<strong>{{ user.email }}</strong>) to confirm:</span>
+                    </label>
+                    <input type="email" name="confirm_email" id="id_confirm_email"
+                           class="input input-bordered" placeholder="{{ user.email }}" required>
+                </div>
+                <div class="flex gap-4">
+                    <a href="{% url 'profile' %}" class="btn">Cancel</a>
+                    <button type="submit" class="btn btn-error">Permanently Delete Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

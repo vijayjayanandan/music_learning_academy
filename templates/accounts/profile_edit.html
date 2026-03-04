@@ -2,6 +2,13 @@
 {% block title %}Edit Profile - Music Academy{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'profile' %}">My Profile</a></li>
+            <li>Edit Profile</li>
+        </ul>
+    </div>
     <h1 class="text-3xl font-bold mb-6">Edit Profile</h1>
     <div class="card bg-base-100 shadow">
         <div class="card-body">

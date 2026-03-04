@@ -17,10 +17,13 @@
     </style>
 </head>
 <body>
+    {% if not pdf_mode %}
     <div class="no-print" style="margin-bottom: 20px;">
         <button onclick="window.print()" style="padding: 8px 16px; cursor: pointer;">Print Invoice</button>
+        <a href="{% url 'invoice-pdf' payment.pk %}" style="padding: 8px 16px; cursor: pointer; background: #6366f1; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-block;">Download PDF</a>
         <button onclick="history.back()" style="padding: 8px 16px; cursor: pointer;">Back</button>
     </div>
+    {% endif %}
 
     <div class="header">
         <div>

@@ -11,6 +11,71 @@ python manage.py runserver 8001
 # Login: admin@harmonymusic.com / admin123 (or any demo user — see seed_demo_data)
 ```
 
+## Current Project Status
+
+**Branch:** `feat/FEAT-001-password-reset` (all work accumulated here)
+**Tests:** 249 unit+integration passing (74% coverage) | E2E in `tests/e2e/`
+
+### Completed
+- [x] All 42 product features (Releases 1-4) — see `BACKLOG.md`
+- [x] PROD-001: Rate limiting on auth views (`django-ratelimit`)
+- [x] PROD-002: Health check endpoint (`/health/`)
+- [x] PROD-003: Redis caching (dashboard stats, tenant-scoped keys)
+- [x] PROD-004: Sentry integration (optional via `SENTRY_DSN`)
+- [x] PROD-005: GitHub Actions CI (Python 3.10/3.11 matrix)
+- [x] PROD-006: Nginx reverse proxy + Docker Compose update
+
+### Previous Sprint (Done)
+- [x] PROD-007: PDF generation (invoices + certificates) — `xhtml2pdf`, `InvoicePDFView`, `CertificatePDFView`
+- [x] PROD-008: WebSocket frontend JS — `static/js/notifications_ws.js`, `base.html` updated
+- [x] PROD-009: E2E persona test agents (Owner/Instructor/Student) — 4 test files, ~38 tests
+
+### Current Sprint — Production-Ready Hardening
+#### Phase 1: Critical Security Hardening
+- [x] 1.1 Remove hardcoded SECRET_KEY default — `base.py` raises error, `dev.py` has fallback
+- [x] 1.2 Fix WSGI/ASGI/Celery default settings module — changed to `config.settings.prod`
+- [x] 1.3 Sanitize TinyMCE HTML output — bleach, `|sanitize_html` filter, `valid_elements` whitelist
+- [x] 1.4 Create 403.html error template
+- [x] 1.5 Obfuscate admin URL — env-configurable `ADMIN_URL_PATH`, default `manage-internal/`
+- [x] 1.6 Add security headers & session config — `SecurityHeadersMiddleware`, `RequestIDMiddleware`, prod session settings
+- [x] 1.7 MIME-type validation for file uploads — shared `validate_file_upload()` in `apps/common/validators.py`
+- [x] 1.8 Secure health check — split into `/health/` (public, DB-only) and `/health/detail/` (staff-only)
+
+#### Phase 2: Performance & Data Integrity
+- [x] 2.1 Fix N+1 queries in student dashboard — single Exists subquery
+- [x] 2.2 Add database indexes — enrollments, courses, practice, payments
+- [x] 2.3 Add missing select_related/prefetch_related
+- [x] 2.4 Expand cache invalidation — `apps/common/cache.py`, used from enrollments + courses
+- [x] 2.5 Structured JSON logging + request ID middleware — `python-json-logger`, `RequestIDMiddleware`
+
+#### Phase 3: Test Coverage Expansion (~100 new tests) — DONE
+- [x] 3.1 Test infrastructure — `pytest-cov`, `factory-boy`, `freezegun`, `tests/factories.py`
+- [x] 3.2 Multi-tenancy isolation tests (13 tests) — `test_tenant_isolation.py`
+- [x] 3.3 Stripe webhook tests (13 tests) — `test_stripe_webhooks.py`
+- [x] 3.4 Celery task tests (8 tests) — `test_tasks.py`
+- [x] 3.5 Security tests (18 tests) — `test_security.py` (RBAC, IDOR, XSS, upload, headers, auth)
+- [x] 3.6 Form validation tests (12 tests) — `test_forms.py`
+- [x] 3.7 Model property tests (25 tests) — `test_models.py` rewritten
+
+#### Phase 4: UX Polish & Accessibility
+- [x] 4.1 Add footer + legal pages — footer in `base.html`, `templates/legal/`, URL routes
+- [x] 4.2 Add breadcrumbs to 14+ pages — DaisyUI breadcrumbs on all major templates
+- [x] 4.3 Core accessibility — skip-to-content, aria labels, role attributes on nav/main
+- [x] 4.4 Delete confirmation dialogs — reusable modal in `base.html` + `static/js/confirm.js`
+- [x] 4.5 HTMX loading indicators — global progress bar with htmx events
+- [x] 4.6 SEO basics — meta description, Open Graph tags, `robots.txt` view
+
+#### Phase 5: Deployment, Ops & Compliance
+- [x] 5.1 Dockerfile security — non-root `app` user, `COPY --chown`
+- [x] 5.2 Enhance CI pipeline — lint job (ruff, bandit, pip-audit), `--cov-fail-under=60`
+- [x] 5.3 Create README.md — project overview, quick start, Docker, env vars, testing
+- [x] 5.4 Complete .env.example — all sections documented with comments
+- [x] 5.5 GDPR compliance — `DataExportView` (JSON), `AccountDeleteView`, profile section
+- [x] 5.6 Clean up empty app test files — deleted 12 stub `apps/*/tests.py` files
+
+> **IMPORTANT:** Update this checklist after completing each item. Mark `[x]` and add status notes.
+> This survives context compaction — any new session reads this to know exactly where to resume.
+
 ## Stack
 - **Backend:** Django 4.2 + DRF + Django Channels (Daphne ASGI)
 - **Frontend:** Django Templates + HTMX 2.0 + Tailwind CSS (CDN) + DaisyUI 4.12
@@ -58,7 +123,11 @@ music_learning_academy/
 │   ├── enrollments/        # Enrollment, LessonProgress, AssignmentSubmission
 │   ├── scheduling/         # LiveSession, SessionAttendance, Jitsi integration
 │   ├── dashboards/         # Role-based dashboard views (admin/instructor/student)
-│   └── notifications/      # Notification, ChatMessage, WebSocket consumer
+│   ├── notifications/      # Notification, ChatMessage, WebSocket consumer
+│   ├── practice/           # PracticeLog, PracticeGoal, streaks
+│   ├── payments/           # Stripe, Subscription, Payment, Coupon, Payout, Package
+│   ├── music_tools/        # Metronome, Tuner, Notation, EarTraining, AI Feedback
+│   └── library/            # ContentLibrary (shared resources per academy)
 ├── templates/              # All HTML templates (base.html + per-app dirs)
 ├── static/                 # CSS, JS, favicon
 ├── requirements/           # base.txt, dev.txt
@@ -189,24 +258,31 @@ music_learning_academy/
 
 ## Development Workflow
 
-### Session Start Protocol
-1. Read CLAUDE.md (auto-loaded)
-2. Read BACKLOG.md — find next "Ready" or "pending" feature
-3. Create git branch: `feat/FEAT-XXX-short-name`
-4. Read spec: `docs/specs/feat-XXX-*.md`
-5. Build the feature (models → views → templates → tests)
-6. Run tests: `pytest tests/unit tests/integration -v`
-7. Run E2E tests: `pytest tests/e2e -v` (takes screenshots)
-8. Review screenshots in `screenshots/` dir
-9. Update BACKLOG.md status
-10. Commit to feature branch
+### Session Start Protocol (Compaction-Resilient)
+1. Read CLAUDE.md (auto-loaded) — check **"Current Sprint"** checklist above
+2. Find the first unchecked `[ ]` item in the checklist
+3. If it says "IN PROGRESS" → run `git status` and `git diff` to see partial work, continue
+4. If it's unchecked → read its spec in `docs/specs/`, start implementation
+5. Build: models → views → templates → tests
+6. Run tests: `python -m pytest tests/unit tests/integration -v`
+7. **After completing each item:** update the checklist above (mark `[x]`), update BACKLOG.md
+8. Run E2E tests if applicable: `python -m pytest tests/e2e -v`
+9. Commit when user requests
+
+### Recovery After Context Compaction
+If you lose conversation context mid-session:
+1. This file (CLAUDE.md) is auto-reloaded — the checklist shows current state
+2. Run `git status` to see uncommitted changes (what's in progress)
+3. Read `.claude/projects/.../memory/MEMORY.md` for patterns and gotchas
+4. Read the spec file for the current item to understand what's needed
+5. Resume implementation from where the code left off
 
 ### Test Commands
 ```bash
 # All unit + integration tests (fast, ~25s)
 python -m pytest tests/unit tests/integration -v
 
-# E2E tests with Playwright (needs server running on port 8002)
+# E2E tests with Playwright (needs server running on port 8001)
 python -m pytest tests/e2e -v
 
 # Run specific test
@@ -242,12 +318,19 @@ python -m pytest -m e2e -v
 8. Run E2E, review screenshots
 9. Commit, update BACKLOG.md
 
-## Known Limitations (PoC)
-- No Django signals for auto-notifications (notifications model exists but not auto-triggered)
-- Chat (ChatMessage model) has no UI yet
-- No file upload storage backend configured (uses local filesystem)
-- Tailwind/DaisyUI loaded via CDN (not compiled)
-- No password reset flow
-- No email sending configured
-- WebSocket notifications consumer exists but no frontend JS to connect yet
-- Jitsi public server (jitsi.member.fsf.org) — requires no auth but no moderator control
+## Known Limitations (Remaining)
+- Tailwind/DaisyUI loaded via CDN (by design — supports dynamic academy branding via `primary_color`)
+- Django Channels InMemoryChannelLayer in dev (Redis in prod) — WS only works single-process in dev
+- Jitsi public server (jitsi.member.fsf.org) — no moderator control
+- AI practice feedback is a mock analysis pipeline (no real ML model)
+- Stripe uses test keys in dev — requires real keys for production
+- No Django signals for auto-notifications (notifications created manually in views)
+
+## Production Infrastructure (Completed)
+- **Rate Limiting:** `django-ratelimit` on login (5/5m), register (3/10m), password reset (3/10m), resend verification (2/10m), Stripe webhook (100/m). Middleware: `apps/common/middleware.py`. Template: `templates/429.html`
+- **Health Check:** `/health/` — checks DB, Redis cache, Celery. Returns JSON `{status, checks}`. 200 if DB up, 503 if down. View: `apps/common/views.py`
+- **Caching:** `LocMemCache` (dev) / `RedisCache` DB 2 (prod). Dashboard stats cached 5min, stats partial 30s. All keys tenant-scoped (`academy.pk`). Invalidation on course CRUD.
+- **Sentry:** Optional via `SENTRY_DSN` env var. Django + Celery + Redis integrations. `send_default_pii=False`, `traces_sample_rate=0.1`.
+- **CI/CD:** `.github/workflows/ci.yml` — push/PR to main, Python 3.10+3.11 matrix, system check, migrate, pytest, migration check.
+- **Nginx:** `deployment/nginx.conf` — SSL, WebSocket `/ws/` upgrade, static/media serving, gzip, CSP headers. Self-signed cert scripts in `deployment/`.
+- **Docker:** `docker-compose.yml` — postgres + redis + web (Daphne) + nginx + celery-worker + celery-beat. Shared volumes: `static_files`, `media_files`. Web health check included.

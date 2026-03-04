@@ -6,11 +6,20 @@ from django.utils.text import slugify
 from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 
+from django.core.exceptions import ValidationError as DjangoValidationError
+
 from apps.academies.mixins import TenantMixin
 from apps.accounts.decorators import role_required
+from apps.common.cache import invalidate_dashboard_cache
+from apps.common.validators import validate_file_upload
 from apps.enrollments.models import Enrollment
 from .forms import CourseForm, LessonForm, LessonAttachmentForm, PracticeAssignmentForm
 from .models import Course, Lesson, LessonAttachment, PracticeAssignment
+
+
+def _invalidate_dashboard_cache(academy_pk):
+    """Clear cached dashboard stats when course data changes."""
+    invalidate_dashboard_cache(academy_pk)
 
 
 ALLOWED_ATTACHMENT_EXTENSIONS = {
@@ -84,6 +93,7 @@ class CourseCreateView(TenantMixin, CreateView):
         if course.is_published:
             course.published_at = timezone.now()
         course.save()
+        _invalidate_dashboard_cache(course.academy.pk)
         return redirect("course-detail", slug=course.slug)
 
 
@@ -91,6 +101,11 @@ class CourseDetailView(TenantMixin, DetailView):
     model = Course
     template_name = "courses/detail.html"
     slug_url_kwarg = "slug"
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("instructor").prefetch_related(
+            "lessons", "lessons__assignments", "lessons__attachments"
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -118,6 +133,11 @@ class CourseEditView(TenantMixin, UpdateView):
                 return denied
         return super().dispatch(request, *args, **kwargs)
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        _invalidate_dashboard_cache(self.object.academy.pk)
+        return response
+
     def get_success_url(self):
         return reverse("course-detail", kwargs={"slug": self.object.slug})
 
@@ -131,7 +151,9 @@ class CourseDeleteView(TenantMixin, View):
         course = get_object_or_404(
             Course, slug=slug, academy=self.get_academy()
         )
+        academy_pk = course.academy.pk
         course.delete()
+        _invalidate_dashboard_cache(academy_pk)
         return redirect("course-list")
 
 
@@ -237,17 +259,17 @@ class AttachmentUploadView(TenantMixin, View):
         form = LessonAttachmentForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded_file = form.cleaned_data.get("file")
-            # Security: validate file extension and size
+            # Security: validate file extension, size, and MIME type
             if uploaded_file:
-                import os
-                ext = os.path.splitext(uploaded_file.name)[1].lower()
-                if ext not in ALLOWED_ATTACHMENT_EXTENSIONS:
+                try:
+                    validate_file_upload(
+                        uploaded_file,
+                        allowed_extensions=ALLOWED_ATTACHMENT_EXTENSIONS,
+                        max_size=MAX_ATTACHMENT_SIZE,
+                    )
+                except DjangoValidationError as e:
                     from django.contrib import messages
-                    messages.error(request, f"File type '{ext}' is not allowed.")
-                    return redirect("lesson-detail", slug=slug, pk=pk)
-                if uploaded_file.size > MAX_ATTACHMENT_SIZE:
-                    from django.contrib import messages
-                    messages.error(request, "File size exceeds the 50MB limit.")
+                    messages.error(request, e.message)
                     return redirect("lesson-detail", slug=slug, pk=pk)
             attachment = form.save(commit=False)
             attachment.lesson = lesson

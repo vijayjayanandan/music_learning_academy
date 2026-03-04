@@ -24,7 +24,7 @@ organized into four sequential releases. Each release builds on the previous one
 
 ### Current Sprint Focus
 
-**All releases complete!** All 42 features have been implemented.
+**All 4 releases complete!** All 42 features + 9 production hardening items implemented. Pending: E2E test execution + bug fixes.
 
 ---
 
@@ -144,12 +144,38 @@ the obvious choice for music educators over Teachable, Thinkific, or Google Clas
 
 ---
 
+## Production Hardening
+
+Goal: Operational readiness — security, monitoring, performance, CI/CD, deployment.
+
+- [x] PROD-001: Rate limiting on auth views [S]
+  - Status: done
+- [x] PROD-002: Health check endpoint [S]
+  - Status: done
+- [x] PROD-003: Redis caching [S]
+  - Status: done
+- [x] PROD-004: Sentry integration [S]
+  - Status: done
+- [x] PROD-005: GitHub Actions CI [S]
+  - Status: done
+- [x] PROD-006: Nginx reverse proxy + Docker [M]
+  - Status: done
+- [x] PROD-007: PDF generation (invoices + certificates) [S]
+  - Status: done (xhtml2pdf, InvoicePDFView, CertificatePDFView)
+- [x] PROD-008: WebSocket frontend JS [S]
+  - Status: done (notifications_ws.js, base.html updated)
+- [x] PROD-009: E2E persona test agents [M]
+  - Status: done (38 Playwright tests across 4 persona files)
+
+---
+
 ## Summary
 
-| Release   | Theme              | Features | Status    |
-|-----------|--------------------|----------|-----------|
-| Release 1 | MVP (Usable)       | 12       | Done      |
-| Release 2 | Retention (Sticky) | 10       | Done      |
-| Release 3 | Monetization (Pay) | 10       | Done      |
-| Release 4 | Differentiate      | 10       | Done      |
-| **Total** |                    | **42**   | **Done**  |
+| Release              | Theme              | Features | Status      |
+|----------------------|--------------------|----------|-------------|
+| Release 1            | MVP (Usable)       | 12       | Done        |
+| Release 2            | Retention (Sticky) | 10       | Done        |
+| Release 3            | Monetization (Pay) | 10       | Done        |
+| Release 4            | Differentiate      | 10       | Done        |
+| Production Hardening | Ops Readiness      | 9        | Done        |
+| **Total**            |                    | **51**   | **51/51**   |

@@ -9,15 +9,9 @@ urlpatterns = [
     path("profile/", views.ProfileView.as_view(), name="profile"),
     path("profile/edit/", views.ProfileEditView.as_view(), name="profile-edit"),
     path("switch-academy/<slug:slug>/", views.SwitchAcademyView.as_view(), name="switch-academy"),
-    # Password reset
+    # Password reset (rate-limited)
     path("password-reset/",
-         auth_views.PasswordResetView.as_view(
-             template_name="accounts/password_reset_form.html",
-             email_template_name="accounts/password_reset_email.html",
-             html_email_template_name="emails/password_reset_email.html",
-             subject_template_name="accounts/password_reset_subject.txt",
-             success_url=reverse_lazy("password-reset-done"),
-         ),
+         views.RateLimitedPasswordResetView.as_view(),
          name="password-reset"),
     path("password-reset/done/",
          auth_views.PasswordResetDoneView.as_view(
@@ -41,4 +35,7 @@ urlpatterns = [
     # Parent portal
     path("parent-dashboard/", views.ParentDashboardView.as_view(), name="parent-dashboard"),
     path("link-child/", views.LinkChildView.as_view(), name="link-child"),
+    # GDPR: Data export & account deletion
+    path("data-export/", views.DataExportView.as_view(), name="data-export"),
+    path("delete-account/", views.AccountDeleteView.as_view(), name="account-delete"),
 ]

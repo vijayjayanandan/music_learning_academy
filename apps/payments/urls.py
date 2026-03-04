@@ -11,6 +11,7 @@ urlpatterns = [
     path("subscriptions/<int:pk>/cancel/", views.CancelSubscriptionView.as_view(), name="cancel-subscription"),
     path("history/", views.PaymentHistoryView.as_view(), name="payment-history"),
     path("invoice/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice-detail"),
+    path("invoice/<int:pk>/pdf/", views.InvoicePDFView.as_view(), name="invoice-pdf"),
     path("coupons/", views.CouponManageView.as_view(), name="coupon-manage"),
     path("payouts/", views.InstructorPayoutListView.as_view(), name="payout-list"),
     path("packages/", views.MyPackagesView.as_view(), name="my-packages"),

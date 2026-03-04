@@ -2,6 +2,12 @@
 {% block title %}Pricing{% endblock %}
 {% block content %}
 <div class="max-w-6xl mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Pricing</li>
+        </ul>
+    </div>
     <h1 class="text-3xl font-bold mb-6">Pricing Plans</h1>
 
     {% if plans %}
@@ -30,7 +36,7 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info mb-8">No subscription plans available yet.</div>
+    <div class="alert mb-8">No subscription plans available yet.</div>
     {% endif %}
 
     {% if packages %}

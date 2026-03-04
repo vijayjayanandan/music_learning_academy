@@ -44,7 +44,7 @@
                     <td>{{ slot.get_day_of_week_display }}</td>
                     <td>{{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}</td>
                     <td>
-                        <form method="post" action="{% url 'availability-delete' slot.pk %}">
+                        <form method="post" action="{% url 'availability-delete' slot.pk %}" data-confirm="Remove this availability slot?">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-ghost btn-sm text-error">Remove</button>
                         </form>
@@ -55,7 +55,7 @@
         </table>
     </div>
     {% else %}
-    <div class="alert alert-info">No availability slots set. Add your weekly schedule above.</div>
+    <div class="alert">No availability slots set. Add your weekly schedule above.</div>
     {% endif %}
 </div>
 {% endblock %}

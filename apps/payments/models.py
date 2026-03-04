@@ -51,7 +51,7 @@ class Subscription(TenantScopedModel):
         SubscriptionPlan, on_delete=models.PROTECT, related_name="subscriptions",
     )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
-    stripe_subscription_id = models.CharField(max_length=100, blank=True)
+    stripe_subscription_id = models.CharField(max_length=100, blank=True, db_index=True)
     current_period_start = models.DateTimeField(null=True, blank=True)
     current_period_end = models.DateTimeField(null=True, blank=True)
     trial_end = models.DateTimeField(null=True, blank=True)
@@ -59,6 +59,9 @@ class Subscription(TenantScopedModel):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["academy", "student", "status"]),
+        ]
 
     def __str__(self):
         return f"{self.student.email} - {self.plan.name} ({self.status})"
@@ -89,8 +92,8 @@ class Payment(TenantScopedModel):
     currency = models.CharField(max_length=3, default="USD")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     payment_type = models.CharField(max_length=20, choices=PaymentType.choices)
-    stripe_payment_intent_id = models.CharField(max_length=100, blank=True)
-    stripe_checkout_session_id = models.CharField(max_length=100, blank=True)
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, db_index=True)
+    stripe_checkout_session_id = models.CharField(max_length=100, blank=True, db_index=True)
 
     course = models.ForeignKey(
         "courses.Course", on_delete=models.SET_NULL, null=True, blank=True,
@@ -106,6 +109,9 @@ class Payment(TenantScopedModel):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["academy", "student", "status"]),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
