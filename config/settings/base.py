@@ -13,6 +13,8 @@ if not SECRET_KEY:
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+SITE_ID = 1
+
 # Stripe
 STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
@@ -43,12 +45,19 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     # Third-party
     "rest_framework",
     "django_htmx",
     "django_filters",
     "channels",
     "tinymce",
+    # Allauth (social login)
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.facebook",
     # Project apps
     "apps.common",
     "apps.accounts",
@@ -71,6 +80,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
@@ -94,6 +104,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.academies.context_processors.academy_context",
+                "apps.accounts.context_processors.social_login_context",
             ],
         },
     },
@@ -194,3 +205,41 @@ CACHES = {
 # Rate limiting (django-ratelimit)
 RATELIMIT_USE_CACHE = "default"
 RATELIMIT_FAIL_OPEN = True
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# django-allauth configuration (social login only — custom auth views kept)
+ACCOUNT_EMAIL_VERIFICATION = "none"  # We have our own email verification
+ACCOUNT_ADAPTER = "apps.accounts.adapters.CustomAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.CustomSocialAccountAdapter"
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Social provider credentials (from env vars)
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APPS": [
+            {
+                "client_id": os.environ.get("GOOGLE_OAUTH_CLIENT_ID", ""),
+                "secret": os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", ""),
+            },
+        ],
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    },
+    "facebook": {
+        "APPS": [
+            {
+                "client_id": os.environ.get("FACEBOOK_APP_ID", ""),
+                "secret": os.environ.get("FACEBOOK_APP_SECRET", ""),
+            },
+        ],
+        "FIELDS": ["id", "email", "first_name", "last_name"],
+        "SCOPE": ["email"],
+    },
+}

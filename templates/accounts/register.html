@@ -26,6 +26,7 @@
                 <button type="submit" class="btn btn-primary">Create Account</button>
             </div>
         </form>
+        {% include "accounts/partials/_social_buttons.html" with action_text="Sign up" %}
         <p class="text-center mt-4 text-sm">
             Already have an account? <a href="{% url 'login' %}" class="link link-primary">Sign In</a>
         </p>

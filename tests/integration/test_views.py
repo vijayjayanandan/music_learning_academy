@@ -3,6 +3,7 @@ from django.urls import reverse
 
 
 @pytest.mark.integration
+@pytest.mark.django_db
 class TestAuthViews:
     def test_login_page_loads(self, client):
         response = client.get(reverse("login"))

@@ -4,6 +4,7 @@ from django.urls import reverse
 
 
 @pytest.mark.integration
+@pytest.mark.django_db
 class TestPasswordResetViews:
     def test_password_reset_form_loads(self, client):
         response = client.get(reverse("password-reset"))

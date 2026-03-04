@@ -9,4 +9,5 @@ pip install -r requirements/base.txt
 
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
+python manage.py update_site
 python manage.py seed_demo_data

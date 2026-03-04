@@ -168,7 +168,7 @@ class Command(BaseCommand):
                 "username": email.split("@")[0],
                 "first_name": first_name,
                 "last_name": last_name,
-                "is_email_verified": True,
+                "email_verified": True,
             },
         )
         if created:
@@ -177,9 +177,9 @@ class Command(BaseCommand):
             self.stdout.write(f"  User: {email}")
         else:
             # Ensure existing demo users are marked verified
-            if not user.is_email_verified:
-                user.is_email_verified = True
-                user.save(update_fields=["is_email_verified"])
+            if not user.email_verified:
+                user.email_verified = True
+                user.save(update_fields=["email_verified"])
         return user
 
     def _create_membership(self, user, academy, role, instruments=None, skill_level="professional"):

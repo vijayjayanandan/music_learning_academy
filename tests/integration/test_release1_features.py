@@ -123,6 +123,7 @@ class TestInAppMessaging:
 
 
 @pytest.mark.integration
+@pytest.mark.django_db
 class TestBrandedSignup:
     """FEAT-011: Academy-branded signup link."""
 

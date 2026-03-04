@@ -215,7 +215,7 @@ class BrandedSignupView(View):
                 )
                 user.current_academy = academy
                 user.save(update_fields=["current_academy"])
-                auth_login(request, user)
+                auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             return redirect("dashboard")
         return render(request, "academies/branded_signup.html", {
             "academy": academy,
