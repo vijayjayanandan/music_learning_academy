@@ -19,7 +19,7 @@ urlpatterns = [
     # App routes
     path("", include("apps.dashboards.urls")),
     path("accounts/", include("apps.accounts.urls")),
-    path("accounts/social/", include("allauth.socialaccount.urls")),
+    path("accounts/social/", include("allauth.urls")),
     path("academy/", include("apps.academies.urls")),
     path("courses/", include("apps.courses.urls")),
     path("enrollments/", include("apps.enrollments.urls")),
