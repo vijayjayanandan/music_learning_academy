@@ -25,13 +25,13 @@
             {% if is_instructor %}
             <a href="{% url 'course-edit' object.slug %}" class="btn btn-ghost btn-sm">Edit</a>
             {% endif %}
-            {% if not is_instructor and not enrollment %}
             <div id="enroll-area">
-                {% include "enrollments/partials/_enroll_button.html" with course=object enrollment=enrollment %}
+                {% if not is_instructor and not enrollment %}
+                    {% include "enrollments/partials/_enroll_button.html" with course=object enrollment=enrollment %}
+                {% elif enrollment %}
+                    <a href="{% url 'enrollment-detail' enrollment.pk %}" class="btn btn-success btn-sm">View Progress</a>
+                {% endif %}
             </div>
-            {% elif enrollment %}
-            <a href="{% url 'enrollment-detail' enrollment.pk %}" class="btn btn-success btn-sm">View Progress</a>
-            {% endif %}
         </div>
     </div>
 
