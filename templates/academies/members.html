@@ -37,20 +37,20 @@
         </div>
     </div>
 
+    <div id="invitation-list">
     {% if pending_invitations %}
     <div class="card bg-base-100 shadow">
         <div class="card-body">
             <h3 class="card-title text-lg">Pending Invitations</h3>
-            <div id="invitation-list">
                 {% for inv in pending_invitations %}
                 <div class="flex items-center justify-between py-2 border-b last:border-0">
                     <span>{{ inv.email }}</span>
                     <span class="badge badge-outline">{{ inv.role|title }}</span>
                 </div>
                 {% endfor %}
-            </div>
         </div>
     </div>
     {% endif %}
+    </div>
 </div>
 {% endblock %}

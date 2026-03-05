@@ -1,8 +1,13 @@
-{% for inv in pending_invitations %}
-<div class="flex items-center justify-between py-2 border-b last:border-0">
-    <span>{{ inv.email }}</span>
-    <span class="badge badge-outline">{{ inv.role|title }}</span>
+{% if pending_invitations %}
+<div class="card bg-base-100 shadow">
+    <div class="card-body">
+        <h3 class="card-title text-lg">Pending Invitations</h3>
+        {% for inv in pending_invitations %}
+        <div class="flex items-center justify-between py-2 border-b last:border-0">
+            <span>{{ inv.email }}</span>
+            <span class="badge badge-outline">{{ inv.role|title }}</span>
+        </div>
+        {% endfor %}
+    </div>
 </div>
-{% empty %}
-<p class="text-gray-500 text-sm">No pending invitations.</p>
-{% endfor %}
+{% endif %}
