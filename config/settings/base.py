@@ -219,6 +219,8 @@ SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.CustomSocialAccountAdapter"
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
+ACCOUNT_LOGIN_URL = "/accounts/login/"
+ACCOUNT_SIGNUP_REDIRECT_URL = "/"
 
 # Social provider credentials (from env vars)
 SOCIALACCOUNT_PROVIDERS = {
