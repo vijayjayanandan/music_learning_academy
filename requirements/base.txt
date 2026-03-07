@@ -20,6 +20,7 @@ xhtml2pdf>=0.2.11
 bleach>=5.0,<6.0
 python-magic>=0.4
 python-json-logger>=2.0
+Markdown>=3.5
 django-allauth>=0.61
 PyJWT[crypto]>=2.8
 psycopg2-binary>=2.9

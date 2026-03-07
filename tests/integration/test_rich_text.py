@@ -117,3 +117,71 @@ class TestRichTextEditorTemplates:
         assert response.status_code == 200
         assert b"<h2>Welcome</h2>" in response.content
         assert b"<em>rich</em>" in response.content
+
+    def test_lesson_detail_renders_html_not_escaped(self, auth_client, db):
+        """Happy path: HTML content is rendered as HTML, not as escaped text
+        showing raw tags to the user (BUG-011)."""
+        from apps.accounts.models import User
+        from apps.courses.models import Course, Lesson
+
+        user = User.objects.get(email="owner@test.com")
+        academy = user.current_academy
+        course = Course.objects.create(
+            title="Render Course",
+            slug="render-course",
+            description="desc",
+            instrument="piano",
+            difficulty_level="beginner",
+            instructor=user,
+            academy=academy,
+        )
+        lesson = Lesson.objects.create(
+            title="Render Lesson",
+            content='<p>Learn the <strong>C major</strong> scale.</p><ul><li>Step 1</li><li>Step 2</li></ul>',
+            course=course,
+            academy=academy,
+            order=1,
+        )
+        response = auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
+        content = response.content.decode()
+        assert response.status_code == 200
+        # HTML should be rendered, not escaped (no &lt;p&gt; etc.)
+        assert "<strong>C major</strong>" in content
+        assert "<ul><li>Step 1</li><li>Step 2</li></ul>" in content
+        assert "&lt;p&gt;" not in content
+        assert "&lt;strong&gt;" not in content
+
+    def test_lesson_detail_sanitizes_script_tags(self, auth_client, db):
+        """Boundary: script tags in lesson content are stripped to prevent XSS
+        (BUG-011)."""
+        from apps.accounts.models import User
+        from apps.courses.models import Course, Lesson
+
+        user = User.objects.get(email="owner@test.com")
+        academy = user.current_academy
+        course = Course.objects.create(
+            title="XSS Course",
+            slug="xss-course",
+            description="desc",
+            instrument="piano",
+            difficulty_level="beginner",
+            instructor=user,
+            academy=academy,
+        )
+        lesson = Lesson.objects.create(
+            title="XSS Lesson",
+            content='<p>Safe content</p><script>alert("xss")</script><img src=x onerror="alert(1)">',
+            course=course,
+            academy=academy,
+            order=1,
+        )
+        response = auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
+        content = response.content.decode()
+        assert response.status_code == 200
+        # Safe HTML should remain
+        assert "<p>Safe content</p>" in content
+        # Injected script must be stripped (page has legitimate <script> for Tailwind)
+        assert 'alert("xss")' not in content
+        assert "alert(1)" not in content
+        # onerror attribute must be stripped
+        assert "onerror" not in content

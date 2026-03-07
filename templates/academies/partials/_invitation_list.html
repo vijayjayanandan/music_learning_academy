@@ -1,3 +1,13 @@
+{% if error %}
+<div class="alert alert-warning mb-4">
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+{% if success %}
+<div class="alert alert-success mb-4">
+    <span>{{ success }}</span>
+</div>
+{% endif %}
 {% if pending_invitations %}
 <div class="card bg-base-100 shadow">
     <div class="card-body">
@@ -5,7 +15,18 @@
         {% for inv in pending_invitations %}
         <div class="flex items-center justify-between py-2 border-b last:border-0">
             <span>{{ inv.email }}</span>
-            <span class="badge badge-outline">{{ inv.role|title }}</span>
+            <div class="flex items-center gap-2">
+                <span class="badge badge-outline">{{ inv.role|title }}</span>
+                <button hx-post="{% url 'resend-invitation' academy.slug inv.pk %}"
+                        hx-target="#invitation-list"
+                        hx-swap="innerHTML"
+                        class="btn btn-ghost btn-xs text-primary">Resend</button>
+                <button hx-post="{% url 'cancel-invitation' academy.slug inv.pk %}"
+                        hx-target="#invitation-list"
+                        hx-swap="innerHTML"
+                        hx-confirm="Cancel invitation for {{ inv.email }}?"
+                        class="btn btn-ghost btn-xs text-error">Cancel</button>
+            </div>
         </div>
         {% endfor %}
     </div>

@@ -48,6 +48,13 @@ class CourseListView(TenantMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related("instructor")
+
+        # Students only see published courses
+        academy = self.get_academy()
+        role = self.request.user.get_role_in(academy)
+        if role == "student":
+            qs = qs.filter(is_published=True)
+
         q = self.request.GET.get("q")
         instrument = self.request.GET.get("instrument")
         difficulty = self.request.GET.get("difficulty")
@@ -229,7 +236,10 @@ class LessonEditView(TenantMixin, View):
                 return render(request, "courses/partials/_lesson_row.html", {
                     "lesson": lesson, "course": lesson.course,
                 })
-        return redirect("course-detail", slug=slug)
+            return redirect("lesson-detail", slug=slug, pk=pk)
+        return render(request, "courses/lesson_edit.html", {
+            "form": form, "lesson": lesson, "course": lesson.course,
+        })
 
 
 class LessonDeleteView(TenantMixin, View):
@@ -285,6 +295,53 @@ class AttachmentUploadView(TenantMixin, View):
                 })
         return redirect("lesson-detail", slug=slug, pk=pk)
 
+
+class AssignmentEditView(TenantMixin, View):
+    def dispatch(self, request, *args, **kwargs):
+        if hasattr(request, 'academy') and request.academy:
+            denied = _check_instructor_or_owner(request, request.academy)
+            if denied:
+                return denied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, slug, lesson_pk, pk):
+        assignment = get_object_or_404(
+            PracticeAssignment, pk=pk, academy=self.get_academy()
+        )
+        form = PracticeAssignmentForm(instance=assignment)
+        return render(request, "courses/assignment_edit.html", {
+            "form": form,
+            "assignment": assignment,
+            "lesson": assignment.lesson,
+            "course": assignment.lesson.course,
+        })
+
+    def post(self, request, slug, lesson_pk, pk):
+        assignment = get_object_or_404(
+            PracticeAssignment, pk=pk, academy=self.get_academy()
+        )
+        form = PracticeAssignmentForm(request.POST, instance=assignment)
+        if form.is_valid():
+            form.save()
+            return redirect("lesson-detail", slug=slug, pk=lesson_pk)
+        return render(request, "courses/assignment_edit.html", {
+            "form": form,
+            "assignment": assignment,
+            "lesson": assignment.lesson,
+            "course": assignment.lesson.course,
+        })
+
+
+class AssignmentDeleteView(TenantMixin, View):
+    def post(self, request, slug, lesson_pk, pk):
+        denied = _check_instructor_or_owner(request, self.get_academy())
+        if denied:
+            return denied
+        assignment = get_object_or_404(
+            PracticeAssignment, pk=pk, academy=self.get_academy()
+        )
+        assignment.delete()
+        return redirect("lesson-detail", slug=slug, pk=lesson_pk)
 
 class AttachmentDeleteView(TenantMixin, View):
     def post(self, request, slug, pk, attachment_pk):

@@ -1,10 +1,14 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from apps.common.storage import get_public_storage, upload_to_avatars
+
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    avatar = models.ImageField(
+        upload_to=upload_to_avatars, storage=get_public_storage, blank=True, null=True
+    )
 
     email_verified = models.BooleanField(default=False)
     timezone = models.CharField(max_length=50, default="UTC")

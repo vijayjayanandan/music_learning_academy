@@ -1,0 +1,15 @@
+<form method="post" action="{% url 'lesson-edit' course.slug lesson.pk %}"
+      hx-post="{% url 'lesson-edit' course.slug lesson.pk %}"
+      hx-target="#lesson-list" hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="form-control mb-2">
+        <input type="text" name="title" value="{{ lesson.title }}" class="input input-bordered w-full" required />
+    </div>
+    <div class="form-control mb-2">
+        <input type="number" name="order" value="{{ lesson.order }}" class="input input-bordered w-full" placeholder="Order" />
+    </div>
+    <div class="flex items-center gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+        <a href="{% url 'lesson-detail' course.slug lesson.pk %}" class="btn btn-ghost btn-sm">Cancel</a>
+    </div>
+</form>

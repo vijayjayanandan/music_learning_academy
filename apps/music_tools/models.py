@@ -1,5 +1,10 @@
 from django.db import models
 from apps.common.models import TenantScopedModel
+from apps.common.storage import (
+    get_private_storage,
+    upload_to_analysis,
+    upload_to_student_recordings,
+)
 
 
 class EarTrainingExercise(TenantScopedModel):
@@ -101,7 +106,9 @@ class PracticeAnalysis(TenantScopedModel):
     student = models.ForeignKey(
         "accounts.User", on_delete=models.CASCADE, related_name="practice_analyses",
     )
-    recording = models.FileField(upload_to="analysis/%Y/%m/", blank=True, null=True)
+    recording = models.FileField(
+        upload_to=upload_to_analysis, storage=get_private_storage, blank=True, null=True
+    )
     recording_url = models.URLField(blank=True)
     analysis_result = models.JSONField(
         default=dict,
@@ -121,7 +128,7 @@ class RecordingArchive(TenantScopedModel):
         "accounts.User", on_delete=models.CASCADE, related_name="recordings",
     )
     title = models.CharField(max_length=300)
-    recording = models.FileField(upload_to="student_recordings/%Y/%m/")
+    recording = models.FileField(upload_to=upload_to_student_recordings, storage=get_private_storage)
     instrument = models.CharField(max_length=50, blank=True)
     course = models.ForeignKey(
         "courses.Course", on_delete=models.SET_NULL, null=True, blank=True,

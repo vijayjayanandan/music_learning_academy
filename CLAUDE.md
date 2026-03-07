@@ -11,10 +11,162 @@ python manage.py runserver 8001
 # Login: admin@harmonymusic.com / admin123 (or any demo user — see seed_demo_data)
 ```
 
+## Project Tracking
+
+| Document | Purpose | Location |
+|----------|---------|----------|
+| `CHANGELOG.md` | Version history — what shipped and when | Root |
+| `ISSUES.md` | Active bug/debt tracker (P0-P3 severity) | Root |
+| `ROADMAP.md` | What's next — current focus + future plans | Root |
+| `BACKLOG.md` | Feature list (all 51 items done) | Root |
+| `docs/sprints/` | Sprint reports — assessment, decisions, shipped items | `docs/sprints/` |
+| `docs/adr/` | Architecture Decision Records — why we chose X over Y | `docs/adr/` |
+| `docs/specs/` | Feature specs with acceptance criteria | `docs/specs/` |
+| `docs/test-plan.md` | Test strategy, HTMX audit, known issues | `docs/` |
+| `.claude/agents/` | Specialist thinking lenses (CTO, PO, Architect, UX, QA, etc.) | `.claude/agents/` |
+
+### Knowledge System (Three Layers)
+
+| Layer | File | Audience | What It Contains |
+|-------|------|----------|-----------------|
+| **Strategy** | `CLAUDE.md` | Project Lead (Claude) | Operating model, roles, sprint lifecycle, DoD |
+| **How** | `docs/engineering-handbook.md` | Coding agents | Conventions, patterns, test templates, DoD checklist |
+| **What** | `docs/codebase-map.md` | Coding agents | Module map, dependencies, key files, cross-cutting concerns |
+| **Lessons** | `docs/gotchas.md` | Coding agents | Mistakes we've made, with Problem/Why/Fix format |
+
+### Workflow
+1. **Issues** are logged in `ISSUES.md` with severity (P0-P3)
+2. **Sprints** are planned by the Project Lead (Claude), decisions logged in `docs/sprints/`
+3. **Changes** are recorded in `CHANGELOG.md` under `[Unreleased]`
+4. **Architecture decisions** are recorded in `docs/adr/`
+5. On release, `[Unreleased]` becomes a versioned entry
+
+---
+
+## Operating Model
+
+### Roles
+
+| Role | Who | Responsibility | Does NOT Do |
+|------|-----|---------------|-------------|
+| **Founder** | Vijay | Sets direction, approves decisions, final say | Write code, run tests |
+| **Project Lead** | Claude (main thread) | Plans sprints, spawns coding agents, reviews output, enforces DoD, reports to Founder | Write code directly (delegates to agents) |
+| **Coding Agent** | Claude sub-agent (spawned per task) | Implements code + tests for a specific task, follows engineering handbook | Make architectural decisions, skip tests |
+| **Specialist Lens** | Agent files in `.claude/agents/` | Provides domain expertise when invoked as a thinking framework | Execute code, make decisions autonomously |
+
+### How Claude Operates as Project Lead
+
+**Proactive, not reactive.** At session start, Claude:
+1. Reads CLAUDE.md → checks current sprint status
+2. Reads `ISSUES.md` and `ROADMAP.md` → identifies what needs attention
+3. **Proposes a sprint plan** to the Founder (doesn't wait to be asked)
+4. After approval, spawns coding agents for each task
+5. Reviews each agent's output against the DoD
+6. Reports results to the Founder
+
+**Separation of concerns.** Claude does NOT:
+- Write code directly in the main thread (fills context, loses perspective)
+- Skip the DoD because "it's a small fix"
+- Let coding agents make architectural decisions
+
+### Sprint Lifecycle
+
+```
+1. ASSESS     Claude reads codebase state, ISSUES.md, ROADMAP.md
+              Optionally invokes specialist lenses for deep analysis
+2. PLAN       Claude proposes sprint backlog to Founder (prioritized, estimated)
+3. APPROVE    Founder approves, adjusts, or redirects
+4. EXECUTE    Claude spawns coding agents (one per task)
+              Each agent reads: engineering-handbook.md + codebase-map.md + gotchas.md
+              Each agent delivers: code + tests + changelog entry
+5. REVIEW     Claude reviews each agent's output against DoD
+              Rejects incomplete work (no tests = not done)
+6. REPORT     Claude summarizes what shipped, tests added, what's next
+```
+
+### Definition of Done (Hard Gate)
+
+Every task must pass ALL five checks. Claude enforces this before marking any task complete:
+
+- [ ] Code change implemented and working
+- [ ] At least 1 test for the happy path
+- [ ] At least 1 test for a permission/security boundary
+- [ ] All existing tests pass: `python -m pytest tests/unit tests/integration -v`
+- [ ] CHANGELOG.md updated under `[Unreleased]` (if user-facing)
+
+**Zero exceptions.** 8 code changes with 0 tests = 0 complete items.
+
+### Spawning Coding Agents
+
+When spawning a coding agent, always include:
+
+```
+Task: [specific description — what to implement + what to test]
+
+Read these files before starting:
+- docs/engineering-handbook.md (conventions, test patterns, DoD)
+- docs/codebase-map.md (find the right files)
+- docs/gotchas.md (avoid known mistakes)
+
+Key files for this task:
+- [list specific files the agent will need to read/modify]
+
+Definition of Done:
+- [ ] [specific acceptance criteria]
+- [ ] At least 1 happy-path test
+- [ ] At least 1 permission/boundary test
+- [ ] All existing tests pass
+```
+
+### Specialist Lenses (When to Invoke)
+
+Specialist agents are **thinking frameworks**, not executors. Invoke them by reading their agent file and thinking through their lens.
+
+| Lens | File | Invoke When |
+|------|------|-------------|
+| CTO | `.claude/agents/cto.md` | Sprint assessment, priority decisions, competitive analysis |
+| Product Owner | `.claude/agents/product-owner.md` | Feature specs, user stories, persona analysis |
+| Architect | `.claude/agents/architect.md` | Schema changes, data model design, performance |
+| UX Engineer | `.claude/agents/ux-engineer.md` | Page design, empty states, accessibility, responsive |
+| Compliance | `.claude/agents/compliance.md` | Privacy, GDPR, COPPA, data handling |
+| QA Lead | `.claude/agents/qa-lead.md` | Test strategy, coverage gaps, regression risk |
+| DevOps | `.claude/agents/devops.md` | CI/CD, Docker, deployment, monitoring |
+
+### Priority Levels (from CTO Lens)
+
+```
+P0: Blocks activation (user literally cannot complete the flow)
+P1: Hurts activation (user CAN complete but it's confusing/broken)
+P2: Hurts retention (user activated but won't come back)
+P3: Polish (makes it nicer but doesn't move metrics)
+```
+
 ## Current Project Status
 
 **Branch:** `feat/FEAT-001-password-reset` (all work accumulated here)
-**Tests:** 249 unit+integration passing (74% coverage) | E2E in `tests/e2e/`
+**Tests:** 274 unit+integration passing (72% coverage) | E2E in `tests/e2e/`
+
+### Latest Sprint: Cloudflare R2 File Storage (2026-03-06)
+- [x] Dual storage backends: `PublicMediaStorage` + `PrivateMediaStorage`
+- [x] Tenant-scoped upload paths (`academy_{id}/prefix/filename`)
+- [x] All 9 file fields updated with storage + upload_to changes
+- [x] File cleanup signals (post_delete + pre_save old file replacement)
+- [x] GDPR data export includes file URLs (recordings, submissions, avatar)
+- [x] `test_r2_connection` management command
+- [x] R2 health check in `/health/detail/`
+- [x] 25 new tests (storage, paths, cleanup, GDPR)
+- [x] Fixed pre-existing GDPR export bugs (BUG-017, BUG-018)
+- ADR: `docs/adr/004-cloudflare-r2-file-storage.md`
+
+### Previous Sprint: Invitation Flow Fix (2026-03-06)
+- [x] Fix `?next=` forwarding through registration flow
+- [x] No-academy landing page (replaces "Create Academy" redirect)
+- [x] Strict email match on invitation acceptance
+- [x] Success message + welcome email after accepting
+- [x] Published-only courses for students
+- [x] Improved accept-invitation UX for unauthenticated users
+- [x] Owner notification when invitation is accepted
+- See full report: `docs/sprints/2026-03-06-invitation-flow.md`
 
 ### Completed
 - [x] All 42 product features (Releases 1-4) — see `BACKLOG.md`
@@ -110,6 +262,11 @@ Split settings pattern: `config/settings/base.py`, `dev.py`, `prod.py`.
 
 ```
 music_learning_academy/
+├── CHANGELOG.md            # Version history (what shipped when)
+├── ISSUES.md               # Active bug/debt tracker (P0-P3)
+├── ROADMAP.md              # Current focus + future plans
+├── BACKLOG.md              # Feature list (51/51 done)
+├── CLAUDE.md               # This file (auto-loaded project guide)
 ├── config/
 │   ├── settings/           # base.py, dev.py, prod.py
 │   ├── urls.py             # Root URL config
@@ -128,9 +285,15 @@ music_learning_academy/
 │   ├── payments/           # Stripe, Subscription, Payment, Coupon, Payout, Package
 │   ├── music_tools/        # Metronome, Tuner, Notation, EarTraining, AI Feedback
 │   └── library/            # ContentLibrary (shared resources per academy)
+├── docs/
+│   ├── specs/              # Feature specs (FEAT-001 through FEAT-042, PROD-001-009)
+│   ├── sprints/            # Sprint reports (assessment, decisions, shipped)
+│   ├── adr/                # Architecture Decision Records
+│   └── test-plan.md        # Test strategy + HTMX audit
 ├── templates/              # All HTML templates (base.html + per-app dirs)
 ├── static/                 # CSS, JS, favicon
 ├── requirements/           # base.txt, dev.txt
+├── .claude/agents/         # AI agent team (CTO, PO, Architect, UX, QA, etc.)
 └── manage.py
 ```
 
@@ -258,24 +421,25 @@ music_learning_academy/
 
 ## Development Workflow
 
-### Session Start Protocol (Compaction-Resilient)
-1. Read CLAUDE.md (auto-loaded) — check **"Current Sprint"** checklist above
-2. Find the first unchecked `[ ]` item in the checklist
-3. If it says "IN PROGRESS" → run `git status` and `git diff` to see partial work, continue
-4. If it's unchecked → read its spec in `docs/specs/`, start implementation
-5. Build: models → views → templates → tests
-6. Run tests: `python -m pytest tests/unit tests/integration -v`
-7. **After completing each item:** update the checklist above (mark `[x]`), update BACKLOG.md
-8. Run E2E tests if applicable: `python -m pytest tests/e2e -v`
-9. Commit when user requests
+### Session Start Protocol (Proactive Project Lead)
+1. Read CLAUDE.md (auto-loaded) — check current sprint status and Operating Model
+2. Read `ISSUES.md` — scan for new P0/P1 issues
+3. Read `ROADMAP.md` — check current focus area
+4. **Propose a sprint plan** to the Founder:
+   - What to work on (prioritized by P0 → P3)
+   - Why (which user flow it fixes/improves)
+   - Estimated scope (S/M/L per item)
+5. After approval, spawn coding agents per task (see "Spawning Coding Agents" above)
+6. Review each agent's output against DoD before marking complete
+7. Report results: what shipped, tests added, what's next
 
 ### Recovery After Context Compaction
 If you lose conversation context mid-session:
-1. This file (CLAUDE.md) is auto-reloaded — the checklist shows current state
+1. This file (CLAUDE.md) is auto-reloaded — the Operating Model and sprint status show current state
 2. Run `git status` to see uncommitted changes (what's in progress)
-3. Read `.claude/projects/.../memory/MEMORY.md` for patterns and gotchas
-4. Read the spec file for the current item to understand what's needed
-5. Resume implementation from where the code left off
+3. Read `MEMORY.md` for project patterns and operating model awareness
+4. Read `docs/gotchas.md` for known pitfalls
+5. Resume from where the code left off — enforce DoD on any in-progress work
 
 ### Test Commands
 ```bash

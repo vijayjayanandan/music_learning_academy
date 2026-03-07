@@ -1,5 +1,6 @@
 from django.db import models
 from apps.common.models import TenantScopedModel
+from apps.common.storage import get_private_storage, upload_to_library
 
 
 class LibraryResource(TenantScopedModel):
@@ -18,7 +19,7 @@ class LibraryResource(TenantScopedModel):
     resource_type = models.CharField(
         max_length=30, choices=ResourceType.choices, default=ResourceType.OTHER,
     )
-    file = models.FileField(upload_to="library/%Y/%m/")
+    file = models.FileField(upload_to=upload_to_library, storage=get_private_storage)
     uploaded_by = models.ForeignKey(
         "accounts.User", on_delete=models.CASCADE, related_name="library_uploads",
     )

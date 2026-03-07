@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Invitation Already Accepted{% endblock %}
+{% block unauth_content %}
+<div class="card w-full max-w-md bg-base-100 shadow-xl">
+    <div class="card-body text-center">
+        <h2 class="card-title justify-center text-warning">Already Accepted</h2>
+        <p class="py-4">This invitation has already been accepted. You can log in to access your academy.</p>
+        <a href="{% url 'login' %}" class="btn btn-primary">Go to Login</a>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="card w-full max-w-md bg-base-100 shadow-xl">
+    <div class="card-body text-center">
+        <h2 class="card-title justify-center text-warning">Already Accepted</h2>
+        <p class="py-4">This invitation has already been accepted. You can log in to access your academy.</p>
+        <a href="{% url 'dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

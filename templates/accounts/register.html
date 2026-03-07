@@ -4,8 +4,9 @@
 <div class="card w-full max-w-md bg-base-100 shadow-xl">
     <div class="card-body">
         <h2 class="card-title text-2xl justify-center mb-4">&#9835; Create Account</h2>
-        <form method="post">
+        <form method="post" action="{% url 'register' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}">
             {% csrf_token %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
             {% if form.non_field_errors %}
             <div class="alert alert-error mb-4">
                 {% for error in form.non_field_errors %}
@@ -28,7 +29,7 @@
         </form>
         {% include "accounts/partials/_social_buttons.html" with action_text="Sign up" %}
         <p class="text-center mt-4 text-sm">
-            Already have an account? <a href="{% url 'login' %}" class="link link-primary">Sign In</a>
+            Already have an account? <a href="{% url 'login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="link link-primary">Sign In</a>
         </p>
     </div>
 </div>

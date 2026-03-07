@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Invalid Invitation{% endblock %}
+{% block unauth_content %}
+<div class="card w-full max-w-md bg-base-100 shadow-xl">
+    <div class="card-body text-center">
+        <h2 class="card-title justify-center text-error">Invalid Invitation</h2>
+        <p class="py-4">This invitation link is not valid. It may have been revoked or the link is incorrect.</p>
+        <a href="{% url 'login' %}" class="btn btn-primary">Go to Login</a>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="card w-full max-w-md bg-base-100 shadow-xl">
+    <div class="card-body text-center">
+        <h2 class="card-title justify-center text-error">Invalid Invitation</h2>
+        <p class="py-4">This invitation link is not valid. It may have been revoked or the link is incorrect.</p>
+        <a href="{% url 'dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

@@ -24,7 +24,7 @@ class DashboardRedirectView(LoginRequiredMixin, View):
                 request.user.save(update_fields=["current_academy"])
                 academy = first_membership.academy
             else:
-                return redirect("academy-create")
+                return render(request, "dashboards/no_academy.html")
 
         role = request.user.get_role_in(academy)
         if role == "owner":

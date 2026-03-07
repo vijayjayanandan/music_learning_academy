@@ -1,12 +1,15 @@
 from django.db import models
 from apps.common.models import TimeStampedModel
+from apps.common.storage import get_public_storage, upload_to_academy_logos
 
 
 class Academy(TimeStampedModel):
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, db_index=True)
     description = models.TextField(blank=True)
-    logo = models.ImageField(upload_to="academy_logos/", blank=True, null=True)
+    logo = models.ImageField(
+        upload_to=upload_to_academy_logos, storage=get_public_storage, blank=True, null=True
+    )
 
     website = models.URLField(blank=True)
     email = models.EmailField(blank=True)

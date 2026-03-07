@@ -34,7 +34,7 @@
         </p>
         {% include "accounts/partials/_social_buttons.html" with action_text="Sign in" %}
         <p class="text-center mt-2 text-sm">
-            Don't have an account? <a href="{% url 'register' %}" class="link link-primary">Register</a>
+            Don't have an account? <a href="{% url 'register' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="link link-primary">Register</a>
         </p>
     </div>
 </div>

@@ -1,5 +1,11 @@
 from django.db import models
 from apps.common.models import TenantScopedModel
+from apps.common.storage import (
+    get_public_storage,
+    get_private_storage,
+    upload_to_course_thumbnails,
+    upload_to_lesson_attachments,
+)
 
 
 class Course(TenantScopedModel):
@@ -31,7 +37,9 @@ class Course(TenantScopedModel):
     learning_outcomes = models.JSONField(default=list)
     estimated_duration_weeks = models.PositiveIntegerField(default=8)
 
-    thumbnail = models.ImageField(upload_to="course_thumbnails/", blank=True, null=True)
+    thumbnail = models.ImageField(
+        upload_to=upload_to_course_thumbnails, storage=get_public_storage, blank=True, null=True
+    )
 
     price_cents = models.PositiveIntegerField(
         default=0, help_text="Price in cents. 0 = free course."
@@ -41,6 +49,18 @@ class Course(TenantScopedModel):
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
     max_students = models.PositiveIntegerField(default=30)
+    is_template = models.BooleanField(
+        default=False,
+        help_text="Template courses can be cloned by any academy as a starting point.",
+    )
+    source_template = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cloned_courses",
+        help_text="The template course this was cloned from, if any.",
+    )
     prerequisite_courses = models.ManyToManyField(
         "self", symmetrical=False, blank=True, related_name="dependent_courses"
     )
@@ -81,7 +101,7 @@ class Lesson(TenantScopedModel):
     description = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0)
 
-    content = models.TextField(blank=True, help_text="Lesson content in Markdown")
+    content = models.TextField(blank=True, help_text="Lesson content in HTML (edited via TinyMCE rich text editor)")
     video_url = models.URLField(blank=True, help_text="Link to pre-recorded video")
 
     sheet_music_url = models.URLField(blank=True)
@@ -149,7 +169,7 @@ class LessonAttachment(TenantScopedModel):
     lesson = models.ForeignKey(
         Lesson, on_delete=models.CASCADE, related_name="attachments"
     )
-    file = models.FileField(upload_to="lesson_attachments/%Y/%m/")
+    file = models.FileField(upload_to=upload_to_lesson_attachments, storage=get_private_storage)
     file_type = models.CharField(
         max_length=20,
         choices=FileType.choices,

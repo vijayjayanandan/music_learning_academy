@@ -151,6 +151,64 @@ class TestBrandedSignup:
         user = User.objects.get(email="newstudent@test.com")
         assert Membership.objects.filter(user=user, academy=academy, role="student").exists()
 
+    def test_branded_signup_sends_email_to_owner(self, client, db):
+        """BUG-013: Branded signup should send notification email to academy owner(s)."""
+        from django.core import mail
+        from apps.academies.models import Academy
+        from apps.notifications.models import Notification
+
+        # Create academy with an owner
+        academy = Academy.objects.create(name="Email Academy", slug="email-academy")
+        owner = User.objects.create_user(
+            username="academy_owner",
+            email="owner@email-academy.com",
+            password="testpass123",
+            first_name="Academy",
+            last_name="Owner",
+        )
+        Membership.objects.create(user=owner, academy=academy, role="owner")
+
+        # Register a new student via branded signup
+        response = client.post(reverse("branded-signup", args=["email-academy"]), {
+            "email": "newstudent@example.com",
+            "username": "newstudent_email",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "password1": "complexpass123!",
+            "password2": "complexpass123!",
+        })
+        assert response.status_code == 302
+
+        # Verify email was sent to the owner
+        assert len(mail.outbox) == 1
+        email_msg = mail.outbox[0]
+        assert email_msg.to == ["owner@email-academy.com"]
+        assert "Email Academy" in email_msg.subject
+        assert "New member" in email_msg.subject
+        assert "Jane Doe" in email_msg.body
+        assert "newstudent@example.com" in email_msg.body
+
+        # Verify in-app notification was created for the owner
+        notifications = Notification.objects.filter(recipient=owner, academy=academy)
+        assert notifications.count() == 1
+        assert "Jane Doe" in notifications.first().message
+        assert "branded signup" in notifications.first().message
+
+    def test_branded_signup_invalid_slug_returns_404(self, client, db):
+        """Boundary: branded signup for a non-existent academy slug returns 404."""
+        response = client.get(reverse("branded-signup", args=["nonexistent-academy"]))
+        assert response.status_code == 404
+
+        response = client.post(reverse("branded-signup", args=["nonexistent-academy"]), {
+            "email": "ghost@example.com",
+            "username": "ghost",
+            "first_name": "Ghost",
+            "last_name": "User",
+            "password1": "complexpass123!",
+            "password2": "complexpass123!",
+        })
+        assert response.status_code == 404
+
 
 @pytest.mark.integration
 class TestEmailNotifications:

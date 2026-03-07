@@ -54,6 +54,21 @@ def health_check_detail(request):
     except Exception:
         logger.warning("Health check detail: Celery unreachable")
 
+    # Check R2/S3 storage (only when configured)
+    from django.conf import settings
+    if getattr(settings, "USE_R2_STORAGE", False):
+        checks["storage_r2"] = False
+        try:
+            from apps.common.storage import PrivateMediaStorage
+            storage = PrivateMediaStorage()
+            from django.core.files.base import ContentFile
+            test_key = "_health_check_r2.txt"
+            storage.save(test_key, ContentFile(b"ok"))
+            storage.delete(test_key)
+            checks["storage_r2"] = True
+        except Exception:
+            logger.warning("Health check detail: R2 storage unreachable")
+
     # DB is critical — if it's down the whole app is down
     if checks["db"]:
         all_up = all(checks.values())

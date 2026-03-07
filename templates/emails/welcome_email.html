@@ -1,0 +1,48 @@
+{% extends "emails/base_email.html" %}
+
+{% block subject %}Welcome to {{ academy.name }} — Music Learning Academy{% endblock %}
+
+{% block title %}Welcome!{% endblock %}
+
+{% block preview_text %}You've joined {{ academy.name }} as {{ role }}. Let's get started!{% endblock %}
+
+{% block content %}
+<h1 style="margin: 0 0 24px 0; font-size: 24px; font-weight: 700; color: #111827; line-height: 1.3;">
+    Welcome to {{ academy.name }}!
+</h1>
+<p style="margin: 0 0 16px 0;">
+    Hi {{ user.first_name|default:"there" }},
+</p>
+<p style="margin: 0 0 24px 0;">
+    You've successfully joined <strong>{{ academy.name }}</strong> as a <strong>{{ role }}</strong>.
+    {% if role == "instructor" %}
+    You can now create courses, schedule live sessions, and start teaching.
+    {% elif role == "student" %}
+    You can now browse courses, enroll, and start learning.
+    {% endif %}
+</p>
+{% endblock %}
+
+{% block cta %}
+<tr>
+    <td style="background-color: #ffffff; padding: 8px 40px 24px 40px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+                <td align="center">
+                    <!--[if !mso]><!-->
+                    <a href="{{ dashboard_url }}" target="_blank" style="display: inline-block; background-color: #6366f1; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 6px; text-align: center;">
+                        <span style="mso-text-raise: 12pt;">Go to Dashboard</span>
+                    </a>
+                    <!--<![endif]-->
+                </td>
+            </tr>
+        </table>
+    </td>
+</tr>
+{% endblock %}
+
+{% block after_cta %}
+<p style="margin: 0; font-size: 14px; color: #6b7280;">
+    If you have questions, reach out to your academy administrator.
+</p>
+{% endblock %}

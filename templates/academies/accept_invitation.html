@@ -1,14 +1,37 @@
 {% extends "base.html" %}
-{% block title %}Accept Invitation{% endblock %}
-{% block content %}
+{% block title %}Accept Invitation - {{ invitation.academy.name }}{% endblock %}
+{% block unauth_content %}
 <div class="card w-full max-w-md bg-base-100 shadow-xl">
     <div class="card-body text-center">
-        <h2 class="card-title justify-center">You're Invited!</h2>
-        <p class="py-4">You've been invited to join <strong>{{ invitation.academy.name }}</strong> as a <strong>{{ invitation.role|title }}</strong>.</p>
-        <form method="post">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary">Accept Invitation</button>
-        </form>
+        <h2 class="card-title text-2xl justify-center mb-2">&#9835; You're Invited!</h2>
+        <p class="mb-4">
+            You've been invited to join <strong>{{ invitation.academy.name }}</strong>
+            as a <strong>{{ invitation.role|title }}</strong>.
+        </p>
+        <div class="divider">Sign in to accept</div>
+        <p class="text-sm text-gray-500 mb-4">Log in or create an account to join the academy.</p>
+        <div class="flex flex-col gap-3">
+            <a href="{% url 'login' %}?next=/invitation/{{ invitation.token }}/accept/" class="btn btn-primary">Sign In</a>
+            <a href="{% url 'register' %}?next=/invitation/{{ invitation.token }}/accept/" class="btn btn-outline btn-primary">Create Account</a>
+        </div>
+        {% include "accounts/partials/_social_buttons.html" with action_text="Continue" next_url=accept_url %}
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="flex justify-center items-center min-h-[60vh]">
+    <div class="card w-full max-w-md bg-base-100 shadow-xl">
+        <div class="card-body text-center">
+            <h2 class="card-title text-2xl justify-center mb-2">&#9835; You're Invited!</h2>
+            <p class="mb-4">
+                You've been invited to join <strong>{{ invitation.academy.name }}</strong>
+                as a <strong>{{ invitation.role|title }}</strong>.
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary btn-wide">Accept Invitation</button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

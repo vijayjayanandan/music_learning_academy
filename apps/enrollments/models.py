@@ -1,5 +1,6 @@
 from django.db import models
 from apps.common.models import TenantScopedModel
+from apps.common.storage import get_private_storage, upload_to_recordings, upload_to_submissions
 
 
 class Enrollment(TenantScopedModel):
@@ -74,8 +75,12 @@ class AssignmentSubmission(TenantScopedModel):
 
     text_response = models.TextField(blank=True)
     recording_url = models.URLField(blank=True)
-    recording = models.FileField(upload_to="recordings/%Y/%m/", blank=True, null=True)
-    file_upload = models.FileField(upload_to="submissions/", blank=True, null=True)
+    recording = models.FileField(
+        upload_to=upload_to_recordings, storage=get_private_storage, blank=True, null=True
+    )
+    file_upload = models.FileField(
+        upload_to=upload_to_submissions, storage=get_private_storage, blank=True, null=True
+    )
     practice_time_minutes = models.PositiveIntegerField(default=0)
 
     status = models.CharField(

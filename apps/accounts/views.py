@@ -63,9 +63,20 @@ class RegisterView(CreateView):
     template_name = "accounts/register.html"
     success_url = reverse_lazy("dashboard")
 
+    def get_success_url(self):
+        next_url = self.request.GET.get("next") or self.request.POST.get("next")
+        if next_url:
+            return next_url
+        return str(self.success_url)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["next"] = self.request.GET.get("next", "")
+        return ctx
+
     def form_valid(self, form):
         response = super().form_valid(form)
-        login(self.request, self.object)
+        login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
         _send_verification_email(self.request, self.object)
         return response
 
@@ -198,12 +209,55 @@ class LinkChildView(LoginRequiredMixin, View):
 
 
 class DataExportView(LoginRequiredMixin, View):
-    """GDPR: Export all user data as JSON."""
+    """GDPR: Export all user data as JSON, including file URLs."""
+
+    def _file_url(self, file_field):
+        """Generate a URL for a file field (signed if R2, local otherwise)."""
+        if file_field and file_field.name:
+            try:
+                return file_field.url
+            except Exception:
+                return None
+        return None
 
     def get(self, request):
         user = request.user
+        from apps.enrollments.models import AssignmentSubmission
         from apps.enrollments.models import Enrollment
+        from apps.music_tools.models import PracticeAnalysis, RecordingArchive
         from apps.practice.models import PracticeLog
+
+        # Collect file URLs for user's uploads
+        submissions = AssignmentSubmission.objects.filter(student=user)
+        submission_files = []
+        for sub in submissions:
+            entry = {"assignment": str(sub.assignment), "status": sub.status}
+            if sub.recording and sub.recording.name:
+                entry["recording_url"] = self._file_url(sub.recording)
+            if sub.file_upload and sub.file_upload.name:
+                entry["file_url"] = self._file_url(sub.file_upload)
+            submission_files.append(entry)
+
+        recordings = RecordingArchive.objects.filter(student=user)
+        recording_files = [
+            {
+                "title": r.title,
+                "instrument": r.instrument,
+                "url": self._file_url(r.recording),
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in recordings
+        ]
+
+        analyses = PracticeAnalysis.objects.filter(student=user)
+        analysis_files = [
+            {
+                "feedback": a.feedback,
+                "recording_url": self._file_url(a.recording),
+                "created_at": a.created_at.isoformat(),
+            }
+            for a in analyses
+        ]
 
         data = {
             "account": {
@@ -212,10 +266,11 @@ class DataExportView(LoginRequiredMixin, View):
                 "last_name": user.last_name,
                 "date_joined": user.date_joined.isoformat(),
                 "timezone": str(getattr(user, "timezone", "")),
+                "avatar_url": self._file_url(user.avatar),
             },
             "memberships": list(
                 user.memberships.select_related("academy").values(
-                    "academy__name", "role", "created_at",
+                    "academy__name", "role", "joined_at",
                 )
             ),
             "enrollments": list(
@@ -223,19 +278,26 @@ class DataExportView(LoginRequiredMixin, View):
                     "course__title", "status", "enrolled_at",
                 )
             ),
+            "assignment_submissions": submission_files,
+            "recordings": recording_files,
+            "practice_analyses": analysis_files,
             "practice_logs": list(
                 PracticeLog.objects.filter(student=user).values(
                     "date", "duration_minutes", "instrument", "notes",
                 )
             ),
         }
-        response = JsonResponse(data, json_encoder=_DjangoJSONEncoder)
+        response = JsonResponse(data, encoder=_DjangoJSONEncoder)
         response["Content-Disposition"] = 'attachment; filename="my_data_export.json"'
         return response
 
 
 class AccountDeleteView(LoginRequiredMixin, View):
-    """GDPR: Delete user account after confirmation."""
+    """GDPR: Delete user account after confirmation.
+
+    File cleanup is handled by post_delete signals in apps/common/signals.py,
+    which automatically delete R2/storage files when models are cascade-deleted.
+    """
 
     def get(self, request):
         return render(request, "accounts/account_delete.html")
@@ -247,6 +309,8 @@ class AccountDeleteView(LoginRequiredMixin, View):
             return redirect("account-delete")
         user = request.user
         logout(request)
+        # post_delete signals handle R2 file cleanup for user avatar
+        # and all related models (submissions, recordings, etc.) via CASCADE
         user.delete()
         messages.success(request, "Your account has been permanently deleted.")
         return redirect("login")

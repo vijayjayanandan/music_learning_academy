@@ -1,11 +1,18 @@
+import logging
 import secrets
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.mail import send_mail
 from django.shortcuts import redirect, get_object_or_404, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.views import View
 from django.views.generic import CreateView, DetailView, UpdateView
+
+logger = logging.getLogger(__name__)
+
+from django.contrib import messages
 
 from apps.accounts.models import Membership, Invitation, User
 from .forms import AcademyForm, InvitationForm
@@ -113,6 +120,7 @@ class MemberListView(TenantMixin, DetailView):
         ctx["pending_invitations"] = Invitation.objects.filter(
             academy=self.object, accepted=False
         )
+        ctx["academy"] = self.object
         return ctx
 
 
@@ -130,8 +138,29 @@ class InviteMemberView(TenantMixin, View):
             raise Http404("Academy not found.")
         form = InvitationForm(request.POST)
         if form.is_valid():
+            email = form.cleaned_data["email"]
+            # Check if already a member
+            if Membership.objects.filter(academy=academy, user__email=email).exists():
+                if request.htmx:
+                    invitations = Invitation.objects.filter(academy=academy, accepted=False)
+                    return render(request, "academies/partials/_invitation_list.html", {
+                        "pending_invitations": invitations,
+                        "academy": academy,
+                        "error": "This person is already a member of this academy.",
+                    })
+                return redirect("academy-members", slug=slug)
+            # Check for existing pending invitation
+            if Invitation.objects.filter(academy=academy, email=email, accepted=False).exists():
+                if request.htmx:
+                    invitations = Invitation.objects.filter(academy=academy, accepted=False)
+                    return render(request, "academies/partials/_invitation_list.html", {
+                        "pending_invitations": invitations,
+                        "academy": academy,
+                        "error": "An invitation has already been sent to this email.",
+                    })
+                return redirect("academy-members", slug=slug)
             token = secrets.token_urlsafe(48)
-            Invitation.objects.create(
+            invitation = Invitation.objects.create(
                 academy=academy,
                 email=form.cleaned_data["email"],
                 role=form.cleaned_data["role"],
@@ -139,6 +168,35 @@ class InviteMemberView(TenantMixin, View):
                 invited_by=request.user,
                 expires_at=timezone.now() + timezone.timedelta(days=7),
             )
+            # Send invitation email
+            accept_url = request.build_absolute_uri(
+                reverse("accept-invitation", kwargs={"token": token})
+            )
+            try:
+                html_message = render_to_string("emails/invitation_email.html", {
+                    "academy": academy,
+                    "invited_by": request.user,
+                    "role": invitation.role,
+                    "accept_url": accept_url,
+                    "expires_at": invitation.expires_at,
+                    "user": User.objects.filter(email=invitation.email).first(),
+                })
+                plain_message = (
+                    f"Hi,\n\n"
+                    f"{request.user.get_full_name()} has invited you to join "
+                    f"{academy.name} as a {invitation.role} on Music Learning Academy.\n\n"
+                    f"Accept the invitation here: {accept_url}\n\n"
+                    f"This invitation expires on {invitation.expires_at.strftime('%B %d, %Y')}."
+                )
+                send_mail(
+                    f"You've been invited to {academy.name} — Music Learning Academy",
+                    plain_message,
+                    None,  # uses DEFAULT_FROM_EMAIL
+                    [invitation.email],
+                    html_message=html_message,
+                )
+            except Exception:
+                logger.exception("Failed to send invitation email to %s", invitation.email)
             if request.htmx:
                 invitations = Invitation.objects.filter(academy=academy, accepted=False)
                 return render(request, "academies/partials/_invitation_list.html", {
@@ -149,21 +207,42 @@ class InviteMemberView(TenantMixin, View):
 
 
 class AcceptInvitationView(View):
-    def get(self, request, token):
-        invitation = get_object_or_404(Invitation, token=token, accepted=False)
+    def _get_invitation(self, token):
+        """Look up invitation and return (invitation, error_template) tuple."""
+        # Check if already accepted
+        invitation = Invitation.objects.filter(token=token).first()
+        if invitation is None:
+            return None, "academies/invitation_invalid.html"
+        if invitation.accepted:
+            return None, "academies/invitation_already_accepted.html"
         if invitation.expires_at < timezone.now():
-            return render(request, "academies/invitation_expired.html")
+            return None, "academies/invitation_expired.html"
+        return invitation, None
+
+    def get(self, request, token):
+        invitation, error_template = self._get_invitation(token)
+        if error_template:
+            return render(request, error_template)
+        accept_url = f"/invitation/{token}/accept/"
         return render(request, "academies/accept_invitation.html", {
             "invitation": invitation,
+            "accept_url": accept_url,
         })
 
     def post(self, request, token):
-        invitation = get_object_or_404(Invitation, token=token, accepted=False)
-        if invitation.expires_at < timezone.now():
-            return render(request, "academies/invitation_expired.html")
+        invitation, error_template = self._get_invitation(token)
+        if error_template:
+            return render(request, error_template)
 
         if not request.user.is_authenticated:
             return redirect(f"/accounts/login/?next=/invitation/{token}/accept/")
+
+        # Security: only the invited email can accept
+        if request.user.email.lower() != invitation.email.lower():
+            return render(request, "academies/invitation_email_mismatch.html", {
+                "invitation": invitation,
+                "user_email": request.user.email,
+            })
 
         Membership.objects.get_or_create(
             user=request.user,
@@ -176,7 +255,117 @@ class AcceptInvitationView(View):
         request.user.current_academy = invitation.academy
         request.user.save(update_fields=["current_academy"])
 
+        messages.success(
+            request,
+            f"Welcome to {invitation.academy.name}! You've joined as {invitation.role}.",
+        )
+
+        # Send welcome email
+        try:
+            dashboard_url = request.build_absolute_uri(reverse("dashboard"))
+            html_message = render_to_string("emails/welcome_email.html", {
+                "academy": invitation.academy,
+                "user": request.user,
+                "role": invitation.role,
+                "dashboard_url": dashboard_url,
+            })
+            plain_message = (
+                f"Hi {request.user.first_name or 'there'},\n\n"
+                f"Welcome to {invitation.academy.name}! "
+                f"You've joined as {invitation.role}.\n\n"
+                f"Go to your dashboard: {dashboard_url}"
+            )
+            send_mail(
+                f"Welcome to {invitation.academy.name} — Music Learning Academy",
+                plain_message,
+                None,
+                [request.user.email],
+                html_message=html_message,
+            )
+        except Exception:
+            logger.exception("Failed to send welcome email to %s", request.user.email)
+
+        # Notify academy owners that the invitation was accepted
+        from apps.notifications.models import Notification
+        owner_memberships = Membership.objects.filter(
+            academy=invitation.academy, role="owner"
+        ).select_related("user")
+        user_name = request.user.get_full_name() or request.user.email
+        for m in owner_memberships:
+            Notification.objects.create(
+                recipient=m.user,
+                academy=invitation.academy,
+                notification_type="invitation",
+                title="Invitation Accepted",
+                message=f"{user_name} has accepted the invitation and joined as {invitation.role}.",
+            )
+
         return redirect("dashboard")
+
+
+class ResendInvitationView(TenantMixin, View):
+    def post(self, request, slug, pk):
+        academy = self.get_academy()
+        role = request.user.get_role_in(academy)
+        if role != "owner":
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Only academy owners can manage invitations.")
+        invitation = get_object_or_404(Invitation, pk=pk, academy=academy, accepted=False)
+        # Generate new token and extend expiry
+        invitation.token = secrets.token_urlsafe(48)
+        invitation.expires_at = timezone.now() + timezone.timedelta(days=7)
+        invitation.save(update_fields=["token", "expires_at"])
+        # Send email
+        accept_url = request.build_absolute_uri(
+            reverse("accept-invitation", kwargs={"token": invitation.token})
+        )
+        try:
+            html_message = render_to_string("emails/invitation_email.html", {
+                "academy": academy,
+                "invited_by": request.user,
+                "role": invitation.role,
+                "accept_url": accept_url,
+                "expires_at": invitation.expires_at,
+                "user": User.objects.filter(email=invitation.email).first(),
+            })
+            plain_message = (
+                f"Hi,\n\n"
+                f"{request.user.get_full_name()} has invited you to join "
+                f"{academy.name} as a {invitation.role} on Music Learning Academy.\n\n"
+                f"Accept the invitation here: {accept_url}\n\n"
+                f"This invitation expires on {invitation.expires_at.strftime('%B %d, %Y')}."
+            )
+            send_mail(
+                f"You've been invited to {academy.name} — Music Learning Academy",
+                plain_message,
+                None,
+                [invitation.email],
+                html_message=html_message,
+            )
+        except Exception:
+            logger.exception("Failed to resend invitation email to %s", invitation.email)
+        invitations = Invitation.objects.filter(academy=academy, accepted=False)
+        return render(request, "academies/partials/_invitation_list.html", {
+            "pending_invitations": invitations,
+            "academy": academy,
+            "success": f"Invitation resent to {invitation.email}.",
+        })
+
+
+class CancelInvitationView(TenantMixin, View):
+    def post(self, request, slug, pk):
+        academy = self.get_academy()
+        role = request.user.get_role_in(academy)
+        if role != "owner":
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("Only academy owners can manage invitations.")
+        invitation = get_object_or_404(Invitation, pk=pk, academy=academy, accepted=False)
+        invitation.delete()
+        invitations = Invitation.objects.filter(academy=academy, accepted=False)
+        return render(request, "academies/partials/_invitation_list.html", {
+            "pending_invitations": invitations,
+            "academy": academy,
+        })
 
 
 class BrandedSignupView(View):
@@ -216,11 +405,65 @@ class BrandedSignupView(View):
                 user.current_academy = academy
                 user.save(update_fields=["current_academy"])
                 auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+
+            # Notify academy owners about the new member
+            self._notify_owners_new_member(request, user, academy)
+
             return redirect("dashboard")
         return render(request, "academies/branded_signup.html", {
             "academy": academy,
             "form": form,
         })
+
+    def _notify_owners_new_member(self, request, user, academy):
+        """Send email and in-app notification to academy owners about a new branded signup."""
+        from apps.notifications.models import Notification
+
+        user_name = user.get_full_name() or user.email
+        members_url = request.build_absolute_uri(
+            reverse("academy-members", kwargs={"slug": academy.slug})
+        )
+
+        owner_memberships = Membership.objects.filter(
+            academy=academy, role="owner"
+        ).select_related("user")
+
+        for m in owner_memberships:
+            # In-app notification
+            Notification.objects.create(
+                recipient=m.user,
+                academy=academy,
+                notification_type="enrollment",
+                title="New Member Joined",
+                message=f"{user_name} has joined {academy.name} as a student via branded signup.",
+            )
+
+            # Email notification
+            try:
+                html_message = render_to_string("emails/new_member_notification_email.html", {
+                    "academy": academy,
+                    "owner": m.user,
+                    "new_user_name": user_name,
+                    "new_user_email": user.email,
+                    "members_url": members_url,
+                })
+                plain_message = (
+                    f"Hi {m.user.first_name or 'there'},\n\n"
+                    f"{user_name} ({user.email}) has joined {academy.name} "
+                    f"as a student via the branded signup link.\n\n"
+                    f"View members: {members_url}"
+                )
+                send_mail(
+                    f"New member joined {academy.name} — Music Learning Academy",
+                    plain_message,
+                    None,  # uses DEFAULT_FROM_EMAIL
+                    [m.user.email],
+                    html_message=html_message,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to send new member notification email to %s", m.user.email
+                )
 
 
 class RemoveMemberView(TenantMixin, View):

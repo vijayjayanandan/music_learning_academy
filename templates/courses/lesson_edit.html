@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Edit: {{ lesson.title }} - Music Academy{% endblock %}
+{% block extra_head %}{{ form.media }}{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'course-list' %}">Courses</a></li>
+            <li><a href="{% url 'course-detail' course.slug %}">{{ course.title }}</a></li>
+            <li><a href="{% url 'lesson-detail' course.slug lesson.pk %}">Lesson {{ lesson.order }}</a></li>
+            <li>Edit</li>
+        </ul>
+    </div>
+
+    <h1 class="text-3xl font-bold">Edit Lesson</h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Basic Info -->
+        <div class="card bg-base-100 shadow mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-4">Basic Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Title</span></label>
+                        {{ form.title }}
+                        {% for error in form.title.errors %}<label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>{% endfor %}
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Order</span></label>
+                            {{ form.order }}
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Duration (min)</span></label>
+                            {{ form.estimated_duration_minutes }}
+                        </div>
+                    </div>
+                </div>
+                <div class="form-control mt-4">
+                    <label class="label"><span class="label-text">Short Description</span></label>
+                    {{ form.description }}
+                    {% for error in form.description.errors %}<label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>{% endfor %}
+                </div>
+                <div class="form-control mt-2">
+                    <label class="label cursor-pointer justify-start gap-2">
+                        {{ form.is_published }}
+                        <span class="label-text">Published (visible to students)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lesson Content -->
+        <div class="card bg-base-100 shadow mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-4">Lesson Content</h3>
+                <div class="form-control">
+                    {{ form.content }}
+                    {% for error in form.content.errors %}<label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>{% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Media Links -->
+        <div class="card bg-base-100 shadow mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-4">Media Resources</h3>
+                <p class="text-sm text-gray-500 mb-4">Add links to videos, audio examples, and sheet music. YouTube and Vimeo URLs will be embedded automatically.</p>
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Video URL</span></label>
+                        {{ form.video_url }}
+                        <label class="label"><span class="label-text-alt">YouTube, Vimeo, or direct video link</span></label>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Audio Example URL</span></label>
+                        {{ form.audio_example_url }}
+                        <label class="label"><span class="label-text-alt">Direct link to an audio file (MP3, WAV, etc.)</span></label>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Sheet Music URL</span></label>
+                        {{ form.sheet_music_url }}
+                        <label class="label"><span class="label-text-alt">Link to PDF or image of sheet music</span></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'lesson-detail' course.slug lesson.pk %}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

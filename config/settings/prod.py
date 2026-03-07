@@ -57,11 +57,18 @@ SESSION_SAVE_EVERY_REQUEST = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-# Render.com: trust .onrender.com origins for CSRF
+# Production domain
+ALLOWED_HOSTS += ["onemusicapp.com", "www.onemusicapp.com"]  # noqa: F405
+CSRF_TRUSTED_ORIGINS = [
+    "https://onemusicapp.com",
+    "https://www.onemusicapp.com",
+]
+
+# Render.com: also trust .onrender.com origins
 RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)  # noqa: F405
-    CSRF_TRUSTED_ORIGINS = [f"https://{RENDER_EXTERNAL_HOSTNAME}"]
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
 
 # Django Channels with Redis
 CHANNEL_LAYERS = {
@@ -88,14 +95,16 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 # Static files (WhiteNoise)
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# File storage (S3/R2) — configure if credentials present
+# File storage (Cloudflare R2 / S3-compatible) — configure if credentials present
 if os.environ.get("R2_ACCESS_KEY_ID") or os.environ.get("AWS_ACCESS_KEY_ID"):
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+    USE_R2_STORAGE = True
+    DEFAULT_FILE_STORAGE = "apps.common.storage.PrivateMediaStorage"
     AWS_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", os.environ.get("AWS_ACCESS_KEY_ID"))
     AWS_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY", os.environ.get("AWS_SECRET_ACCESS_KEY"))
     AWS_STORAGE_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME", os.environ.get("AWS_STORAGE_BUCKET_NAME"))
     AWS_S3_ENDPOINT_URL = os.environ.get("R2_ENDPOINT_URL", "")
     AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
+    AWS_S3_SIGNATURE_VERSION = "s3v4"  # Required for Cloudflare R2
     AWS_DEFAULT_ACL = None
     AWS_S3_FILE_OVERWRITE = False
     AWS_QUERYSTRING_AUTH = True

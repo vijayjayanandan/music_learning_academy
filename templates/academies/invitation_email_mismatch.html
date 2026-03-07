@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Wrong Account - Music Academy{% endblock %}
+{% block unauth_content %}
+<div class="card w-full max-w-md bg-base-100 shadow-xl">
+    <div class="card-body text-center">
+        <h2 class="card-title text-2xl justify-center mb-4">Wrong Account</h2>
+        <p class="mb-2">This invitation was sent to:</p>
+        <p class="font-semibold text-primary mb-4">{{ invitation.email }}</p>
+        <p class="text-sm text-gray-500 mb-4">
+            You're currently signed in as <strong>{{ user_email }}</strong>.
+            Please sign out and log in with the invited email to accept.
+        </p>
+        <div class="flex flex-col gap-2">
+            <a href="{% url 'logout' %}" class="btn btn-primary">Sign Out &amp; Switch Account</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-ghost btn-sm">Go to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block content %}
+<div class="flex justify-center items-center min-h-[60vh]">
+    <div class="card w-full max-w-md bg-base-100 shadow-xl">
+        <div class="card-body text-center">
+            <h2 class="card-title text-2xl justify-center mb-4">Wrong Account</h2>
+            <p class="mb-2">This invitation was sent to:</p>
+            <p class="font-semibold text-primary mb-4">{{ invitation.email }}</p>
+            <p class="text-sm text-gray-500 mb-4">
+                You're currently signed in as <strong>{{ user_email }}</strong>.
+                Please sign out and log in with the invited email to accept.
+            </p>
+            <div class="flex flex-col gap-2">
+                <a href="{% url 'logout' %}" class="btn btn-primary">Sign Out &amp; Switch Account</a>
+                <a href="{% url 'dashboard' %}" class="btn btn-ghost btn-sm">Go to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
