@@ -1,53 +1,149 @@
 {% extends "base.html" %}
 {% block title %}Book a Session{% endblock %}
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6">Book a Session</h1>
+<div class="max-w-4xl mx-auto space-y-6">
 
+    {# P-015: Breadcrumbs #}
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'schedule-list' %}">Live Sessions</a></li>
+            <li>Book Session</li>
+        </ul>
+    </div>
+
+    <h1 class="text-3xl font-bold">Book a Session</h1>
+
+    {# DaisyUI Steps Indicator #}
+    <ul class="steps w-full" id="booking-steps">
+        <li class="step step-primary" data-step="1">Choose Instructor</li>
+        <li class="step" data-step="2">Pick a Slot</li>
+        <li class="step" data-step="3">Confirm</li>
+    </ul>
+
+    {# P-013: Page-level error alert (full-page fallback) #}
     {% if error %}
-    <div class="alert alert-error mb-4">{{ error }}</div>
+    <div class="alert alert-error">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ error }}</span>
+    </div>
     {% endif %}
 
-    <div class="card bg-base-100 shadow">
-        <div class="card-body">
-            <form method="get" class="mb-6">
-                <div class="form-control">
-                    <label class="label"><span class="label-text">Select Instructor</span></label>
-                    <select name="instructor" class="select select-bordered w-full" onchange="this.form.submit()">
-                        <option value="">Choose an instructor...</option>
-                        {% for m in instructors %}
-                        <option value="{{ m.user.pk }}" {% if selected_instructor == m.user.pk|stringformat:"d" %}selected{% endif %}>
-                            {{ m.user.get_full_name|default:m.user.email }} ({{ m.instruments|join:", " }})
-                        </option>
-                        {% endfor %}
-                    </select>
+    {# Step 1: Instructor Card Grid (P-007 Card Selection) #}
+    {% if instructors|length > 0 %}
+    <div>
+        <h2 class="text-lg font-semibold mb-3">Select your instructor</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="instructor-grid">
+            {% for m in instructors %}
+            <label class="card bg-base-100 shadow cursor-pointer border-2 border-transparent hover:border-primary/50 transition-colors instructor-card">
+                <div class="card-body p-4">
+                    <div class="flex items-center gap-4">
+                        {# Avatar placeholder: first initial in circle #}
+                        <div class="avatar placeholder">
+                            <div class="bg-primary text-primary-content rounded-full w-12 h-12">
+                                <span class="text-xl">{{ m.user.first_name|default:m.user.email|truncatechars:1 }}</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold text-base">{{ m.user.get_full_name|default:m.user.email }}</h3>
+                            {% if m.bio %}
+                            <p class="text-sm text-base-content/60 truncate">{{ m.bio|truncatechars:60 }}</p>
+                            {% endif %}
+                            {% if m.instruments %}
+                            <div class="flex gap-1 mt-1 flex-wrap">
+                                {% for inst in m.instruments %}
+                                <span class="badge badge-primary badge-sm">{{ inst }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {# Hidden radio input triggers HTMX (P-008 Cascading Selects) #}
+                        <input type="radio" name="instructor_select" value="{{ m.user.pk }}"
+                               class="radio radio-primary"
+                               hx-get="{% url 'book-session-slots' %}?instructor={{ m.user.pk }}"
+                               hx-target="#slot-container"
+                               hx-swap="innerHTML"
+                               hx-indicator="#slots-loading">
+                    </div>
                 </div>
-            </form>
-
-            {% if slots %}
-            <h2 class="font-bold text-lg mb-4">Available Slots</h2>
-            <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="instructor" value="{{ selected_instructor }}">
-                <div class="form-control mb-4">
-                    <label class="label"><span class="label-text">Session Date</span></label>
-                    <input type="date" name="session_date" class="input input-bordered" required>
-                </div>
-                <div class="space-y-2 mb-4">
-                    {% for slot in slots %}
-                    <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-base-200">
-                        <input type="radio" name="slot" value="{{ slot.pk }}" class="radio radio-primary" required>
-                        <span class="font-bold">{{ slot.get_day_of_week_display }}</span>
-                        <span>{{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}</span>
-                    </label>
-                    {% endfor %}
-                </div>
-                <button type="submit" class="btn btn-primary">Book Session</button>
-            </form>
-            {% elif selected_instructor %}
-            <div class="alert alert-info">This instructor has no available slots.</div>
-            {% endif %}
+            </label>
+            {% endfor %}
         </div>
     </div>
+    {% else %}
+    {# P-001: Empty state -- no instructors available #}
+    <div class="card bg-base-100 shadow-lg">
+        <div class="card-body items-center text-center py-12">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+            </svg>
+            <h3 class="text-lg font-semibold mt-4">No Instructors Available</h3>
+            <p class="text-base-content/60 max-w-md">There are no instructors in this academy yet. Ask your academy owner to invite instructors.</p>
+            <a href="{% url 'schedule-list' %}" class="btn btn-primary mt-4">Back to Sessions</a>
+        </div>
+    </div>
+    {% endif %}
+
+    {# P-011: Loading spinner for slot loading #}
+    <div class="flex justify-center">
+        <span id="slots-loading" class="loading loading-spinner loading-md text-primary htmx-indicator"></span>
+    </div>
+
+    {# G-001: Target container MUST exist in initial DOM outside any conditional #}
+    <div id="slot-container">
+        {# HTMX will swap content here when instructor is selected #}
+    </div>
+
 </div>
+
+{# JavaScript: highlight selected instructor card + update step indicator #}
+<script>
+(function() {
+    // Highlight selected instructor card
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'instructor_select') {
+            document.querySelectorAll('.instructor-card').forEach(function(card) {
+                card.classList.remove('border-primary', 'bg-primary/5');
+                card.classList.add('border-transparent');
+            });
+            var selectedCard = e.target.closest('.instructor-card');
+            if (selectedCard) {
+                selectedCard.classList.remove('border-transparent');
+                selectedCard.classList.add('border-primary', 'bg-primary/5');
+            }
+            // Update step indicator: step 2 active
+            updateSteps(2);
+        }
+    });
+
+    // Listen for HTMX swaps to update steps
+    document.body.addEventListener('htmx:afterSwap', function(e) {
+        if (e.detail.target && e.detail.target.id === 'slot-container') {
+            var container = e.detail.target;
+            if (container.querySelector('[data-booking-step="3"]')) {
+                updateSteps(3);
+            } else if (container.querySelector('[data-booking-step="2"]')) {
+                updateSteps(2);
+            }
+        }
+    });
+
+    function updateSteps(activeStep) {
+        var steps = document.querySelectorAll('#booking-steps .step');
+        steps.forEach(function(step) {
+            var stepNum = parseInt(step.getAttribute('data-step'));
+            if (stepNum <= activeStep) {
+                step.classList.add('step-primary');
+            } else {
+                step.classList.remove('step-primary');
+            }
+        });
+    }
+
+    // Expose globally for partials
+    window.updateBookingSteps = updateSteps;
+})();
+</script>
 {% endblock %}

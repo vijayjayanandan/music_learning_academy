@@ -25,7 +25,6 @@ def health_check_detail(request):
     checks = {
         "db": False,
         "redis": False,
-        "celery": False,
     }
 
     # Check database
@@ -44,15 +43,6 @@ def health_check_detail(request):
             checks["redis"] = True
     except Exception:
         logger.warning("Health check detail: cache/Redis unreachable")
-
-    # Check Celery (2s timeout — will be False in dev without workers)
-    try:
-        from celery import current_app
-        inspector = current_app.control.inspect(timeout=2.0)
-        ping = inspector.ping()
-        checks["celery"] = bool(ping)
-    except Exception:
-        logger.warning("Health check detail: Celery unreachable")
 
     # Check R2/S3 storage (only when configured)
     from django.conf import settings

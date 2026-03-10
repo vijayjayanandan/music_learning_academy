@@ -10,6 +10,7 @@ urlpatterns = [
     path("session/<int:pk>/", views.SessionDetailView.as_view(), name="session-detail"),
     path("session/<int:pk>/edit/", views.SessionEditView.as_view(), name="session-edit"),
     path("session/<int:pk>/cancel/", views.CancelSessionView.as_view(), name="session-cancel"),
+    path("session/<int:pk>/reschedule/", views.RescheduleSessionView.as_view(), name="session-reschedule"),
     path("session/<int:pk>/register/", views.RegisterForSessionView.as_view(), name="session-register"),
     path("session/<int:pk>/join/", views.JoinSessionView.as_view(), name="session-join"),
     path("session/<int:pk>/mark-joined/", views.MarkJoinedView.as_view(), name="session-mark-joined"),
@@ -18,6 +19,8 @@ urlpatterns = [
     path("api/events/", views.SessionEventsAPIView.as_view(), name="session-events-api"),
     path("availability/", views.AvailabilityManageView.as_view(), name="availability-manage"),
     path("availability/<int:pk>/delete/", views.DeleteAvailabilityView.as_view(), name="availability-delete"),
+    path("book/slots/", views.BookSessionSlotsView.as_view(), name="book-session-slots"),
+    path("book/confirm/", views.BookSessionConfirmView.as_view(), name="book-session-confirm"),
     path("book/", views.BookSessionView.as_view(), name="book-session"),
     path("ical/<str:token>/", _ical_feed_view, name="ical-feed"),
 ]

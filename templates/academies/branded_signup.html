@@ -1,45 +1,308 @@
-{% extends "base.html" %}
-{% block title %}Join {{ academy.name }} - Music Academy{% endblock %}
-{% block unauth_content %}
-<div class="card bg-base-100 shadow-xl w-full max-w-md">
-    <div class="card-body">
-        <div class="text-center mb-4">
-            <h1 class="text-2xl font-bold text-primary">{{ academy.name }}</h1>
-            {% if academy.description %}
-            <p class="text-sm text-gray-500 mt-2">{{ academy.description|truncatewords:30 }}</p>
-            {% endif %}
-            {% if academy.instruments %}
-            <div class="flex flex-wrap gap-1 justify-center mt-2">
-                {% for inst in academy.instruments %}
-                <span class="badge badge-sm badge-outline">{{ inst }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="musicacademy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join {{ academy.name }} - Music Academy</title>
+    <meta name="description" content="{{ academy.welcome_message|default:academy.description|default:'Online music learning platform' }}">
+    <meta property="og:title" content="{{ academy.name }} - Music Learning Academy">
+    <meta property="og:description" content="{{ academy.welcome_message|default:academy.description|default:'Online music learning platform' }}">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '{{ academy.primary_color|default:"#6366f1" }}',
+                        secondary: '#8b5cf6',
+                        accent: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --academy-primary: {{ academy.primary_color|default:"#6366f1" }};
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-base-200 flex flex-col">
+
+    <!-- Skip to main content (accessibility) -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-primary focus:text-primary-content">Skip to main content</a>
+
+    <!-- Navbar -->
+    <nav class="navbar bg-base-100 shadow-lg sticky top-0 z-50" role="banner">
+        <div class="flex-1">
+            <span class="btn btn-ghost text-xl">
+                <span class="text-primary">&#9835;</span> {{ academy.name }}
+            </span>
         </div>
-        <div class="divider text-sm">Create your student account</div>
-        <form method="post">
-            {% csrf_token %}
-            {% if form.non_field_errors %}
-            <div class="alert alert-error mb-4">
-                {% for error in form.non_field_errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% for field in form %}
-            <div class="form-control mb-3">
-                <label class="label"><span class="label-text">{{ field.label }}</span></label>
-                {{ field }}
-                {% for error in field.errors %}
-                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
-                {% endfor %}
-            </div>
-            {% endfor %}
-            <button type="submit" class="btn btn-primary w-full mt-4">Join {{ academy.name }}</button>
-        </form>
-        <p class="text-center text-sm mt-4">
-            Already have an account? <a href="{% url 'login' %}" class="link link-primary">Sign in</a>
-        </p>
+        <div class="flex-none gap-2">
+            <a href="#register" class="btn btn-primary btn-sm">Join Now</a>
+            <a href="{% url 'login' %}" class="btn btn-ghost btn-sm">Sign In</a>
+        </div>
+    </nav>
+
+    <!-- Django Messages -->
+    {% if messages %}
+    <div class="p-4" id="messages-container">
+        {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' or message.tags == 'danger' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %} mb-2"
+             role="alert">
+            <span>{{ message }}</span>
+            <button class="btn btn-ghost btn-xs" onclick="this.parentElement.remove();" aria-label="Dismiss">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        {% endfor %}
     </div>
-</div>
-{% endblock %}
+    {% endif %}
+
+    <main id="main-content" role="main" class="flex-1">
+
+        <!-- Section 1: Hero -->
+        <section class="hero min-h-[60vh] bg-gradient-to-br from-primary/10 to-base-200">
+            <div class="hero-content text-center py-16 px-6">
+                <div class="max-w-2xl">
+                    {% if academy.logo %}
+                    <img src="{{ academy.logo.url }}" alt="{{ academy.name }} logo" class="w-24 h-24 mx-auto mb-6 rounded-full object-cover">
+                    {% endif %}
+                    <h1 class="text-4xl md:text-5xl font-bold text-base-content mb-6">{{ academy.name }}</h1>
+                    <p class="text-lg md:text-xl text-base-content/70 mb-8">
+                        {% if academy.welcome_message %}
+                            {{ academy.welcome_message }}
+                        {% elif academy.description %}
+                            {{ academy.description }}
+                        {% else %}
+                            Start your music journey with us
+                        {% endif %}
+                    </p>
+                    {% if academy.primary_instruments %}
+                    <div class="flex flex-wrap gap-2 justify-center mb-8">
+                        {% for inst in academy.primary_instruments %}
+                        <span class="badge badge-lg badge-primary badge-outline">{{ inst }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <a href="#register" class="btn btn-primary btn-lg">Join Now</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Courses (hidden when empty) -->
+        {% if courses %}
+        <section class="py-16 px-6 bg-base-100">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold text-center mb-12">What You'll Learn</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for course in courses %}
+                    <div class="card bg-base-200 shadow-md hover:shadow-lg transition-shadow">
+                        {% if course.thumbnail %}
+                        <figure><img src="{{ course.thumbnail.url }}" alt="{{ course.title }}" class="h-48 w-full object-cover"></figure>
+                        {% endif %}
+                        <div class="card-body">
+                            <h3 class="card-title text-lg">{{ course.title }}</h3>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                {% if course.instrument %}
+                                <span class="badge badge-sm badge-primary badge-outline">{{ course.instrument }}</span>
+                                {% endif %}
+                                {% if course.difficulty_level %}
+                                <span class="badge badge-sm badge-secondary badge-outline">{{ course.get_difficulty_level_display }}</span>
+                                {% endif %}
+                            </div>
+                            {% if course.description %}
+                            <p class="text-sm text-base-content/60 mt-2">{{ course.description|truncatewords:20 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Section 3: Instructors (hidden when empty) -->
+        {% if instructors %}
+        <section class="py-16 px-6 bg-base-200">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold text-center mb-12">Meet Our Instructors</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for membership in instructors %}
+                    <div class="card bg-base-100 shadow-md">
+                        <div class="card-body items-center text-center">
+                            <div class="avatar placeholder mb-4">
+                                <div class="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center">
+                                    {% if membership.user.avatar %}
+                                    <img src="{{ membership.user.avatar.url }}" alt="{{ membership.user.get_full_name }}" class="rounded-full">
+                                    {% else %}
+                                    <span class="text-2xl font-bold">{{ membership.user.first_name|first|default:"I" }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <h3 class="card-title">{{ membership.user.get_full_name }}</h3>
+                            {% if membership.bio %}
+                            <p class="text-sm text-base-content/60 mt-2">{{ membership.bio }}</p>
+                            {% endif %}
+                            {% if membership.instruments %}
+                            <div class="flex flex-wrap gap-1 justify-center mt-2">
+                                {% for inst in membership.instruments %}
+                                <span class="badge badge-xs badge-outline">{{ inst }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if plans or packages %}
+        <!-- Section 4: Pricing -->
+        <section class="py-16 px-6 bg-base-100">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold text-center mb-12">Pricing</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+                    {% for plan in plans %}
+                    <div class="card bg-base-200 shadow-md w-full max-w-sm">
+                        <div class="card-body text-center">
+                            <h3 class="card-title justify-center text-xl">{{ plan.name }}</h3>
+                            <div class="text-3xl font-bold text-primary mt-2">
+                                {{ plan.price_display }}
+                                <span class="text-base font-normal text-base-content/60">/{{ plan.billing_cycle }}</span>
+                            </div>
+                            {% if plan.description %}
+                            <p class="text-sm text-base-content/60 mt-2">{{ plan.description }}</p>
+                            {% endif %}
+                            {% if plan.trial_days %}
+                            <div class="badge badge-accent mt-2">{{ plan.trial_days }}-day free trial</div>
+                            {% endif %}
+                            {% if plan.features %}
+                            <ul class="text-left mt-4 space-y-2">
+                                {% for feature in plan.features %}
+                                <li class="flex items-center gap-2 text-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                    {{ feature }}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            <div class="card-actions mt-4">
+                                <a href="#register" class="btn btn-primary btn-block">Get Started</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% for package in packages %}
+                    <div class="card bg-base-200 shadow-md w-full max-w-sm">
+                        <div class="card-body text-center">
+                            <h3 class="card-title justify-center text-xl">{{ package.name }}</h3>
+                            <div class="text-3xl font-bold text-primary mt-2">
+                                ${{ package.price_cents|divisibleby:100|default:"" }}{% widthratio package.price_cents 100 1 %}
+                            </div>
+                            <p class="text-sm text-base-content/60">{{ package.total_credits }} sessions</p>
+                            {% if package.description %}
+                            <p class="text-sm text-base-content/60 mt-2">{{ package.description }}</p>
+                            {% endif %}
+                            <div class="card-actions mt-4">
+                                <a href="#register" class="btn btn-primary btn-outline btn-block">Get Started</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Section 5: Registration Form (always visible) -->
+        <section id="register" class="py-16 px-6 bg-base-200">
+            <div class="max-w-md mx-auto">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title text-2xl justify-center mb-4">Create Your Account</h2>
+                        <form method="post">
+                            {% csrf_token %}
+                            {% if form.non_field_errors %}
+                            <div class="alert alert-error mb-4">
+                                {% for error in form.non_field_errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {# Email #}
+                            <div class="form-control mb-3">
+                                <label class="label"><span class="label-text">{{ form.email.label }}</span></label>
+                                {{ form.email }}
+                                {% for error in form.email.errors %}
+                                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                                {% endfor %}
+                            </div>
+                            {# Password #}
+                            <div class="form-control mb-3">
+                                <label class="label"><span class="label-text">{{ form.password1.label }}</span></label>
+                                {{ form.password1 }}
+                                {% for error in form.password1.errors %}
+                                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                                {% endfor %}
+                            </div>
+                            {# Confirm Password #}
+                            <div class="form-control mb-3">
+                                <label class="label"><span class="label-text">{{ form.password2.label }}</span></label>
+                                {{ form.password2 }}
+                                {% for error in form.password2.errors %}
+                                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                                {% endfor %}
+                            </div>
+                            {# Date of Birth #}
+                            <div class="form-control mb-3">
+                                <label class="label"><span class="label-text">{{ form.date_of_birth.label }}</span></label>
+                                {{ form.date_of_birth }}
+                                {% if form.date_of_birth.help_text %}<label class="label"><span class="label-text-alt">{{ form.date_of_birth.help_text }}</span></label>{% endif %}
+                                {% for error in form.date_of_birth.errors %}
+                                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                                {% endfor %}
+                            </div>
+                            {# Terms checkbox #}
+                            <div class="form-control mt-2">
+                                <label class="label cursor-pointer justify-start gap-3">
+                                    {{ form.accept_terms }}
+                                    <span class="label-text">I agree to the <a href="{% url 'terms' %}" class="link link-primary" target="_blank">Terms of Service</a> and <a href="{% url 'privacy' %}" class="link link-primary" target="_blank">Privacy Policy</a></span>
+                                </label>
+                                {% for error in form.accept_terms.errors %}
+                                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-primary w-full mt-4">Join {{ academy.name }}</button>
+                        </form>
+                        <p class="text-center text-sm mt-4">
+                            Already have an account? <a href="{% url 'login' %}" class="link link-primary">Sign in</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer footer-center p-6 bg-base-300 text-base-content mt-auto">
+        <div>
+            <p>&copy; {% now "Y" %} {{ academy.name }}. All rights reserved.</p>
+            <div class="flex gap-4">
+                <a href="{% url 'terms' %}" class="link link-hover">Terms of Service</a>
+                <a href="{% url 'privacy' %}" class="link link-hover">Privacy Policy</a>
+                <a href="{% url 'cookie-policy' %}" class="link link-hover">Cookie Policy</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

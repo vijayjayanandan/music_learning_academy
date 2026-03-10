@@ -1,0 +1,9 @@
+{% if msg.body %}<div class="chat {% if msg.sender == request.user %}chat-end{% else %}chat-start{% endif %}">
+    <div class="chat-header">
+        {{ msg.sender.get_full_name|default:msg.sender.email }}
+        <time class="text-xs opacity-50">{{ msg.created_at|timesince }} ago</time>
+    </div>
+    <div class="chat-bubble {% if msg.sender == request.user %}chat-bubble-primary{% endif %}">
+        {{ msg.body }}
+    </div>
+</div>{% endif %}

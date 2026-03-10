@@ -18,4 +18,9 @@ urlpatterns = [
     path("packages/<int:pk>/purchase/", views.PackagePurchaseView.as_view(), name="package-purchase"),
     path("tiers/", views.AcademyTierView.as_view(), name="academy-tiers"),
     path("webhook/", views.StripeWebhookView.as_view(), name="stripe-webhook"),
+    path("payouts/<int:pk>/", views.PayoutDetailView.as_view(), name="payout-detail"),
+    path("refund/request/<int:payment_id>/", views.RefundRequestView.as_view(), name="refund-request"),
+    path("refunds/", views.RefundListView.as_view(), name="refund-list"),
+    path("refunds/<int:pk>/", views.RefundDetailView.as_view(), name="refund-detail"),
+    path("refunds/<int:pk>/<str:action>/", views.RefundActionView.as_view(), name="refund-action"),
 ]

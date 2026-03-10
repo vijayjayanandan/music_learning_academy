@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Refund Requests{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Refunds</li>
+        </ul>
+    </div>
+    <h1 class="text-3xl font-bold mb-6">Refund Requests</h1>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} mb-4">
+        <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if refunds %}
+    <div class="overflow-x-auto">
+        <table class="table table-zebra">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Invoice</th>
+                    <th>Student</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for refund in refunds %}
+                <tr>
+                    <td>{{ refund.created_at|date:"M d, Y" }}</td>
+                    <td>{{ refund.payment.invoice_number }}</td>
+                    <td>{{ refund.requested_by.get_full_name|default:refund.requested_by.email }}</td>
+                    <td>{{ refund.amount_display }}</td>
+                    <td>
+                        <span class="badge {% if refund.status == 'requested' %}badge-warning{% elif refund.status == 'approved' %}badge-info{% elif refund.status == 'processing' %}badge-info{% elif refund.status == 'completed' %}badge-success{% elif refund.status == 'denied' %}badge-error{% endif %}">
+                            {{ refund.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="flex gap-1">
+                        <a href="{% url 'refund-detail' refund.pk %}" class="btn btn-ghost btn-xs">View</a>
+                        {% if refund.status == 'requested' %}
+                        <form method="post" action="{% url 'refund-action' refund.pk 'approve' %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-xs">Approve</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body text-center py-12">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+            </svg>
+            <p class="text-gray-500">No refund requests yet.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

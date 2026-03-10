@@ -14,7 +14,6 @@ if SENTRY_DSN:
         send_default_pii=False,
         integrations=[
             sentry_sdk.integrations.django.DjangoIntegration(),
-            sentry_sdk.integrations.celery.CeleryIntegration(),
             sentry_sdk.integrations.redis.RedisIntegration(),
         ],
     )
@@ -80,17 +79,13 @@ CHANNEL_LAYERS = {
     }
 }
 
-# Redis cache (DB 2 — separate from Channels DB 0 and Celery DB 1)
+# Redis cache (DB 2 — separate from Channels DB 0)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": os.environ.get("REDIS_CACHE_URL", "redis://localhost:6379/2"),
     }
 }
-
-# Celery
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/1"))
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 # Static files (WhiteNoise)
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"

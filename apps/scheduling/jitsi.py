@@ -2,7 +2,7 @@ import hashlib
 from django.conf import settings
 
 
-def generate_jitsi_room_name(academy_slug, session_id):
+def generate_room_name(academy_slug, session_id):
     raw = f"{academy_slug}-{session_id}-{settings.SECRET_KEY}"
     hash_suffix = hashlib.sha256(raw.encode()).hexdigest()[:12]
     return f"mla-{academy_slug}-{hash_suffix}"
@@ -11,7 +11,7 @@ def generate_jitsi_room_name(academy_slug, session_id):
 def get_jitsi_config(session, user):
     is_instructor = session.instructor == user
     return {
-        "roomName": session.jitsi_room_name,
+        "roomName": session.room_name,
         "domain": settings.JITSI_DOMAIN,
         "userInfo": {
             "displayName": user.get_full_name() or user.username,

@@ -1,11 +1,14 @@
 import pytest
+from django.test import TestCase, Client
 from django.urls import reverse
 
+from apps.accounts.models import User, Membership
+from apps.academies.models import Academy
 from apps.courses.forms import CourseForm, LessonForm, PracticeAssignmentForm
 
 
 @pytest.mark.integration
-class TestRichTextEditorForms:
+class TestRichTextEditorForms(TestCase):
     """Test that TinyMCE widget is applied to the correct form fields."""
 
     def test_course_form_description_uses_tinymce(self):
@@ -42,107 +45,118 @@ class TestRichTextEditorForms:
 
 
 @pytest.mark.integration
-class TestRichTextEditorTemplates:
+class TestRichTextEditorTemplates(TestCase):
     """Test that templates include form.media and render rich text with |safe."""
 
-    def test_course_create_includes_form_media(self, auth_client):
-        response = auth_client.get(reverse("course-create"))
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Rich Text Academy",
+            slug="rt-templates-iso",
+            description="A test academy for rich text",
+            email="rt-templates-iso@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano", "Guitar"],
+            genres=["Classical", "Jazz"],
+        )
+        cls.owner = User.objects.create_user(
+            username="rt-templates-owner",
+            email="rt-templates-owner@test.com",
+            password="testpass123",
+            first_name="Test",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+    def setUp(self):
+        self.auth_client = Client()
+        self.auth_client.login(username="rt-templates-owner@test.com", password="testpass123")
+
+    def test_course_create_includes_form_media(self):
+        response = self.auth_client.get(reverse("course-create"))
         assert response.status_code == 200
         assert b"tinymce" in response.content.lower()
 
-    def test_course_edit_includes_form_media(self, auth_client, db):
+    def test_course_edit_includes_form_media(self):
         from apps.courses.models import Course
 
-        academy = auth_client.session.get("_auth_user_id") and None
-        # Get the user's academy
-        from apps.accounts.models import User
-
-        user = User.objects.get(email="owner@test.com")
-        academy = user.current_academy
         course = Course.objects.create(
             title="Test Course",
-            slug="test-course",
+            slug="rt-templates-test-course",
             description="<p>Rich text description</p>",
             instrument="piano",
             difficulty_level="beginner",
-            instructor=user,
-            academy=academy,
+            instructor=self.owner,
+            academy=self.academy,
         )
-        response = auth_client.get(reverse("course-edit", args=[course.slug]))
+        response = self.auth_client.get(reverse("course-edit", args=[course.slug]))
         assert response.status_code == 200
         assert b"tinymce" in response.content.lower()
 
-    def test_course_detail_renders_html_description(self, auth_client, db):
-        from apps.accounts.models import User
+    def test_course_detail_renders_html_description(self):
         from apps.courses.models import Course
 
-        user = User.objects.get(email="owner@test.com")
-        academy = user.current_academy
         course = Course.objects.create(
             title="HTML Course",
-            slug="html-course",
+            slug="rt-templates-html-course",
             description="<p><strong>Bold description</strong></p>",
             instrument="guitar",
             difficulty_level="beginner",
-            instructor=user,
-            academy=academy,
+            instructor=self.owner,
+            academy=self.academy,
         )
-        response = auth_client.get(reverse("course-detail", args=[course.slug]))
+        response = self.auth_client.get(reverse("course-detail", args=[course.slug]))
         assert response.status_code == 200
         assert b"<strong>Bold description</strong>" in response.content
 
-    def test_lesson_detail_renders_html_content(self, auth_client, db):
-        from apps.accounts.models import User
+    def test_lesson_detail_renders_html_content(self):
         from apps.courses.models import Course, Lesson
 
-        user = User.objects.get(email="owner@test.com")
-        academy = user.current_academy
         course = Course.objects.create(
             title="Lesson Course",
-            slug="lesson-course",
+            slug="rt-templates-lesson-course",
             description="desc",
             instrument="piano",
             difficulty_level="beginner",
-            instructor=user,
-            academy=academy,
+            instructor=self.owner,
+            academy=self.academy,
         )
         lesson = Lesson.objects.create(
             title="Test Lesson",
             content="<h2>Welcome</h2><p>This is <em>rich</em> content.</p>",
             course=course,
-            academy=academy,
+            academy=self.academy,
             order=1,
         )
-        response = auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
+        response = self.auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
         assert response.status_code == 200
         assert b"<h2>Welcome</h2>" in response.content
         assert b"<em>rich</em>" in response.content
 
-    def test_lesson_detail_renders_html_not_escaped(self, auth_client, db):
+    def test_lesson_detail_renders_html_not_escaped(self):
         """Happy path: HTML content is rendered as HTML, not as escaped text
         showing raw tags to the user (BUG-011)."""
-        from apps.accounts.models import User
         from apps.courses.models import Course, Lesson
 
-        user = User.objects.get(email="owner@test.com")
-        academy = user.current_academy
         course = Course.objects.create(
             title="Render Course",
-            slug="render-course",
+            slug="rt-templates-render-course",
             description="desc",
             instrument="piano",
             difficulty_level="beginner",
-            instructor=user,
-            academy=academy,
+            instructor=self.owner,
+            academy=self.academy,
         )
         lesson = Lesson.objects.create(
             title="Render Lesson",
             content='<p>Learn the <strong>C major</strong> scale.</p><ul><li>Step 1</li><li>Step 2</li></ul>',
             course=course,
-            academy=academy,
+            academy=self.academy,
             order=1,
         )
-        response = auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
+        response = self.auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
         content = response.content.decode()
         assert response.status_code == 200
         # HTML should be rendered, not escaped (no &lt;p&gt; etc.)
@@ -151,31 +165,28 @@ class TestRichTextEditorTemplates:
         assert "&lt;p&gt;" not in content
         assert "&lt;strong&gt;" not in content
 
-    def test_lesson_detail_sanitizes_script_tags(self, auth_client, db):
+    def test_lesson_detail_sanitizes_script_tags(self):
         """Boundary: script tags in lesson content are stripped to prevent XSS
         (BUG-011)."""
-        from apps.accounts.models import User
         from apps.courses.models import Course, Lesson
 
-        user = User.objects.get(email="owner@test.com")
-        academy = user.current_academy
         course = Course.objects.create(
             title="XSS Course",
-            slug="xss-course",
+            slug="rt-templates-xss-course",
             description="desc",
             instrument="piano",
             difficulty_level="beginner",
-            instructor=user,
-            academy=academy,
+            instructor=self.owner,
+            academy=self.academy,
         )
         lesson = Lesson.objects.create(
             title="XSS Lesson",
             content='<p>Safe content</p><script>alert("xss")</script><img src=x onerror="alert(1)">',
             course=course,
-            academy=academy,
+            academy=self.academy,
             order=1,
         )
-        response = auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
+        response = self.auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
         content = response.content.decode()
         assert response.status_code == 200
         # Safe HTML should remain

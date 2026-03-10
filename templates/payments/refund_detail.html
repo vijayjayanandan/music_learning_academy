@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Refund #{{ refund.pk }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            {% if user_role == 'owner' %}
+            <li><a href="{% url 'refund-list' %}">Refunds</a></li>
+            {% else %}
+            <li><a href="{% url 'payment-history' %}">Payment History</a></li>
+            {% endif %}
+            <li>Refund #{{ refund.pk }}</li>
+        </ul>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} mb-4">
+        <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Refund #{{ refund.pk }}</h1>
+        <span class="badge badge-lg {% if refund.status == 'requested' %}badge-warning{% elif refund.status == 'approved' %}badge-info{% elif refund.status == 'processing' %}badge-info{% elif refund.status == 'completed' %}badge-success{% elif refund.status == 'denied' %}badge-error{% endif %}">
+            {{ refund.get_status_display }}
+        </span>
+    </div>
+
+    <!-- Refund Details -->
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-lg">Refund Information</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                <div>
+                    <span class="text-sm text-gray-500">Refund Amount</span>
+                    <p class="font-bold text-lg">{{ refund.amount_display }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Requested</span>
+                    <p class="font-medium">{{ refund.created_at|date:"M d, Y H:i" }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Requested By</span>
+                    <p class="font-medium">{{ refund.requested_by.get_full_name|default:refund.requested_by.email }}</p>
+                </div>
+                {% if refund.processed_by %}
+                <div>
+                    <span class="text-sm text-gray-500">Processed By</span>
+                    <p class="font-medium">{{ refund.processed_by.get_full_name|default:refund.processed_by.email }}</p>
+                </div>
+                {% endif %}
+                {% if refund.processed_at %}
+                <div>
+                    <span class="text-sm text-gray-500">Processed At</span>
+                    <p class="font-medium">{{ refund.processed_at|date:"M d, Y H:i" }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="divider"></div>
+
+            <h3 class="font-semibold">Reason</h3>
+            <p class="mt-1 bg-base-200 rounded-lg p-4">{{ refund.reason }}</p>
+
+            {% if refund.denial_reason %}
+            <div class="divider"></div>
+            <h3 class="font-semibold text-error">Denial Reason</h3>
+            <p class="mt-1 bg-error/10 rounded-lg p-4 text-error">{{ refund.denial_reason }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Payment Details -->
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-lg">Original Payment</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                <div>
+                    <span class="text-sm text-gray-500">Invoice</span>
+                    <p class="font-medium">{{ refund.payment.invoice_number }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Payment Amount</span>
+                    <p class="font-medium">{{ refund.payment.amount_display }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Payment Date</span>
+                    <p class="font-medium">{{ refund.payment.created_at|date:"M d, Y" }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Payment Type</span>
+                    <p class="font-medium">{{ refund.payment.get_payment_type_display }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Owner Actions -->
+    {% if user_role == 'owner' and refund.status == 'requested' %}
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-lg">Actions</h2>
+            <div class="flex flex-col gap-4 mt-2">
+                <!-- Approve -->
+                <form method="post" action="{% url 'refund-action' refund.pk 'approve' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success w-full sm:w-auto">Approve Refund</button>
+                </form>
+
+                <!-- Deny -->
+                <div class="divider">OR</div>
+                <form method="post" action="{% url 'refund-action' refund.pk 'deny' %}">
+                    {% csrf_token %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Denial reason <span class="text-error">*</span></span>
+                        </label>
+                        <textarea name="denial_reason" class="textarea textarea-bordered h-24" placeholder="Explain why this refund is being denied..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-error mt-3">Deny Refund</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Back link -->
+    <div class="mt-4">
+        {% if user_role == 'owner' %}
+        <a href="{% url 'refund-list' %}" class="btn btn-ghost">Back to Refunds</a>
+        {% else %}
+        <a href="{% url 'payment-history' %}" class="btn btn-ghost">Back to Payment History</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

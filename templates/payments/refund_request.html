@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Request Refund{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'payment-history' %}">Payment History</a></li>
+            <li>Request Refund</li>
+        </ul>
+    </div>
+    <h1 class="text-3xl font-bold mb-6">Request Refund</h1>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} mb-4">
+        <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-lg">Payment Details</h2>
+            <div class="grid grid-cols-2 gap-4 mt-2">
+                <div>
+                    <span class="text-sm text-gray-500">Invoice</span>
+                    <p class="font-medium">{{ payment.invoice_number }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Amount</span>
+                    <p class="font-medium">{{ payment.amount_display }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Date</span>
+                    <p class="font-medium">{{ payment.created_at|date:"M d, Y" }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-gray-500">Type</span>
+                    <p class="font-medium">{{ payment.get_payment_type_display }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h2 class="card-title text-lg">Refund Request</h2>
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-control mt-2">
+                    <label class="label">
+                        <span class="label-text">Reason for refund <span class="text-error">*</span></span>
+                    </label>
+                    <textarea name="reason" class="textarea textarea-bordered h-32" placeholder="Please explain why you are requesting a refund..." required>{{ request.POST.reason }}</textarea>
+                    <label class="label">
+                        <span class="label-text-alt text-gray-500">Please provide as much detail as possible to help us process your request.</span>
+                    </label>
+                </div>
+                <div class="alert alert-info mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-sm">Refund amount: <strong>{{ payment.amount_display }}</strong> (full refund). Your request will be reviewed by the academy owner.</span>
+                </div>
+                <div class="card-actions justify-end mt-6">
+                    <a href="{% url 'payment-history' %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Submit Refund Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

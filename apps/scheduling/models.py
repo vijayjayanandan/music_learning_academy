@@ -5,9 +5,13 @@ from apps.common.models import TenantScopedModel
 class LiveSession(TenantScopedModel):
     class SessionStatus(models.TextChoices):
         SCHEDULED = "scheduled", "Scheduled"
+        OPEN_FOR_JOIN = "open_for_join", "Open for Joining"
         IN_PROGRESS = "in_progress", "In Progress"
         COMPLETED = "completed", "Completed"
         CANCELLED = "cancelled", "Cancelled"
+        RESCHEDULED = "rescheduled", "Rescheduled"
+        NO_SHOW_INSTRUCTOR = "no_show_instructor", "No-Show (Instructor)"
+        NO_SHOW_STUDENT = "no_show_student", "No-Show (Student)"
 
     class SessionType(models.TextChoices):
         ONE_ON_ONE = "one_on_one", "One-on-One Lesson"
@@ -43,19 +47,18 @@ class LiveSession(TenantScopedModel):
     )
     max_participants = models.PositiveIntegerField(default=1)
 
-    jitsi_room_name = models.CharField(max_length=255, unique=True)
+    room_name = models.CharField(max_length=255, unique=True)
 
-    # FEAT-041: Zoom/Google Meet as Jitsi alternative
     class VideoPlatform(models.TextChoices):
-        JITSI = "jitsi", "Jitsi Meet"
+        LIVEKIT = "livekit", "LiveKit"
         ZOOM = "zoom", "Zoom"
         GOOGLE_MEET = "google_meet", "Google Meet"
         CUSTOM = "custom", "Custom URL"
 
     video_platform = models.CharField(
-        max_length=20, choices=VideoPlatform.choices, default=VideoPlatform.JITSI,
+        max_length=20, choices=VideoPlatform.choices, default=VideoPlatform.LIVEKIT,
     )
-    external_meeting_url = models.URLField(blank=True, help_text="Zoom/Meet URL if not using Jitsi")
+    external_meeting_url = models.URLField(blank=True, help_text="External meeting URL if not using LiveKit")
 
     status = models.CharField(
         max_length=20,
@@ -75,6 +78,23 @@ class LiveSession(TenantScopedModel):
         related_name="recurrence_instances"
     )
     recording_url = models.URLField(blank=True)
+    class RecordingStatus(models.TextChoices):
+        NOT_REQUESTED = "not_requested", "Not Requested"
+        RECORDING = "recording", "Recording"
+        PROCESSING = "processing", "Processing"
+        AVAILABLE = "available", "Available"
+        FAILED = "failed", "Failed"
+
+    recording_status = models.CharField(
+        max_length=20,
+        choices=RecordingStatus.choices,
+        default=RecordingStatus.NOT_REQUESTED,
+    )
+    rescheduled_from = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="rescheduled_to",
+        help_text="Original session this was rescheduled from",
+    )
     session_notes = models.TextField(blank=True)
 
     instrument_focus = models.CharField(max_length=50, blank=True)

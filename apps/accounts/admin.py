@@ -6,7 +6,7 @@ from .models import User, Membership, Invitation
 class MembershipInline(admin.TabularInline):
     model = Membership
     extra = 0
-    fields = ["academy", "role", "skill_level", "is_active", "joined_at"]
+    fields = ["academy", "role", "skill_level", "learning_goal", "onboarding_skipped", "is_active", "joined_at"]
     readonly_fields = ["joined_at"]
     autocomplete_fields = ["academy"]
 

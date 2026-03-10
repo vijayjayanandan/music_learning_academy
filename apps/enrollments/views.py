@@ -59,6 +59,15 @@ class EnrollmentDetailView(TenantMixin, DetailView):
             })
         ctx["lesson_data"] = lesson_data
         ctx["progress_percent"] = self.object.progress_percent
+
+        # Find the first incomplete lesson for the Start/Continue CTA card
+        first_incomplete_lesson = None
+        for item in lesson_data:
+            if not item["is_completed"]:
+                first_incomplete_lesson = item["lesson"]
+                break
+        ctx["first_incomplete_lesson"] = first_incomplete_lesson
+
         return ctx
 
 

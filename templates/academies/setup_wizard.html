@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Setup {{ academy.name }} - Step {{ step_number }} of {{ total_steps }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold">Set Up {{ academy.name }}</h1>
+        <p class="text-gray-500 mt-1">Complete these steps to get your academy ready for students.</p>
+    </div>
+
+    <!-- Progress Steps (DaisyUI steps component) -->
+    <ul class="steps steps-horizontal w-full">
+        {% for s in steps %}
+        <li class="step {% if s in completed_steps %}step-primary{% elif s == step %}step-primary{% endif %}"
+            data-content="{% if s in completed_steps %}&#10003;{% else %}{{ forloop.counter }}{% endif %}">
+            <a href="{% url 'academy-setup-step' academy.slug s %}"
+               class="text-xs sm:text-sm {% if s == step %}font-bold{% endif %}">
+                {{ s|title }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Step Content -->
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            {% if step == 'basics' %}
+            <!-- ============================================================ -->
+            <!-- STEP 1: BASICS                                               -->
+            <!-- ============================================================ -->
+            <h2 class="card-title">Basic Information</h2>
+            <p class="text-sm text-gray-500 mb-4">Tell us about your academy. You can change these later in Settings.</p>
+            <form method="post" action="{% url 'academy-setup-step' academy.slug 'basics' %}">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">{{ field.label }}</span></label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <label class="label"><span class="label-text-alt text-gray-400">{{ field.help_text }}</span></label>
+                    {% endif %}
+                    {% for error in field.errors %}
+                    <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                <div class="card-actions justify-end mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        Next: Branding
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
+            </form>
+
+            {% elif step == 'branding' %}
+            <!-- ============================================================ -->
+            <!-- STEP 2: BRANDING                                             -->
+            <!-- ============================================================ -->
+            <h2 class="card-title">Branding</h2>
+            <p class="text-sm text-gray-500 mb-4">Make your academy stand out with a logo and custom colors.</p>
+            <form method="post" action="{% url 'academy-setup-step' academy.slug 'branding' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">{{ field.label }}</span></label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <label class="label"><span class="label-text-alt text-gray-400">{{ field.help_text }}</span></label>
+                    {% endif %}
+                    {% for error in field.errors %}
+                    <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+                {% if academy.logo %}
+                <div class="mb-4">
+                    <p class="text-sm text-gray-500 mb-1">Current logo:</p>
+                    <img src="{{ academy.logo.url }}" alt="Current logo" class="w-20 h-20 rounded-lg object-cover border" />
+                </div>
+                {% endif %}
+
+                <div class="card-actions justify-between mt-4">
+                    <a href="{% url 'academy-setup-step' academy.slug 'basics' %}" class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                        Back
+                    </a>
+                    <div class="flex gap-2">
+                        <a href="{% url 'academy-setup-step' academy.slug 'team' %}" class="btn btn-ghost">Skip</a>
+                        <button type="submit" class="btn btn-primary">
+                            Next: Team
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            {% elif step == 'team' %}
+            <!-- ============================================================ -->
+            <!-- STEP 3: TEAM                                                 -->
+            <!-- ============================================================ -->
+            <h2 class="card-title">Invite Your Team</h2>
+            <p class="text-sm text-gray-500 mb-4">Invite instructors to start teaching. You can always add more later.</p>
+
+            {% if members.count > 1 %}
+            <div class="mb-4">
+                <h3 class="font-semibold text-sm mb-2">Current Members</h3>
+                <div class="space-y-1">
+                    {% for member in members %}
+                    <div class="flex items-center gap-2 py-1">
+                        <span class="badge badge-sm {% if member.role == 'owner' %}badge-primary{% elif member.role == 'instructor' %}badge-secondary{% else %}badge-ghost{% endif %}">
+                            {{ member.role|title }}
+                        </span>
+                        <span class="text-sm">{{ member.user.get_full_name|default:member.user.email }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="divider text-sm">Invite a team member</div>
+
+            <form method="post" action="{% url 'academy-invite' academy.slug %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'academy-setup-step' academy.slug 'team' %}" />
+                <div class="flex flex-col sm:flex-row gap-2 items-end">
+                    <div class="form-control flex-1 w-full">
+                        <label class="label"><span class="label-text font-medium">Email</span></label>
+                        {{ invite_form.email }}
+                    </div>
+                    <div class="form-control w-full sm:w-40">
+                        <label class="label"><span class="label-text font-medium">Role</span></label>
+                        {{ invite_form.role }}
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-full sm:w-auto">Invite</button>
+                </div>
+            </form>
+
+            <div class="card-actions justify-between mt-6">
+                <a href="{% url 'academy-setup-step' academy.slug 'branding' %}" class="btn btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    Back
+                </a>
+                <form method="post" action="{% url 'academy-setup-step' academy.slug 'team' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        {% if members.count > 1 %}Next: First Course{% else %}Skip & Continue{% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </form>
+            </div>
+
+            {% elif step == 'course' %}
+            <!-- ============================================================ -->
+            <!-- STEP 4: FIRST COURSE                                         -->
+            <!-- ============================================================ -->
+            <h2 class="card-title">Create Your First Course</h2>
+            <p class="text-sm text-gray-500 mb-4">Give students something to explore. You can add more courses anytime.</p>
+
+            {% if courses %}
+            <div class="mb-4">
+                <div class="alert alert-success mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <span>You already have {{ courses|length }} course{{ courses|length|pluralize }}!</span>
+                </div>
+                <div class="divide-y">
+                    {% for course in courses %}
+                    <div class="flex items-center justify-between py-3">
+                        <span class="font-medium">{{ course.title }}</span>
+                        <span class="badge badge-sm {% if course.is_published %}badge-success{% else %}badge-ghost{% endif %}">
+                            {% if course.is_published %}Published{% else %}Draft{% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <p class="text-gray-500 mb-4">No courses yet. Create one to get started.</p>
+                <a href="{% url 'course-create' %}" class="btn btn-accent">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    Create Course
+                </a>
+            </div>
+            {% endif %}
+
+            <div class="card-actions justify-between mt-4">
+                <a href="{% url 'academy-setup-step' academy.slug 'team' %}" class="btn btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    Back
+                </a>
+                <form method="post" action="{% url 'academy-setup-step' academy.slug 'course' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        {% if courses %}Next: Launch{% else %}Skip & Launch{% endif %}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </form>
+            </div>
+
+            {% elif step == 'launch' %}
+            <!-- ============================================================ -->
+            <!-- STEP 5: LAUNCH                                               -->
+            <!-- ============================================================ -->
+            <h2 class="card-title">Launch Your Academy!</h2>
+            <p class="text-sm text-gray-500 mb-4">Everything looks great. Here's your setup summary:</p>
+
+            <!-- Progress bar -->
+            <div class="mb-6">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>Setup Progress</span>
+                    <span class="font-semibold">{{ progress_pct }}%</span>
+                </div>
+                <progress class="progress progress-primary w-full" value="{{ progress_pct }}" max="100"></progress>
+                <p class="text-xs text-gray-500 mt-1">{{ completed }} of {{ total }} steps completed</p>
+            </div>
+
+            <!-- Signup link -->
+            <div class="bg-base-200 rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-sm mb-2">Your Signup Link</h3>
+                <div class="flex gap-2 items-center">
+                    <input type="text" id="signup-url" value="{{ signup_url }}"
+                           class="input input-bordered input-sm w-full font-mono text-xs" readonly />
+                    <button onclick="copySignupLink()" class="btn btn-sm btn-outline whitespace-nowrap" id="copy-btn">
+                        Copy Link
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Share this link with prospective students to let them register directly.</p>
+            </div>
+
+            <!-- QR Code -->
+            <div class="bg-base-200 rounded-lg p-4 mb-4 text-center">
+                <h3 class="font-semibold text-sm mb-2">QR Code</h3>
+                <img src="{{ qr_url }}" alt="QR Code for {{ academy.name }}" class="w-40 h-40 mx-auto border rounded-lg bg-white" />
+                <div class="mt-2">
+                    <a href="{{ qr_url }}" download="{{ academy.slug }}-qr-code.png" class="btn btn-ghost btn-xs">Download QR</a>
+                </div>
+            </div>
+
+            <!-- Quick links to go back -->
+            <div class="bg-base-200 rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-sm mb-2">Review Your Setup</h3>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{% url 'academy-setup-step' academy.slug 'basics' %}" class="btn btn-ghost btn-xs">Edit Basics</a>
+                    <a href="{% url 'academy-setup-step' academy.slug 'branding' %}" class="btn btn-ghost btn-xs">Edit Branding</a>
+                    <a href="{% url 'academy-setup-step' academy.slug 'team' %}" class="btn btn-ghost btn-xs">Manage Team</a>
+                    <a href="{% url 'academy-setup-step' academy.slug 'course' %}" class="btn btn-ghost btn-xs">Manage Courses</a>
+                </div>
+            </div>
+
+            <div class="card-actions justify-between mt-4">
+                <a href="{% url 'academy-setup-step' academy.slug 'course' %}" class="btn btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    Back
+                </a>
+                <form method="post" action="{% url 'academy-setup-step' academy.slug 'launch' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-lg gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        Launch {{ academy.name }}
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Skip to dashboard -->
+    <div class="text-center">
+        <a href="{% url 'dashboard' %}" class="text-sm text-gray-500 hover:text-gray-700">
+            Skip setup and go to dashboard
+        </a>
+    </div>
+</div>
+
+{% if step == 'launch' %}
+<script>
+function copySignupLink() {
+    var urlInput = document.getElementById('signup-url');
+    navigator.clipboard.writeText(urlInput.value).then(function() {
+        var btn = document.getElementById('copy-btn');
+        var originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.remove('btn-outline');
+        btn.classList.add('btn-success');
+        setTimeout(function() {
+            btn.textContent = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline');
+        }, 2000);
+    });
+}
+</script>
+{% endif %}
+{% endblock %}

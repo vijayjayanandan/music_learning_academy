@@ -87,6 +87,45 @@ Rules:
 - For student-visible content, filter `is_published=True`
 - Invalidate cache after mutations: `invalidate_dashboard_cache(academy.pk)`
 
+## Template & UX Standards
+
+All user-facing templates must follow these rules. See `docs/ux-patterns.md` for copy-paste HTML.
+
+### Hard Rules
+1. **HTMX-first forms** — Never use `onchange="form.submit()"` or raw form POST for dynamic UI. Use `hx-get`/`hx-post` with `hx-target` and `hx-indicator`.
+2. **Cards, not dropdowns** for important choices — If the user is choosing something meaningful (instructor, time slot, plan), use clickable cards. Reserve `<select>` for filters and settings.
+3. **Progressive forms** — Max 4 visible fields at once. Auto-generate what you can (username, slugs). Group related fields. Use steps for long flows.
+4. **All 4 states** — Every dynamic view must handle: empty, loading, error, success. No bare "No X" text.
+5. **≤3 clicks** to complete any primary action. Count from the page entry point.
+6. **Mobile-first** — Use responsive grid (`grid-cols-1 md:grid-cols-2`). Touch targets ≥44px. Test at 375px.
+7. **Confirmation before destructive/payment actions** — Show a summary card or DaisyUI modal.
+
+### Color Semantics
+
+| Color | Meaning | Use For |
+|-------|---------|---------|
+| `primary` | Brand action | CTAs, active states, start actions |
+| `success` | Positive | Completed, approved, checkmarks |
+| `info` | Neutral progress | Continue, in-progress |
+| `warning` | Needs attention | Upcoming deadline, pending review |
+| `error` | Problem | Failed, overdue, blocked |
+| `base-content/30` | Disabled/empty | Empty state icons |
+| `base-content/60` | Secondary text | Descriptions, helper text |
+
+### Card Pattern (tinted background)
+
+```html
+<div class="card bg-{color}/10 border border-{color}/20 shadow-lg">
+    <div class="card-body">...</div>
+</div>
+```
+Use for CTAs, status cards, alerts that need visual weight beyond plain text.
+
+### Pattern Reference
+Before building any template, check `docs/ux-patterns.md` for a matching pattern. Copy the HTML, adapt the content. Every pattern includes anti-pattern warnings showing what NOT to do.
+
+---
+
 ## HTMX Patterns
 
 ### Partial vs Full Response

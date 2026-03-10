@@ -39,6 +39,34 @@
         </div>
     </div>
 
+    {% if membership and user_role == "student" %}
+    <div class="card bg-base-100 shadow-lg mt-6">
+        <div class="card-body">
+            <h2 class="card-title">Learning Preferences</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <div>
+                    <span class="text-sm text-base-content/60">Skill Level</span>
+                    <p class="font-medium capitalize">{{ membership.get_skill_level_display|default:"Not set" }}</p>
+                </div>
+                <div>
+                    <span class="text-sm text-base-content/60">Instruments</span>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        {% for inst in membership.instruments %}
+                        <span class="badge badge-outline badge-sm">{{ inst }}</span>
+                        {% empty %}
+                        <span class="text-base-content/40">Not set</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <span class="text-sm text-base-content/60">Learning Goal</span>
+                    <p class="font-medium">{{ membership.learning_goal|default:"Not set" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card bg-base-100 shadow mt-6">
         <div class="card-body">
             <h3 class="card-title">Data &amp; Privacy</h3>

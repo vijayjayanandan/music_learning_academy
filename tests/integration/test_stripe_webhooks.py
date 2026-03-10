@@ -4,7 +4,7 @@ import json
 from unittest.mock import patch, MagicMock
 
 import pytest
-from django.test import RequestFactory
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import User, Membership
@@ -30,71 +30,48 @@ class StripeDict(dict):
             raise AttributeError(name)
 
 
-@pytest.fixture
-def stripe_academy(db):
-    return Academy.objects.create(
-        name="Stripe Academy", slug="stripe-academy",
-        description="Test", email="stripe@test.com", timezone="UTC",
-    )
-
-
-@pytest.fixture
-def stripe_user(db, stripe_academy):
-    user = User.objects.create_user(
-        username="stripe_user", email="stripe@test.com", password="testpass123",
-    )
-    user.current_academy = stripe_academy
-    user.save()
-    Membership.objects.create(user=user, academy=stripe_academy, role="student")
-    return user
-
-
-@pytest.fixture
-def stripe_plan(db, stripe_academy):
-    return SubscriptionPlan.objects.create(
-        academy=stripe_academy, name="Pro Plan",
-        price_cents=2999, billing_cycle="monthly", is_active=True,
-    )
-
-
-@pytest.fixture
-def stripe_course(db, stripe_academy, stripe_user):
-    return Course.objects.create(
-        academy=stripe_academy, title="Paid Course", slug="paid-course",
-        instructor=stripe_user, instrument="Piano", difficulty_level="beginner",
-        is_published=True, price_cents=4999,
-    )
-
-
-@pytest.fixture
-def stripe_package(db, stripe_academy):
-    return PackageDeal.objects.create(
-        academy=stripe_academy, name="10 Sessions",
-        price_cents=9999, total_credits=10, is_active=True,
-    )
-
-
 @pytest.mark.integration
-class TestStripeWebhookView:
-    @pytest.mark.django_db
-    def test_webhook_rejects_missing_secret(self, client, settings):
-        settings.STRIPE_WEBHOOK_SECRET = ""
-        response = client.post(
+class TestStripeWebhookView(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Stripe Webhook Academy",
+            slug="stripe-webhookview-iso",
+            description="Test",
+            email="stripe-webhookview@test.com",
+            timezone="UTC",
+        )
+        cls.user = User.objects.create_user(
+            username="stripe-webhookview-user",
+            email="stripe-webhookview@test.com",
+            password="testpass123",
+        )
+        cls.user.current_academy = cls.academy
+        cls.user.save()
+        Membership.objects.create(user=cls.user, academy=cls.academy, role="owner")
+
+    def setUp(self):
+        self.client = Client()
+        self.client.login(username="stripe-webhookview@test.com", password="testpass123")
+
+    @override_settings(STRIPE_WEBHOOK_SECRET="")
+    def test_webhook_rejects_missing_secret(self):
+        response = self.client.post(
             reverse("stripe-webhook"),
             data=b'{}',
             content_type="application/json",
         )
         assert response.status_code == 400
 
-    @pytest.mark.django_db
     @patch("apps.payments.stripe_service.stripe.Webhook.construct_event")
-    def test_webhook_rejects_invalid_signature(self, mock_construct, client, settings):
+    @override_settings(STRIPE_WEBHOOK_SECRET="whsec_test")
+    def test_webhook_rejects_invalid_signature(self, mock_construct):
         import stripe
-        settings.STRIPE_WEBHOOK_SECRET = "whsec_test"
         mock_construct.side_effect = stripe.error.SignatureVerificationError(
             "Invalid signature", "sig_header"
         )
-        response = client.post(
+        response = self.client.post(
             reverse("stripe-webhook"),
             data=b'{"type":"test"}',
             content_type="application/json",
@@ -102,15 +79,14 @@ class TestStripeWebhookView:
         )
         assert response.status_code == 400
 
-    @pytest.mark.django_db
     @patch("apps.payments.stripe_service.stripe.Webhook.construct_event")
-    def test_webhook_handles_unknown_event(self, mock_construct, client, settings):
-        settings.STRIPE_WEBHOOK_SECRET = "whsec_test"
+    @override_settings(STRIPE_WEBHOOK_SECRET="whsec_test")
+    def test_webhook_handles_unknown_event(self, mock_construct):
         mock_construct.return_value = {
             "type": "unknown.event",
             "data": {"object": {}},
         }
-        response = client.post(
+        response = self.client.post(
             reverse("stripe-webhook"),
             data=b'{}',
             content_type="application/json",
@@ -120,10 +96,46 @@ class TestStripeWebhookView:
 
 
 @pytest.mark.integration
-class TestHandleCheckoutCompleted:
-    @pytest.mark.django_db
+class TestHandleCheckoutCompleted(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Checkout Academy",
+            slug="stripe-checkout-iso",
+            description="Test",
+            email="stripe-checkout@test.com",
+            timezone="UTC",
+        )
+        cls.user = User.objects.create_user(
+            username="stripe-checkout-user",
+            email="stripe-checkout@test.com",
+            password="testpass123",
+        )
+        cls.user.current_academy = cls.academy
+        cls.user.save()
+        Membership.objects.create(user=cls.user, academy=cls.academy, role="student")
+
+        cls.plan = SubscriptionPlan.objects.create(
+            academy=cls.academy, name="Pro Plan",
+            price_cents=2999, billing_cycle="monthly", is_active=True,
+        )
+        cls.course = Course.objects.create(
+            academy=cls.academy, title="Paid Course", slug="paid-course-iso",
+            instructor=cls.user, instrument="Piano", difficulty_level="beginner",
+            is_published=True, price_cents=4999,
+        )
+        cls.package = PackageDeal.objects.create(
+            academy=cls.academy, name="10 Sessions",
+            price_cents=9999, total_credits=10, is_active=True,
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client.login(username="stripe-checkout@test.com", password="testpass123")
+
     @patch("apps.payments.stripe_service.stripe.Subscription.retrieve")
-    def test_subscription_checkout(self, mock_retrieve, stripe_user, stripe_academy, stripe_plan):
+    def test_subscription_checkout(self, mock_retrieve):
         mock_retrieve.return_value = {
             "status": "active",
             "current_period_start": 1700000000,
@@ -134,63 +146,60 @@ class TestHandleCheckoutCompleted:
             "id": "cs_test_123",
             "metadata": {
                 "payment_type": "subscription",
-                "academy_id": str(stripe_academy.pk),
-                "user_id": str(stripe_user.pk),
-                "plan_id": str(stripe_plan.pk),
+                "academy_id": str(self.academy.pk),
+                "user_id": str(self.user.pk),
+                "plan_id": str(self.plan.pk),
             },
             "subscription": "sub_test_123",
             "amount_total": 2999,
             "payment_intent": "pi_test_123",
         })
         handle_checkout_completed(session)
-        assert Subscription.objects.filter(student=stripe_user, plan=stripe_plan).exists()
+        assert Subscription.objects.filter(student=self.user, plan=self.plan).exists()
         assert Payment.objects.filter(
-            student=stripe_user, payment_type="subscription",
+            student=self.user, payment_type="subscription",
         ).exists()
 
-    @pytest.mark.django_db
-    def test_course_checkout(self, stripe_user, stripe_academy, stripe_course):
+    def test_course_checkout(self):
         session = StripeDict({
             "id": "cs_test_456",
             "metadata": {
                 "payment_type": "course",
-                "academy_id": str(stripe_academy.pk),
-                "user_id": str(stripe_user.pk),
-                "course_slug": stripe_course.slug,
+                "academy_id": str(self.academy.pk),
+                "user_id": str(self.user.pk),
+                "course_slug": self.course.slug,
             },
             "amount_total": 4999,
             "payment_intent": "pi_test_456",
         })
         handle_checkout_completed(session)
         assert Payment.objects.filter(
-            student=stripe_user, payment_type="course",
+            student=self.user, payment_type="course",
         ).exists()
         assert Enrollment.objects.filter(
-            student=stripe_user, course=stripe_course, status="active",
+            student=self.user, course=self.course, status="active",
         ).exists()
 
-    @pytest.mark.django_db
-    def test_package_checkout(self, stripe_user, stripe_academy, stripe_package):
+    def test_package_checkout(self):
         session = StripeDict({
             "id": "cs_test_789",
             "metadata": {
                 "payment_type": "package",
-                "academy_id": str(stripe_academy.pk),
-                "user_id": str(stripe_user.pk),
-                "package_id": str(stripe_package.pk),
+                "academy_id": str(self.academy.pk),
+                "user_id": str(self.user.pk),
+                "package_id": str(self.package.pk),
             },
             "amount_total": 9999,
             "payment_intent": "pi_test_789",
         })
         handle_checkout_completed(session)
         assert Payment.objects.filter(
-            student=stripe_user, payment_type="package",
+            student=self.user, payment_type="package",
         ).exists()
-        purchase = PackagePurchase.objects.get(student=stripe_user)
+        purchase = PackagePurchase.objects.get(student=self.user)
         assert purchase.credits_remaining == 10
 
-    @pytest.mark.django_db
-    def test_missing_metadata_logs_error(self, stripe_user, stripe_academy):
+    def test_missing_metadata_logs_error(self):
         session = StripeDict({
             "id": "cs_test_bad",
             "metadata": {},
@@ -198,28 +207,26 @@ class TestHandleCheckoutCompleted:
         })
         # Should not raise
         handle_checkout_completed(session)
-        assert Payment.objects.count() == 0
+        assert Payment.objects.filter(student=self.user).count() == 0
 
-    @pytest.mark.django_db
-    def test_nonexistent_user(self, stripe_academy):
+    def test_nonexistent_user(self):
         session = StripeDict({
             "id": "cs_test_nouser",
             "metadata": {
                 "payment_type": "course",
-                "academy_id": str(stripe_academy.pk),
+                "academy_id": str(self.academy.pk),
                 "user_id": "99999",
                 "course_slug": "nonexistent",
             },
             "amount_total": 0,
         })
         handle_checkout_completed(session)
-        assert Payment.objects.count() == 0
+        assert Payment.objects.filter(student=self.user).count() == 0
 
-    @pytest.mark.django_db
-    def test_coupon_usage_incremented(self, stripe_user, stripe_academy, stripe_course):
+    def test_coupon_usage_incremented(self):
         from apps.payments.models import Coupon
         coupon = Coupon.objects.create(
-            academy=stripe_academy, code="SAVE20",
+            academy=self.academy, code="SAVE20",
             discount_type="percentage", discount_value=20,
             is_active=True, times_used=0,
         )
@@ -227,9 +234,9 @@ class TestHandleCheckoutCompleted:
             "id": "cs_test_coupon",
             "metadata": {
                 "payment_type": "course",
-                "academy_id": str(stripe_academy.pk),
-                "user_id": str(stripe_user.pk),
-                "course_slug": stripe_course.slug,
+                "academy_id": str(self.academy.pk),
+                "user_id": str(self.user.pk),
+                "course_slug": self.course.slug,
                 "coupon_code": "SAVE20",
             },
             "amount_total": 3999,
@@ -241,11 +248,38 @@ class TestHandleCheckoutCompleted:
 
 
 @pytest.mark.integration
-class TestSubscriptionLifecycle:
-    @pytest.mark.django_db
-    def test_subscription_updated(self, stripe_user, stripe_academy, stripe_plan):
+class TestSubscriptionLifecycle(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Lifecycle Academy",
+            slug="stripe-lifecycle-iso",
+            description="Test",
+            email="stripe-lifecycle@test.com",
+            timezone="UTC",
+        )
+        cls.user = User.objects.create_user(
+            username="stripe-lifecycle-user",
+            email="stripe-lifecycle@test.com",
+            password="testpass123",
+        )
+        cls.user.current_academy = cls.academy
+        cls.user.save()
+        Membership.objects.create(user=cls.user, academy=cls.academy, role="student")
+
+        cls.plan = SubscriptionPlan.objects.create(
+            academy=cls.academy, name="Pro Plan",
+            price_cents=2999, billing_cycle="monthly", is_active=True,
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client.login(username="stripe-lifecycle@test.com", password="testpass123")
+
+    def test_subscription_updated(self):
         sub = Subscription.objects.create(
-            academy=stripe_academy, student=stripe_user, plan=stripe_plan,
+            academy=self.academy, student=self.user, plan=self.plan,
             status="active", stripe_subscription_id="sub_lifecycle_1",
         )
         handle_subscription_updated({
@@ -258,10 +292,9 @@ class TestSubscriptionLifecycle:
         sub.refresh_from_db()
         assert sub.status == "past_due"
 
-    @pytest.mark.django_db
-    def test_subscription_deleted(self, stripe_user, stripe_academy, stripe_plan):
+    def test_subscription_deleted(self):
         sub = Subscription.objects.create(
-            academy=stripe_academy, student=stripe_user, plan=stripe_plan,
+            academy=self.academy, student=self.user, plan=self.plan,
             status="active", stripe_subscription_id="sub_lifecycle_2",
         )
         handle_subscription_deleted({"id": "sub_lifecycle_2"})
@@ -269,12 +302,10 @@ class TestSubscriptionLifecycle:
         assert sub.status == "cancelled"
         assert sub.cancelled_at is not None
 
-    @pytest.mark.django_db
     def test_subscription_updated_unknown_id(self):
         # Should not raise
         handle_subscription_updated({"id": "sub_unknown_999", "status": "active"})
 
-    @pytest.mark.django_db
     def test_subscription_deleted_unknown_id(self):
         # Should not raise
         handle_subscription_deleted({"id": "sub_unknown_999"})

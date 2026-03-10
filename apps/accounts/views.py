@@ -75,9 +75,25 @@ class RegisterView(CreateView):
         return ctx
 
     def form_valid(self, form):
+        from django.utils import timezone as tz
+
         response = super().form_valid(form)
-        login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
-        _send_verification_email(self.request, self.object)
+        user = self.object
+
+        # Save date_of_birth and terms_accepted_at (not in Meta.fields)
+        update_fields = []
+        dob = form.cleaned_data.get("date_of_birth")
+        if dob:
+            user.date_of_birth = dob
+            update_fields.append("date_of_birth")
+        if form.cleaned_data.get("accept_terms"):
+            user.terms_accepted_at = tz.now()
+            update_fields.append("terms_accepted_at")
+        if update_fields:
+            user.save(update_fields=update_fields)
+
+        login(self.request, user, backend="django.contrib.auth.backends.ModelBackend")
+        _send_verification_email(self.request, user)
         return response
 
 
@@ -115,6 +131,10 @@ class ProfileView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["memberships"] = self.request.user.memberships.select_related("academy").all()
+        # Add current membership for Learning Preferences section (students only)
+        academy = getattr(self.request, "academy", None)
+        if academy:
+            ctx["membership"] = self.request.user.memberships.filter(academy=academy).first()
         return ctx
 
 
@@ -124,8 +144,45 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
     template_name = "accounts/profile_edit.html"
     success_url = reverse_lazy("profile")
 
+    # Default instruments when academy doesn't specify any
+    DEFAULT_INSTRUMENTS = ["Piano", "Guitar", "Violin", "Voice", "Drums", "Bass", "Cello", "Flute", "Saxophone", "Other"]
+
     def get_object(self):
         return self.request.user
+
+    def _get_membership(self):
+        """Return the current user's membership in the active academy, or None."""
+        academy = getattr(self.request, "academy", None)
+        if academy:
+            return self.request.user.memberships.filter(academy=academy).first()
+        return None
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        membership = self._get_membership()
+        ctx["membership"] = membership
+        # Provide the list of instruments for checkbox selection
+        academy = getattr(self.request, "academy", None)
+        if academy and academy.primary_instruments:
+            ctx["available_instruments"] = academy.primary_instruments
+        else:
+            ctx["available_instruments"] = self.DEFAULT_INSTRUMENTS
+        return ctx
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Save learning preferences for student memberships
+        membership = self._get_membership()
+        if membership and membership.role == "student":
+            membership.skill_level = self.request.POST.get("skill_level", membership.skill_level)
+            membership.learning_goal = self.request.POST.get("learning_goal", membership.learning_goal)
+            instruments = self.request.POST.getlist("instruments")
+            if instruments:
+                membership.instruments = instruments
+            else:
+                membership.instruments = []
+            membership.save(update_fields=["skill_level", "learning_goal", "instruments"])
+        return response
 
 
 class SwitchAcademyView(LoginRequiredMixin, View):
@@ -314,6 +371,50 @@ class AccountDeleteView(LoginRequiredMixin, View):
         user.delete()
         messages.success(request, "Your account has been permanently deleted.")
         return redirect("login")
+
+
+class ApproveParentalConsentView(TemplateView):
+    template_name = "accounts/parental_consent_result.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        token = self.kwargs.get("token")
+
+        try:
+            from apps.accounts.models import ParentalConsent
+            consent = ParentalConsent.objects.get(token=token)
+        except ParentalConsent.DoesNotExist:
+            ctx["success"] = False
+            ctx["reason"] = "invalid"
+            return ctx
+
+        from django.utils import timezone as tz
+        now = tz.now()
+
+        if consent.expires_at < now:
+            ctx["success"] = False
+            ctx["reason"] = "expired"
+            return ctx
+
+        if consent.approved_at is not None:
+            ctx["success"] = True
+            ctx["reason"] = "already_approved"
+            ctx["child"] = consent.child
+            return ctx
+
+        # Approve
+        child = consent.child
+        child.is_active = True
+        child.parental_consent_given = True
+        child.save(update_fields=["is_active", "parental_consent_given"])
+
+        consent.approved_at = now
+        consent.save(update_fields=["approved_at"])
+
+        ctx["success"] = True
+        ctx["reason"] = "approved"
+        ctx["child"] = child
+        return ctx
 
 
 class _DjangoJSONEncoder(json.JSONEncoder):

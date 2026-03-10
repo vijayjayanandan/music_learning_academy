@@ -88,8 +88,14 @@ class CourseCreateView(TenantMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
+        from apps.academies.models import check_course_limit
+        academy = self.get_academy()
+        is_allowed, current, max_count = check_course_limit(academy)
+        if not is_allowed:
+            form.add_error(None, f"This academy has reached its maximum of {max_count} courses.")
+            return self.form_invalid(form)
         course = form.save(commit=False)
-        course.academy = self.get_academy()
+        course.academy = academy
         course.instructor = self.request.user
         course.slug = slugify(course.title)
         base_slug = course.slug

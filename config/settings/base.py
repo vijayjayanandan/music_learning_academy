@@ -182,13 +182,8 @@ TINYMCE_DEFAULT_CONFIG = {
 # Jitsi configuration
 JITSI_DOMAIN = os.environ.get("JITSI_DOMAIN", "jitsi.member.fsf.org")
 
-# Celery
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = "UTC"
+# Cron endpoint (external scheduler — replaces Celery Beat)
+CRON_API_KEY = os.environ.get("CRON_API_KEY", "")
 
 # Login URLs
 LOGIN_URL = "/accounts/login/"

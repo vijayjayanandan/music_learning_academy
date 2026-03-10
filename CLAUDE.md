@@ -33,6 +33,17 @@ python manage.py runserver 8001
 | **How** | `docs/engineering-handbook.md` | Coding agents | Conventions, patterns, test templates, DoD checklist |
 | **What** | `docs/codebase-map.md` | Coding agents | Module map, dependencies, key files, cross-cutting concerns |
 | **Lessons** | `docs/gotchas.md` | Coding agents | Mistakes we've made, with Problem/Why/Fix format |
+| **UX Patterns** | `docs/ux-patterns.md` | Coding agents | Copy-paste HTML patterns for every common UI scenario |
+
+### Gold Standard Pages (Reference for UX Quality)
+
+| Page | Template | Why It's Gold Standard |
+|------|----------|----------------------|
+| Student Dashboard | `templates/dashboards/student_dashboard.html` | Empty state, priority CTA, onboarding card, progress grid |
+| Enrollment Detail | `templates/enrollments/detail.html` | Three-state CTA (start/continue/celebrate), lesson toggle |
+| Course Detail | `templates/courses/detail.html` | Info hierarchy, learning outcomes grid, sidebar stats |
+| Notifications | `templates/notifications/list.html` | Empty state, HTMX mark-all-read |
+| **Anti-pattern** | `templates/scheduling/book_session.html` | Raw form, page reloads, no validation — needs redesign |
 
 ### Workflow
 1. **Issues** are logged in `ISSUES.md` with severity (P0-P3)
@@ -76,25 +87,42 @@ python manage.py runserver 8001
               Optionally invokes specialist lenses for deep analysis
 2. PLAN       Claude proposes sprint backlog to Founder (prioritized, estimated)
 3. APPROVE    Founder approves, adjusts, or redirects
-4. EXECUTE    Claude spawns coding agents (one per task)
+4. UX DESIGN  For every user-facing task, Claude produces a UX spec BEFORE code:
+              — Interaction flow (step-by-step with click counts)
+              — Target: ≤ 3 clicks for happy path
+              — States: empty, loading, error, success (all four)
+              — HTMX vs full reload decisions
+              — Benchmark comparison (would Calendly/Duolingo do it this way?)
+              This step uses the UX Engineer lens (.claude/agents/ux-engineer.md)
+              Non-user-facing tasks (migrations, backend logic, tests) skip this step
+5. EXECUTE    Claude spawns coding agents (one per task)
               Each agent reads: engineering-handbook.md + codebase-map.md + gotchas.md
+              Each agent receives: UX spec (for user-facing tasks) + acceptance criteria
               Each agent delivers: code + tests + changelog entry
-5. REVIEW     Claude reviews each agent's output against DoD
-              Rejects incomplete work (no tests = not done)
-6. REPORT     Claude summarizes what shipped, tests added, what's next
+6. REVIEW     Claude reviews each agent's output against DoD
+              Rejects incomplete work (no tests = not done, bad UX = not done)
+7. REPORT     Claude summarizes what shipped, tests added, what's next
 ```
 
 ### Definition of Done (Hard Gate)
 
-Every task must pass ALL five checks. Claude enforces this before marking any task complete:
+Every task must pass ALL checks. Claude enforces this before marking any task complete:
 
 - [ ] Code change implemented and working
 - [ ] At least 1 test for the happy path
 - [ ] At least 1 test for a permission/security boundary
 - [ ] All existing tests pass: `python -m pytest tests/unit tests/integration -v`
 - [ ] CHANGELOG.md updated under `[Unreleased]` (if user-facing)
+- [ ] **UX gate passed** (user-facing tasks only — skip for backend-only work):
+  - [ ] Happy path completes in ≤ 3 clicks
+  - [ ] All 4 states handled: empty, loading, error, success
+  - [ ] No full-page reloads for single interactions (use HTMX)
+  - [ ] Form inputs have validation feedback (inline errors, not just server-side)
+  - [ ] Dates/times/currency always show timezone/format context
+  - [ ] Confirmation step before any destructive or irreversible action
+  - [ ] Works at 375px mobile width
 
-**Zero exceptions.** 8 code changes with 0 tests = 0 complete items.
+**Zero exceptions.** 8 code changes with 0 tests = 0 complete items. Beautiful code with 5-click flows = not done.
 
 ### Spawning Coding Agents
 
@@ -107,15 +135,28 @@ Read these files before starting:
 - docs/engineering-handbook.md (conventions, test patterns, DoD)
 - docs/codebase-map.md (find the right files)
 - docs/gotchas.md (avoid known mistakes)
+- docs/ux-patterns.md (find the right pattern to copy — REQUIRED for any template work)
 
 Key files for this task:
 - [list specific files the agent will need to read/modify]
+
+UX Spec (required for user-facing tasks):
+- Interaction flow: [step 1 → step 2 → step 3, with click count]
+- Click target: [≤ N clicks for happy path]
+- States to handle:
+  - Empty: [what to show when no data]
+  - Loading: [HTMX indicator, skeleton, or spinner]
+  - Error: [inline validation, alert, or toast]
+  - Success: [flash message, redirect, or inline update]
+- HTMX vs reload: [which interactions use HTMX partials vs page navigation]
+- Benchmark: [e.g., "should feel like Calendly slot picker, not a raw form"]
 
 Definition of Done:
 - [ ] [specific acceptance criteria]
 - [ ] At least 1 happy-path test
 - [ ] At least 1 permission/boundary test
 - [ ] All existing tests pass
+- [ ] UX gate: ≤ 3 clicks, all 4 states, no unnecessary reloads
 ```
 
 ### Specialist Lenses (When to Invoke)
@@ -127,7 +168,7 @@ Specialist agents are **thinking frameworks**, not executors. Invoke them by rea
 | CTO | `.claude/agents/cto.md` | Sprint assessment, priority decisions, competitive analysis |
 | Product Owner | `.claude/agents/product-owner.md` | Feature specs, user stories, persona analysis |
 | Architect | `.claude/agents/architect.md` | Schema changes, data model design, performance |
-| UX Engineer | `.claude/agents/ux-engineer.md` | Page design, empty states, accessibility, responsive |
+| UX Engineer | `.claude/agents/ux-engineer.md` | **MANDATORY for all user-facing tasks** — invoked during UX DESIGN step to produce interaction flows, state specs, and click-count targets before coding begins |
 | Compliance | `.claude/agents/compliance.md` | Privacy, GDPR, COPPA, data handling |
 | QA Lead | `.claude/agents/qa-lead.md` | Test strategy, coverage gaps, regression risk |
 | DevOps | `.claude/agents/devops.md` | CI/CD, Docker, deployment, monitoring |

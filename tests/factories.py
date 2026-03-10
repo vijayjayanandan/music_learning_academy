@@ -165,4 +165,4 @@ class LiveSessionFactory(factory.django.DjangoModelFactory):
         lambda: timezone.now() + timezone.timedelta(hours=2)
     )
     session_type = "one_on_one"
-    jitsi_room_name = factory.Sequence(lambda n: f"room-{n}")
+    room_name = factory.Sequence(lambda n: f"room-{n}")

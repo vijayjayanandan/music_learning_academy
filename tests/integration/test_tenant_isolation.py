@@ -1,6 +1,7 @@
 """Test multi-tenancy isolation — Academy A users cannot see/modify Academy B data."""
 
 import pytest
+from django.test import TestCase, Client
 from django.urls import reverse
 
 from apps.accounts.models import User, Membership
@@ -12,196 +13,234 @@ from apps.practice.models import PracticeLog
 from apps.notifications.models import Notification
 
 
-@pytest.fixture
-def academy_b(db):
-    return Academy.objects.create(
-        name="Academy B",
-        slug="academy-b",
-        description="Another academy",
-        email="b@academy.com",
-        timezone="UTC",
-    )
-
-
-@pytest.fixture
-def user_b(db, academy_b):
-    user = User.objects.create_user(
-        username="user_b", email="userb@test.com", password="testpass123",
-        first_name="User", last_name="B",
-    )
-    user.current_academy = academy_b
-    user.save()
-    Membership.objects.create(user=user, academy=academy_b, role="owner")
-    return user
-
-
-@pytest.fixture
-def course_a(db, academy, instructor_user):
-    return Course.objects.create(
-        academy=academy, title="Course A", slug="course-a",
-        instructor=instructor_user, instrument="Piano",
-        difficulty_level="beginner", is_published=True,
-    )
-
-
-@pytest.fixture
-def course_b(db, academy_b, user_b):
-    return Course.objects.create(
-        academy=academy_b, title="Course B", slug="course-b",
-        instructor=user_b, instrument="Guitar",
-        difficulty_level="beginner", is_published=True,
-    )
-
-
-@pytest.fixture
-def client_b(client, user_b):
-    client.login(username="userb@test.com", password="testpass123")
-    return client
-
-
 @pytest.mark.integration
-class TestTenantIsolation:
-    @pytest.mark.django_db
-    def test_course_list_only_shows_own_academy(self, auth_client, course_a, course_b):
-        response = auth_client.get(reverse("course-list"))
-        assert response.status_code == 200
-        courses = response.context["courses"]
-        slugs = [c.slug for c in courses]
-        assert "course-a" in slugs
-        assert "course-b" not in slugs
+class TestTenantIsolation(TestCase):
+    """
+    Uses setUpTestData to create shared DB objects ONCE for all 13 tests,
+    rather than per-test (the default pytest fixture behaviour).
 
-    @pytest.mark.django_db
-    def test_course_detail_blocked_cross_academy(self, client_b, course_a):
-        response = client_b.get(reverse("course-detail", kwargs={"slug": course_a.slug}))
-        assert response.status_code == 404
+    Django wraps each test method in a SAVEPOINT so test-specific writes
+    (Enrollment, LiveSession, etc.) are rolled back after each test, while
+    the shared objects (Academy, User, Course) persist for the whole class.
+    """
 
-    @pytest.mark.django_db
-    def test_enrollment_list_only_own_academy(self, auth_client, student_user, course_a, course_b, academy):
-        Enrollment.objects.create(
-            student=student_user, course=course_a, academy=course_a.academy,
+    @classmethod
+    def setUpTestData(cls):
+        # --- Academy A ---
+        cls.academy = Academy.objects.create(
+            name="Test Music Academy",
+            slug="test-academy-iso",
+            description="A test academy",
+            email="test-iso@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano", "Guitar"],
+            genres=["Classical", "Jazz"],
         )
-        # Enroll owner in academy_b course (shouldn't be visible)
-        from apps.accounts.models import User
-        owner = User.objects.get(email="owner@test.com")
-        Enrollment.objects.create(
-            student=owner, course=course_b, academy=course_b.academy,
+        cls.owner = User.objects.create_user(
+            username="owner-iso",
+            email="owner-iso@test.com",
+            password="testpass123",
+            first_name="Test",
+            last_name="Owner",
         )
-        response = auth_client.get(reverse("enrollment-list"))
-        # Owner's enrollment in academy_b should not appear in academy_a context
-        enrollments = response.context["enrollments"]
-        academy_ids = set(e.academy_id for e in enrollments)
-        assert course_b.academy.pk not in academy_ids
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
 
-    @pytest.mark.django_db
-    def test_user_b_cannot_edit_course_a(self, client_b, course_a):
-        response = client_b.post(
-            reverse("course-edit", kwargs={"slug": course_a.slug}),
+        cls.instructor = User.objects.create_user(
+            username="instructor-iso",
+            email="instructor-iso@test.com",
+            password="testpass123",
+            first_name="Test",
+            last_name="Instructor",
+        )
+        cls.instructor.current_academy = cls.academy
+        cls.instructor.save()
+        Membership.objects.create(
+            user=cls.instructor, academy=cls.academy, role="instructor",
+            instruments=["Piano"],
+        )
+
+        cls.student = User.objects.create_user(
+            username="student-iso",
+            email="student-iso@test.com",
+            password="testpass123",
+            first_name="Test",
+            last_name="Student",
+        )
+        cls.student.current_academy = cls.academy
+        cls.student.save()
+        Membership.objects.create(
+            user=cls.student, academy=cls.academy, role="student",
+            instruments=["Piano"], skill_level="beginner",
+        )
+
+        cls.course_a = Course.objects.create(
+            academy=cls.academy, title="Course A", slug="course-a-iso",
+            instructor=cls.instructor, instrument="Piano",
+            difficulty_level="beginner", is_published=True,
+        )
+
+        # --- Academy B ---
+        cls.academy_b = Academy.objects.create(
+            name="Academy B",
+            slug="academy-b-iso",
+            description="Another academy",
+            email="b-iso@academy.com",
+            timezone="UTC",
+        )
+        cls.user_b = User.objects.create_user(
+            username="user-b-iso",
+            email="userb-iso@test.com",
+            password="testpass123",
+            first_name="User",
+            last_name="B",
+        )
+        cls.user_b.current_academy = cls.academy_b
+        cls.user_b.save()
+        Membership.objects.create(user=cls.user_b, academy=cls.academy_b, role="owner")
+
+        cls.course_b = Course.objects.create(
+            academy=cls.academy_b, title="Course B", slug="course-b-iso",
+            instructor=cls.user_b, instrument="Guitar",
+            difficulty_level="beginner", is_published=True,
+        )
+
+    def setUp(self):
+        """Fresh HTTP clients for each test (no session bleed)."""
+        self.auth_client = Client()
+        self.auth_client.login(username="owner-iso@test.com", password="testpass123")
+        self.client_b = Client()
+        self.client_b.login(username="userb-iso@test.com", password="testpass123")
+
+    # ------------------------------------------------------------------
+    # Tests
+    # ------------------------------------------------------------------
+
+    def test_course_list_only_shows_own_academy(self):
+        response = self.auth_client.get(reverse("course-list"))
+        self.assertEqual(response.status_code, 200)
+        slugs = [c.slug for c in response.context["courses"]]
+        self.assertIn("course-a-iso", slugs)
+        self.assertNotIn("course-b-iso", slugs)
+
+    def test_course_detail_blocked_cross_academy(self):
+        response = self.client_b.get(
+            reverse("course-detail", kwargs={"slug": self.course_a.slug})
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_enrollment_list_only_own_academy(self):
+        Enrollment.objects.create(
+            student=self.student, course=self.course_a, academy=self.course_a.academy,
+        )
+        Enrollment.objects.create(
+            student=self.owner, course=self.course_b, academy=self.course_b.academy,
+        )
+        response = self.auth_client.get(reverse("enrollment-list"))
+        academy_ids = {e.academy_id for e in response.context["enrollments"]}
+        self.assertNotIn(self.course_b.academy.pk, academy_ids)
+
+    def test_user_b_cannot_edit_course_a(self):
+        response = self.client_b.post(
+            reverse("course-edit", kwargs={"slug": self.course_a.slug}),
             {"title": "Hacked!"},
         )
-        assert response.status_code in (403, 404)
+        self.assertIn(response.status_code, (403, 404))
 
-    @pytest.mark.django_db
-    def test_user_b_cannot_delete_course_a(self, client_b, course_a):
-        response = client_b.post(
-            reverse("course-delete", kwargs={"slug": course_a.slug}),
+    def test_user_b_cannot_delete_course_a(self):
+        response = self.client_b.post(
+            reverse("course-delete", kwargs={"slug": self.course_a.slug}),
         )
-        assert response.status_code in (403, 404)
-        assert Course.objects.filter(pk=course_a.pk).exists()
+        self.assertIn(response.status_code, (403, 404))
+        self.assertTrue(Course.objects.filter(pk=self.course_a.pk).exists())
 
-    @pytest.mark.django_db
-    def test_schedule_isolated_by_academy(self, auth_client, academy, academy_b, instructor_user, user_b):
+    def test_schedule_isolated_by_academy(self):
         from django.utils import timezone as tz
         from datetime import timedelta
         now = tz.now()
         LiveSession.objects.create(
-            academy=academy, title="Session A", instructor=instructor_user,
+            academy=self.academy, title="Session A", instructor=self.instructor,
             scheduled_start=now + timedelta(hours=1),
             scheduled_end=now + timedelta(hours=2),
-            session_type="one_on_one", jitsi_room_name="room-a",
+            session_type="one_on_one", room_name="room-a-iso",
         )
         LiveSession.objects.create(
-            academy=academy_b, title="Session B", instructor=user_b,
+            academy=self.academy_b, title="Session B", instructor=self.user_b,
             scheduled_start=now + timedelta(hours=1),
             scheduled_end=now + timedelta(hours=2),
-            session_type="one_on_one", jitsi_room_name="room-b",
+            session_type="one_on_one", room_name="room-b-iso",
         )
-        response = auth_client.get(reverse("schedule-list"))
-        assert response.status_code == 200
+        response = self.auth_client.get(reverse("schedule-list"))
+        self.assertEqual(response.status_code, 200)
         titles = [s.title for s in response.context["sessions"]]
-        assert "Session A" in titles
-        assert "Session B" not in titles
+        self.assertIn("Session A", titles)
+        self.assertNotIn("Session B", titles)
 
-    @pytest.mark.django_db
-    def test_practice_logs_isolated(self, db, academy, academy_b, student_user, user_b):
+    def test_practice_logs_isolated(self):
         from datetime import date
         PracticeLog.objects.create(
-            academy=academy, student=student_user, date=date.today(),
+            academy=self.academy, student=self.student, date=date.today(),
             duration_minutes=30, instrument="Piano",
         )
         PracticeLog.objects.create(
-            academy=academy_b, student=user_b, date=date.today(),
+            academy=self.academy_b, student=self.user_b, date=date.today(),
             duration_minutes=45, instrument="Guitar",
         )
-        logs_a = PracticeLog.objects.filter(academy=academy)
-        logs_b = PracticeLog.objects.filter(academy=academy_b)
-        assert logs_a.count() == 1
-        assert logs_b.count() == 1
-        assert logs_a.first().student == student_user
-        assert logs_b.first().student == user_b
+        self.assertEqual(PracticeLog.objects.filter(academy=self.academy).count(), 1)
+        self.assertEqual(PracticeLog.objects.filter(academy=self.academy_b).count(), 1)
+        self.assertEqual(PracticeLog.objects.filter(academy=self.academy).first().student, self.student)
 
-    @pytest.mark.django_db
-    def test_notification_isolation(self, db, academy, academy_b, owner_user, user_b):
+    def test_notification_isolation(self):
         Notification.objects.create(
-            academy=academy, recipient=owner_user,
+            academy=self.academy, recipient=self.owner,
             notification_type="system", title="For A",
         )
         Notification.objects.create(
-            academy=academy_b, recipient=user_b,
+            academy=self.academy_b, recipient=self.user_b,
             notification_type="system", title="For B",
         )
-        notifs_a = Notification.objects.filter(academy=academy)
-        notifs_b = Notification.objects.filter(academy=academy_b)
-        assert notifs_a.count() == 1
-        assert notifs_b.count() == 1
-        assert notifs_a.first().title == "For A"
+        notifs_a = Notification.objects.filter(academy=self.academy)
+        notifs_b = Notification.objects.filter(academy=self.academy_b)
+        self.assertEqual(notifs_a.count(), 1)
+        self.assertEqual(notifs_b.count(), 1)
+        self.assertEqual(notifs_a.first().title, "For A")
 
-    @pytest.mark.django_db
-    def test_lesson_detail_blocked_cross_academy(self, client_b, course_a):
+    def test_lesson_detail_blocked_cross_academy(self):
         lesson = Lesson.objects.create(
-            academy=course_a.academy, course=course_a, title="Lesson 1", order=1,
+            academy=self.course_a.academy, course=self.course_a,
+            title="Lesson 1", order=1,
         )
-        response = client_b.get(
-            reverse("lesson-detail", kwargs={"slug": course_a.slug, "pk": lesson.pk}),
+        response = self.client_b.get(
+            reverse("lesson-detail", kwargs={"slug": self.course_a.slug, "pk": lesson.pk}),
         )
-        assert response.status_code == 404
+        self.assertEqual(response.status_code, 404)
 
-    @pytest.mark.django_db
-    def test_enroll_in_cross_academy_course_blocked(self, client_b, course_a):
-        response = client_b.post(
-            reverse("enroll", kwargs={"slug": course_a.slug}),
+    def test_enroll_in_cross_academy_course_blocked(self):
+        response = self.client_b.post(
+            reverse("enroll", kwargs={"slug": self.course_a.slug}),
         )
-        assert response.status_code in (403, 404)
-        assert not Enrollment.objects.filter(course=course_a, student__email="userb@test.com").exists()
-
-    @pytest.mark.django_db
-    def test_dashboard_shows_only_own_academy_data(self, auth_client, course_a, course_b):
-        response = auth_client.get(reverse("admin-dashboard"))
-        assert response.status_code == 200
-
-    @pytest.mark.django_db
-    def test_academy_members_isolated(self, auth_client, academy, academy_b, user_b):
-        response = auth_client.get(
-            reverse("academy-members", kwargs={"slug": academy.slug})
+        self.assertIn(response.status_code, (403, 404))
+        self.assertFalse(
+            Enrollment.objects.filter(
+                course=self.course_a, student__email="userb-iso@test.com"
+            ).exists()
         )
-        assert response.status_code == 200
-        content = response.content.decode()
-        assert "userb@test.com" not in content
 
-    @pytest.mark.django_db
-    def test_user_cannot_switch_to_unrelated_academy(self, auth_client, academy_b):
-        response = auth_client.post(
-            reverse("switch-academy", kwargs={"slug": academy_b.slug}),
+    def test_dashboard_shows_only_own_academy_data(self):
+        response = self.auth_client.get(reverse("admin-dashboard"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_academy_members_isolated(self):
+        response = self.auth_client.get(
+            reverse("academy-members", kwargs={"slug": self.academy.slug})
         )
-        # Should either 404/403 or redirect without switching
-        user = User.objects.get(email="owner@test.com")
-        assert user.current_academy != academy_b
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("userb-iso@test.com", response.content.decode())
+
+    def test_user_cannot_switch_to_unrelated_academy(self):
+        response = self.auth_client.post(
+            reverse("switch-academy", kwargs={"slug": self.academy_b.slug}),
+        )
+        user = User.objects.get(email="owner-iso@test.com")
+        self.assertNotEqual(user.current_academy, self.academy_b)

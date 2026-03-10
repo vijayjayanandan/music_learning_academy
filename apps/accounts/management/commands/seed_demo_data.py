@@ -7,7 +7,7 @@ from apps.academies.models import Academy
 from apps.courses.models import Course, Lesson, PracticeAssignment
 from apps.enrollments.models import Enrollment
 from apps.scheduling.models import LiveSession
-from apps.scheduling.jitsi import generate_jitsi_room_name
+from apps.scheduling.jitsi import generate_room_name
 
 
 class Command(BaseCommand):
@@ -229,10 +229,10 @@ class Command(BaseCommand):
         )
 
     def _create_session(self, academy, instructor, title, course, start_time, duration, session_type, max_participants):
-        room_name = generate_jitsi_room_name(academy.slug, f"{title[:10]}-{start_time.timestamp()}")
+        room_name = generate_room_name(academy.slug, f"{title[:10]}-{start_time.timestamp()}")
         LiveSession.objects.get_or_create(
             academy=academy,
-            jitsi_room_name=room_name,
+            room_name=room_name,
             defaults={
                 "title": title,
                 "instructor": instructor,

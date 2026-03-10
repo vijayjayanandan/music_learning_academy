@@ -1,0 +1,76 @@
+{# Partial: Step 3 - Booking confirmation summary #}
+{# Loaded via HTMX into #slot-container #}
+<div data-booking-step="3">
+    <h2 class="text-lg font-semibold mb-3">Confirm your booking</h2>
+
+    {# P-010: Confirmation summary card #}
+    <div class="card bg-base-200 shadow">
+        <div class="card-body">
+            <div class="flex items-center gap-4 mb-4">
+                {# Instructor avatar + name #}
+                <div class="avatar placeholder">
+                    <div class="bg-primary text-primary-content rounded-full w-12 h-12">
+                        <span class="text-xl">{{ instructor.first_name|default:instructor.email|truncatechars:1 }}</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold">{{ instructor.get_full_name|default:instructor.email }}</h3>
+                    <span class="badge badge-primary badge-sm">One-on-One Lesson</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div>
+                    <span class="text-base-content/60">Day</span>
+                    <p class="font-semibold">{{ slot.get_day_of_week_display }}</p>
+                </div>
+                <div>
+                    <span class="text-base-content/60">Date</span>
+                    <p class="font-semibold">{{ session_date|date:"M d, Y" }}</p>
+                </div>
+                <div>
+                    <span class="text-base-content/60">Time</span>
+                    <p class="font-semibold">{{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Booking form with editable title #}
+    <form method="post" action="{% url 'book-session' %}" class="mt-4 space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="instructor" value="{{ instructor.pk }}">
+        <input type="hidden" name="slot" value="{{ slot.pk }}">
+        <input type="hidden" name="session_date" value="{{ session_date|date:'Y-m-d' }}">
+
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text">Session Title (optional)</span>
+            </label>
+            <input type="text" name="session_title" value="{{ default_title }}"
+                   class="input input-bordered w-full"
+                   placeholder="e.g., My Guitar Lesson">
+        </div>
+
+        <div class="flex gap-3">
+            {# Back button: reload slots for this instructor #}
+            <button type="button" class="btn btn-ghost flex-1"
+                    hx-get="{% url 'book-session-slots' %}?instructor={{ instructor.pk }}"
+                    hx-target="#slot-container"
+                    hx-swap="innerHTML">
+                Back
+            </button>
+            {# Confirm button: submits the full-page POST form #}
+            <button type="submit" class="btn btn-primary flex-1">
+                Confirm Booking
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Update step indicator to step 3
+    if (window.updateBookingSteps) {
+        window.updateBookingSteps(3);
+    }
+</script>

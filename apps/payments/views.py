@@ -12,9 +12,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView
 
 from apps.academies.mixins import TenantMixin
+from django.contrib import messages
+from django.http import HttpResponseForbidden
+
 from .models import (
     SubscriptionPlan, Subscription, Payment, Coupon,
     InstructorPayout, PackageDeal, PackagePurchase, AcademyTier,
+    Refund,
 )
 
 logger = logging.getLogger(__name__)
@@ -383,9 +387,157 @@ class StripeWebhookView(View):
                 stripe_sub = event["data"]["object"]
                 handle_subscription_deleted(stripe_sub)
 
+            elif event_type == "invoice.payment_failed":
+                from .stripe_service import handle_invoice_payment_failed
+                handle_invoice_payment_failed(event["data"]["object"])
+
         except Exception:
             logger.exception("Error handling Stripe webhook event %s", event_type)
             # Return 200 to prevent Stripe retries on our processing errors
             # The issue is logged and can be investigated
 
         return HttpResponse(status=200)
+
+
+# ---------------------------------------------------------------------------
+# Refund workflow views (Sprint 7)
+# ---------------------------------------------------------------------------
+
+
+class RefundRequestView(TenantMixin, View):
+    """Student requests a refund for a completed payment."""
+
+    def get(self, request, payment_id):
+        payment = get_object_or_404(
+            Payment, pk=payment_id, student=request.user, academy=self.get_academy(),
+        )
+        return render(request, "payments/refund_request.html", {"payment": payment})
+
+    def post(self, request, payment_id):
+        payment = get_object_or_404(
+            Payment, pk=payment_id, student=request.user, academy=self.get_academy(),
+        )
+        # Only completed payments are refundable
+        if payment.status != Payment.Status.COMPLETED:
+            messages.error(request, "This payment is not eligible for a refund.")
+            return redirect("payment-history")
+        # Prevent duplicate refund requests
+        if Refund.objects.filter(payment=payment, status="requested").exists():
+            messages.info(request, "A refund request is already pending for this payment.")
+            return redirect("payment-history")
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            return render(request, "payments/refund_request.html", {
+                "payment": payment,
+                "error": "Please provide a reason for the refund.",
+            })
+        Refund.objects.create(
+            academy=self.get_academy(),
+            payment=payment,
+            requested_by=request.user,
+            amount_cents=payment.amount_cents,
+            reason=reason,
+            status="requested",
+        )
+        messages.success(request, "Your refund request has been submitted.")
+        return redirect("payment-history")
+
+
+class RefundListView(TenantMixin, ListView):
+    """Owner-only list of all refund requests for the academy."""
+    model = Refund
+    template_name = "payments/refund_list.html"
+    context_object_name = "refunds"
+
+    def dispatch(self, request, *args, **kwargs):
+        if hasattr(request, 'academy') and request.academy:
+            role = request.user.get_role_in(request.academy)
+            if role != "owner":
+                return HttpResponseForbidden("Only academy owners can manage refunds.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return Refund.objects.filter(
+            academy=self.get_academy(),
+        ).select_related("payment", "requested_by", "processed_by")
+
+
+class RefundDetailView(TenantMixin, View):
+    """View refund details — owner sees any, student sees their own."""
+
+    def get(self, request, pk):
+        academy = self.get_academy()
+        role = request.user.get_role_in(academy)
+        if role == "owner":
+            refund = get_object_or_404(Refund, pk=pk, academy=academy)
+        else:
+            refund = get_object_or_404(
+                Refund, pk=pk, academy=academy, requested_by=request.user,
+            )
+        return render(request, "payments/refund_detail.html", {
+            "refund": refund,
+            "user_role": role,
+        })
+
+
+class RefundActionView(TenantMixin, View):
+    """Owner approve/deny a refund request."""
+
+    def post(self, request, pk, action):
+        academy = self.get_academy()
+        role = request.user.get_role_in(academy)
+        if role != "owner":
+            return HttpResponseForbidden("Only academy owners can process refunds.")
+        refund = get_object_or_404(Refund, pk=pk, academy=academy)
+        if refund.status != "requested":
+            messages.warning(request, "This refund has already been processed.")
+            return redirect("refund-list")
+        if action == "approve":
+            refund.status = "approved"
+            refund.processed_by = request.user
+            refund.processed_at = timezone.now()
+            refund.save()
+            messages.success(request, "Refund approved.")
+        elif action == "deny":
+            denial_reason = request.POST.get("denial_reason", "").strip()
+            if not denial_reason:
+                messages.error(request, "Please provide a reason for denying the refund.")
+                return redirect("refund-list")
+            refund.status = "denied"
+            refund.denial_reason = denial_reason
+            refund.processed_by = request.user
+            refund.processed_at = timezone.now()
+            refund.save()
+            messages.success(request, "Refund denied.")
+        else:
+            messages.error(request, "Invalid action.")
+        return redirect("refund-list")
+
+
+class PayoutDetailView(TenantMixin, View):
+    """Payout detail with breakdown — owner sees all, instructor sees own."""
+
+    def get(self, request, pk):
+        academy = self.get_academy()
+        role = request.user.get_role_in(academy)
+        payout = get_object_or_404(InstructorPayout, pk=pk, academy=academy)
+        if role == "owner":
+            pass  # owner can view any
+        elif role == "instructor":
+            if payout.instructor != request.user:
+                return HttpResponseForbidden("You can only view your own payouts.")
+        else:
+            return HttpResponseForbidden("You do not have permission to view payouts.")
+        # Breakdown calculation
+        gross = payout.amount_cents
+        platform_fee_rate = 0.10  # 10% platform fee
+        platform_fee = int(gross * platform_fee_rate)
+        refunds = 0  # TODO: calculate from actual refunds
+        net = gross - platform_fee - refunds
+        return render(request, "payments/payout_detail.html", {
+            "payout": payout,
+            "gross_display": f"${gross / 100:.2f}",
+            "platform_fee_display": f"${platform_fee / 100:.2f}",
+            "refunds_display": f"${refunds / 100:.2f}",
+            "net_display": f"${net / 100:.2f}",
+        })

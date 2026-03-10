@@ -1,20 +1,78 @@
+import random
+import string
+from datetime import date
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User
 
 
+def _generate_username(email):
+    """Generate a unique username from email prefix + random 4-char suffix.
+
+    The username is a Django internal requirement (AbstractUser) but is never
+    shown to users since USERNAME_FIELD = 'email'.  We derive it from the email
+    prefix and append a short random alphanumeric suffix to avoid collisions.
+    Retries up to 10 times if the generated username already exists.
+    """
+    prefix = email.split("@")[0][:20]  # cap prefix at 20 chars
+    for _ in range(10):
+        suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+        candidate = f"{prefix}_{suffix}"
+        if not User.objects.filter(username=candidate).exists():
+            return candidate
+    # Fallback: use full randomness (effectively impossible to collide)
+    suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    return f"{prefix}_{suffix}"
+
+
 class RegisterForm(UserCreationForm):
-    first_name = forms.CharField(max_length=30, required=True)
-    last_name = forms.CharField(max_length=30, required=True)
+    first_name = forms.CharField(max_length=30, required=False)
+    last_name = forms.CharField(max_length=30, required=False)
+    date_of_birth = forms.DateField(
+        required=True,
+        widget=forms.DateInput(attrs={"type": "date"}),
+        help_text="Required for age verification.",
+    )
+    accept_terms = forms.BooleanField(
+        required=True,
+        error_messages={
+            "required": "You must accept the Terms of Service and Privacy Policy to register."
+        },
+    )
 
     class Meta:
         model = User
-        fields = ["email", "username", "first_name", "last_name", "password1", "password2"]
+        fields = ["email", "password1", "password2"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for field in self.fields.values():
-            field.widget.attrs["class"] = "input input-bordered w-full"
+        # Remove username from visible fields — it will be auto-generated
+        if "username" in self.fields:
+            del self.fields["username"]
+        for field_name, field in self.fields.items():
+            if field_name == "accept_terms":
+                field.widget.attrs["class"] = "checkbox checkbox-primary"
+            else:
+                field.widget.attrs["class"] = "input input-bordered w-full"
+
+    def _get_age(self, dob):
+        today = date.today()
+        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+    def clean_date_of_birth(self):
+        dob = self.cleaned_data.get("date_of_birth")
+        if dob and dob > date.today():
+            raise forms.ValidationError("Date of birth cannot be in the future.")
+        return dob
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        # Auto-generate username from email prefix + random suffix
+        user.username = _generate_username(user.email)
+        if commit:
+            user.save()
+        return user
 
 
 class ProfileForm(forms.ModelForm):

@@ -111,14 +111,14 @@ class RecitalCreateView(TenantMixin, View):
         return render(request, "music_tools/recital_create.html")
 
     def post(self, request):
-        from apps.scheduling.jitsi import generate_jitsi_room_name
+        from apps.scheduling.jitsi import generate_room_name
         recital = RecitalEvent.objects.create(
             academy=self.get_academy(),
             title=request.POST.get("title", ""),
             description=request.POST.get("description", ""),
             scheduled_start=request.POST.get("scheduled_start"),
             scheduled_end=request.POST.get("scheduled_end"),
-            jitsi_room_name=generate_jitsi_room_name(
+            room_name=generate_room_name(
                 self.get_academy().slug, "recital"
             ),
         )

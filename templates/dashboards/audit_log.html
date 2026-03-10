@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Audit Log - {{ current_academy.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Audit Log</li>
+        </ul>
+    </div>
+
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold">Audit Log</h1>
+        <span class="text-sm text-gray-500">Last 50 events</span>
+    </div>
+
+    <div class="card bg-base-100 shadow">
+        <div class="card-body p-0">
+            <div class="overflow-x-auto">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Actor</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in audit_events %}
+                        <tr>
+                            <td class="text-xs text-gray-500 whitespace-nowrap">{{ event.created_at|date:"M d, h:i A" }}</td>
+                            <td>
+                                <span class="badge badge-sm badge-ghost">{{ event.get_action_display }}</span>
+                            </td>
+                            <td class="text-sm">{{ event.actor.get_full_name|default:event.actor.email|default:"System" }}</td>
+                            <td class="text-sm">{{ event.description }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-gray-500">
+                                No audit events recorded yet. Actions like invitations, session changes, and course updates will appear here.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

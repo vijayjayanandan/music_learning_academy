@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Parental Consent Required{% endblock %}
+{% block unauth_content %}
+<div class="card bg-base-100 shadow-xl w-full max-w-md">
+    <div class="card-body text-center">
+        <div class="text-5xl mb-4" aria-hidden="true">&#9993;</div>
+        <h2 class="card-title justify-center text-2xl mb-2">Almost there!</h2>
+        <p class="text-base-content/70 mb-4">
+            Because you are under 13, we need your parent or guardian's permission before you can use the platform.
+        </p>
+        <div class="alert alert-info">
+            <p>We've sent a consent request to <strong>{{ parent_email }}</strong>. Ask your parent or guardian to check their email and approve your account.</p>
+        </div>
+        <p class="text-sm text-base-content/50 mt-4">
+            The approval link expires in 7 days. Once approved, you can log in normally.
+        </p>
+        <div class="mt-6">
+            <a href="{% url 'login' %}" class="btn btn-outline btn-sm">Back to Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

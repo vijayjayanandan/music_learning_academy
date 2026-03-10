@@ -15,76 +15,13 @@ import secrets
 
 import pytest
 from django.core import mail
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Invitation, Membership, User
+from apps.academies.models import Academy
 from apps.notifications.models import Notification
-
-
-@pytest.fixture
-def invitation(db, academy, owner_user):
-    """Create a pending invitation for a new user."""
-    return Invitation.objects.create(
-        academy=academy,
-        email="invited@example.com",
-        role="student",
-        token=secrets.token_urlsafe(48),
-        invited_by=owner_user,
-        expires_at=timezone.now() + timezone.timedelta(days=7),
-    )
-
-
-@pytest.fixture
-def invited_user(db, invitation):
-    """Create a user whose email matches the invitation."""
-    user = User.objects.create_user(
-        username="inviteduser",
-        email=invitation.email,
-        password="testpass123",
-        first_name="Invited",
-        last_name="User",
-    )
-    return user
-
-
-@pytest.fixture
-def wrong_email_user(db):
-    """Create a user whose email does NOT match any invitation."""
-    return User.objects.create_user(
-        username="wronguser",
-        email="wrong@example.com",
-        password="testpass123",
-        first_name="Wrong",
-        last_name="User",
-    )
-
-
-@pytest.fixture
-def expired_invitation(db, academy, owner_user):
-    """Create an invitation that has already expired."""
-    return Invitation.objects.create(
-        academy=academy,
-        email="expired@example.com",
-        role="student",
-        token=secrets.token_urlsafe(48),
-        invited_by=owner_user,
-        expires_at=timezone.now() - timezone.timedelta(days=1),
-    )
-
-
-@pytest.fixture
-def accepted_invitation(db, academy, owner_user):
-    """Create an invitation that has already been accepted."""
-    return Invitation.objects.create(
-        academy=academy,
-        email="accepted@example.com",
-        role="student",
-        token=secrets.token_urlsafe(48),
-        invited_by=owner_user,
-        accepted=True,
-        expires_at=timezone.now() + timezone.timedelta(days=7),
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -92,14 +29,39 @@ def accepted_invitation(db, academy, owner_user):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestInviteMemberHappyPath:
+class TestInviteMemberHappyPath(TestCase):
     """Test that an owner can send an invitation."""
 
-    def test_owner_can_send_invitation(self, auth_client, academy):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Invite Happy Academy",
+            slug="inv-happy-academy",
+            description="A test academy",
+            email="inv-happy@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="inv-happy-owner",
+            email="inv-happy-owner@test.com",
+            password="testpass123",
+            first_name="Happy",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+    def setUp(self):
+        self.auth_client = Client()
+        self.auth_client.login(username="inv-happy-owner@test.com", password="testpass123")
+
+    def test_owner_can_send_invitation(self):
         """Owner sends an invitation; Invitation record is created and email sent."""
-        url = reverse("academy-invite", kwargs={"slug": academy.slug})
-        response = auth_client.post(url, {
+        url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
+        response = self.auth_client.post(url, {
             "email": "newuser@example.com",
             "role": "student",
         })
@@ -107,7 +69,7 @@ class TestInviteMemberHappyPath:
         assert response.status_code == 302
 
         # Invitation record created
-        inv = Invitation.objects.get(email="newuser@example.com", academy=academy)
+        inv = Invitation.objects.get(email="newuser@example.com", academy=self.academy)
         assert inv.role == "student"
         assert inv.accepted is False
         assert inv.token  # non-empty token
@@ -116,36 +78,76 @@ class TestInviteMemberHappyPath:
         # Invitation email sent
         assert len(mail.outbox) == 1
         assert "newuser@example.com" in mail.outbox[0].to
-        assert academy.name in mail.outbox[0].subject
+        assert self.academy.name in mail.outbox[0].subject
 
-    def test_owner_can_send_instructor_invitation(self, auth_client, academy):
+    def test_owner_can_send_instructor_invitation(self):
         """Owner can invite an instructor (not just students)."""
-        url = reverse("academy-invite", kwargs={"slug": academy.slug})
-        auth_client.post(url, {
+        url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
+        self.auth_client.post(url, {
             "email": "prof@example.com",
             "role": "instructor",
         })
-        inv = Invitation.objects.get(email="prof@example.com", academy=academy)
+        inv = Invitation.objects.get(email="prof@example.com", academy=self.academy)
         assert inv.role == "instructor"
 
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestAcceptInvitationHappyPath:
+class TestAcceptInvitationHappyPath(TestCase):
     """Test the full accept-invitation flow for a logged-in user."""
 
-    def test_accept_invitation_get_renders_page(self, client, invitation):
-        """GET request shows the accept-invitation page."""
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.get(url)
-        assert response.status_code == 200
-        assert invitation.academy.name.encode() in response.content
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Invite Accept Academy",
+            slug="inv-accept-academy",
+            description="A test academy",
+            email="inv-accept@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="inv-accept-owner",
+            email="inv-accept-owner@test.com",
+            password="testpass123",
+            first_name="Accept",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
 
-    def test_logged_in_user_can_accept_invitation(self, client, invitation, invited_user):
+        cls.invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="inv-accept-invited@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+        cls.invited_user = User.objects.create_user(
+            username="inv-accept-inviteduser",
+            email="inv-accept-invited@example.com",
+            password="testpass123",
+            first_name="Invited",
+            last_name="User",
+        )
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_accept_invitation_get_renders_page(self):
+        """GET request shows the accept-invitation page."""
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert self.invitation.academy.name.encode() in response.content
+
+    def test_logged_in_user_can_accept_invitation(self):
         """Matching user accepts invitation and becomes a member."""
-        client.force_login(invited_user)
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.post(url)
+        self.client.force_login(self.invited_user)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.post(url)
 
         # Redirects to dashboard
         assert response.status_code == 302
@@ -153,53 +155,51 @@ class TestAcceptInvitationHappyPath:
 
         # Membership created
         assert Membership.objects.filter(
-            user=invited_user,
-            academy=invitation.academy,
+            user=self.invited_user,
+            academy=self.invitation.academy,
             role="student",
         ).exists()
 
         # Invitation marked as accepted
-        invitation.refresh_from_db()
-        assert invitation.accepted is True
+        self.invitation.refresh_from_db()
+        assert self.invitation.accepted is True
 
         # User's current_academy set
-        invited_user.refresh_from_db()
-        assert invited_user.current_academy == invitation.academy
+        self.invited_user.refresh_from_db()
+        assert self.invited_user.current_academy == self.invitation.academy
 
-    def test_welcome_email_sent_after_acceptance(self, client, invitation, invited_user):
+    def test_welcome_email_sent_after_acceptance(self):
         """A welcome email is sent to the user after accepting."""
-        client.force_login(invited_user)
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        client.post(url)
+        self.client.force_login(self.invited_user)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        self.client.post(url)
 
         # Welcome email is the first (and only) email sent on acceptance
         assert len(mail.outbox) == 1
         welcome_email = mail.outbox[0]
-        assert invited_user.email in welcome_email.to
+        assert self.invited_user.email in welcome_email.to
         assert "Welcome" in welcome_email.subject
-        assert invitation.academy.name in welcome_email.subject
+        assert self.invitation.academy.name in welcome_email.subject
 
-    def test_owner_notification_created_after_acceptance(
-        self, client, invitation, invited_user, owner_user
-    ):
+    def test_owner_notification_created_after_acceptance(self):
         """Owner gets a notification when an invitation is accepted."""
-        client.force_login(invited_user)
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        client.post(url)
+        self.client.force_login(self.invited_user)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        self.client.post(url)
 
         notifications = Notification.objects.filter(
-            recipient=owner_user,
-            academy=invitation.academy,
+            recipient=self.owner,
+            academy=self.invitation.academy,
             notification_type="invitation",
         )
         assert notifications.count() == 1
         assert "accepted" in notifications.first().message.lower()
 
-    def test_success_message_set_after_acceptance(self, client, invitation, invited_user):
+    def test_success_message_set_after_acceptance(self):
         """A success flash message is set after acceptance."""
-        client.force_login(invited_user)
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.post(url, follow=True)
+        self.client.force_login(self.invited_user)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.post(url, follow=True)
 
         # Check messages framework
         messages_list = list(response.context["messages"])
@@ -212,58 +212,105 @@ class TestAcceptInvitationHappyPath:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestEmailMatchEnforcement:
+class TestEmailMatchEnforcement(TestCase):
     """Test that only the invited email can accept the invitation."""
 
-    def test_matching_email_can_accept(self, client, invitation, invited_user):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Email Match Academy",
+            slug="inv-email-match-academy",
+            description="A test academy",
+            email="inv-email-match@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="inv-email-match-owner",
+            email="inv-email-match-owner@test.com",
+            password="testpass123",
+            first_name="Match",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+        cls.invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="inv-email-match-invited@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+        cls.invited_user = User.objects.create_user(
+            username="inv-email-match-inviteduser",
+            email="inv-email-match-invited@example.com",
+            password="testpass123",
+            first_name="Invited",
+            last_name="User",
+        )
+        cls.wrong_email_user = User.objects.create_user(
+            username="inv-email-match-wronguser",
+            email="inv-email-match-wrong@example.com",
+            password="testpass123",
+            first_name="Wrong",
+            last_name="User",
+        )
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_matching_email_can_accept(self):
         """User whose email matches the invitation can accept."""
-        client.force_login(invited_user)
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.post(url)
+        self.client.force_login(self.invited_user)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.post(url)
 
         assert response.status_code == 302  # redirect to dashboard
-        invitation.refresh_from_db()
-        assert invitation.accepted is True
+        self.invitation.refresh_from_db()
+        assert self.invitation.accepted is True
 
-    def test_non_matching_email_sees_error_page(self, client, invitation, wrong_email_user):
+    def test_non_matching_email_sees_error_page(self):
         """User with different email sees the email_mismatch error page."""
-        client.force_login(wrong_email_user)
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.post(url)
+        self.client.force_login(self.wrong_email_user)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.post(url)
 
         assert response.status_code == 200
         content = response.content.decode()
         # Should render the email_mismatch template
-        assert "mismatch" in content.lower() or wrong_email_user.email in content
+        assert "mismatch" in content.lower() or self.wrong_email_user.email in content
 
         # Invitation should NOT be accepted
-        invitation.refresh_from_db()
-        assert invitation.accepted is False
+        self.invitation.refresh_from_db()
+        assert self.invitation.accepted is False
 
         # No membership should be created
         assert not Membership.objects.filter(
-            user=wrong_email_user, academy=invitation.academy
+            user=self.wrong_email_user, academy=self.invitation.academy
         ).exists()
 
-    def test_email_comparison_is_case_insensitive(self, client, invitation, db):
+    def test_email_comparison_is_case_insensitive(self):
         """Email match ignores case: INVITED@EXAMPLE.COM matches invited@example.com."""
-        # Create user with uppercased email
+        # Create user with uppercased email — test-specific object, stays in test body
         upper_user = User.objects.create_user(
-            username="upperuser",
-            email="INVITED@EXAMPLE.COM",
+            username="inv-email-match-upperuser",
+            email="INV-EMAIL-MATCH-INVITED@EXAMPLE.COM",
             password="testpass123",
         )
-        client.force_login(upper_user)
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.post(url)
+        self.client.force_login(upper_user)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.post(url)
 
         # Should succeed (redirect to dashboard)
         assert response.status_code == 302
-        invitation.refresh_from_db()
-        assert invitation.accepted is True
+        self.invitation.refresh_from_db()
+        assert self.invitation.accepted is True
         assert Membership.objects.filter(
-            user=upper_user, academy=invitation.academy
+            user=upper_user, academy=self.invitation.academy
         ).exists()
 
 
@@ -272,54 +319,109 @@ class TestEmailMatchEnforcement:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestInvitationErrorStates:
+class TestInvitationErrorStates(TestCase):
     """Test that invalid/expired/already-accepted invitations show correct error pages."""
 
-    def test_invalid_token_shows_invalid_page(self, client):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Error States Academy",
+            slug="inv-error-academy",
+            description="A test academy",
+            email="inv-error@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="inv-error-owner",
+            email="inv-error-owner@test.com",
+            password="testpass123",
+            first_name="Error",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+        # Pending invitation (for duplicate/unauthenticated tests)
+        cls.invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="inv-error-invited@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+        # Expired invitation
+        cls.expired_invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="inv-error-expired@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() - timezone.timedelta(days=1),
+        )
+        # Already-accepted invitation
+        cls.accepted_invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="inv-error-accepted@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            accepted=True,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.auth_client = Client()
+        self.auth_client.login(username="inv-error-owner@test.com", password="testpass123")
+
+    def test_invalid_token_shows_invalid_page(self):
         """A completely bogus token renders the invalid invitation page."""
         url = reverse("accept-invitation", kwargs={"token": "bogus-token-that-doesnt-exist"})
-        response = client.get(url)
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert b"invalid" in response.content.lower() or b"not found" in response.content.lower()
 
-    def test_expired_invitation_shows_expired_page(self, client, expired_invitation):
+    def test_expired_invitation_shows_expired_page(self):
         """An expired invitation renders the expired page."""
-        url = reverse("accept-invitation", kwargs={"token": expired_invitation.token})
-        response = client.get(url)
+        url = reverse("accept-invitation", kwargs={"token": self.expired_invitation.token})
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert b"expired" in response.content.lower()
 
-    def test_already_accepted_invitation_shows_accepted_page(self, client, accepted_invitation):
+    def test_already_accepted_invitation_shows_accepted_page(self):
         """An already-accepted invitation renders the already_accepted page."""
-        url = reverse("accept-invitation", kwargs={"token": accepted_invitation.token})
-        response = client.get(url)
+        url = reverse("accept-invitation", kwargs={"token": self.accepted_invitation.token})
+        response = self.client.get(url)
 
         assert response.status_code == 200
         assert b"already" in response.content.lower()
 
-    def test_duplicate_invitation_prevented(self, auth_client, academy, invitation):
+    def test_duplicate_invitation_prevented(self):
         """Sending a second invitation to the same email is blocked."""
-        url = reverse("academy-invite", kwargs={"slug": academy.slug})
-        response = auth_client.post(url, {
-            "email": invitation.email,
+        url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
+        response = self.auth_client.post(url, {
+            "email": self.invitation.email,
             "role": "student",
         })
 
         # Should redirect (non-HTMX) without creating a new invitation
         assert response.status_code == 302
         assert Invitation.objects.filter(
-            email=invitation.email, academy=academy, accepted=False
+            email=self.invitation.email, academy=self.academy, accepted=False
         ).count() == 1  # still just the original
 
-    def test_duplicate_invitation_prevented_htmx(self, auth_client, academy, invitation):
+    def test_duplicate_invitation_prevented_htmx(self):
         """HTMX request for duplicate invitation returns partial with error."""
-        url = reverse("academy-invite", kwargs={"slug": academy.slug})
-        response = auth_client.post(
+        url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
+        response = self.auth_client.post(
             url,
-            {"email": invitation.email, "role": "student"},
+            {"email": self.invitation.email, "role": "student"},
             HTTP_HX_REQUEST="true",
         )
 
@@ -327,38 +429,39 @@ class TestInvitationErrorStates:
         content = response.content.decode()
         assert "already been sent" in content
 
-    def test_cannot_invite_existing_member(self, auth_client, academy, owner_user):
+    def test_cannot_invite_existing_member(self):
         """Cannot send invitation to someone who is already a member."""
-        url = reverse("academy-invite", kwargs={"slug": academy.slug})
-        response = auth_client.post(url, {
-            "email": owner_user.email,
+        url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
+        response = self.auth_client.post(url, {
+            "email": self.owner.email,
             "role": "student",
         })
 
         assert response.status_code == 302
         assert not Invitation.objects.filter(
-            email=owner_user.email, academy=academy
+            email=self.owner.email, academy=self.academy
         ).exists()
 
-    def test_unauthenticated_post_redirects_to_login(self, client, invitation):
+    def test_unauthenticated_post_redirects_to_login(self):
         """POST to accept-invitation without login redirects to login with ?next=."""
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.post(url)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.post(url)
 
         assert response.status_code == 302
         assert "/accounts/login/" in response.url
-        assert invitation.token in response.url
+        assert self.invitation.token in response.url
 
-    def test_expired_invitation_post_shows_expired_page(self, client, expired_invitation, db):
+    def test_expired_invitation_post_shows_expired_page(self):
         """POST to an expired invitation renders the expired page."""
+        # Test-specific user — created inline because it belongs to this single test
         user = User.objects.create_user(
-            username="expuser",
-            email=expired_invitation.email,
+            username="inv-error-expuser",
+            email=self.expired_invitation.email,
             password="testpass123",
         )
-        client.force_login(user)
-        url = reverse("accept-invitation", kwargs={"token": expired_invitation.token})
-        response = client.post(url)
+        self.client.force_login(user)
+        url = reverse("accept-invitation", kwargs={"token": self.expired_invitation.token})
+        response = self.client.post(url)
 
         assert response.status_code == 200
         assert b"expired" in response.content.lower()
@@ -369,15 +472,78 @@ class TestInvitationErrorStates:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestInvitationPermissions:
+class TestInvitationPermissions(TestCase):
     """Test that only owners can send/resend/cancel invitations."""
 
-    def test_student_cannot_send_invitation(self, client, student_user, academy):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Permissions Academy",
+            slug="inv-perms-academy",
+            description="A test academy",
+            email="inv-perms@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="inv-perms-owner",
+            email="inv-perms-owner@test.com",
+            password="testpass123",
+            first_name="Perms",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+        cls.instructor = User.objects.create_user(
+            username="inv-perms-instructor",
+            email="inv-perms-instructor@test.com",
+            password="testpass123",
+            first_name="Perms",
+            last_name="Instructor",
+        )
+        cls.instructor.current_academy = cls.academy
+        cls.instructor.save()
+        Membership.objects.create(
+            user=cls.instructor, academy=cls.academy, role="instructor",
+            instruments=["Piano"],
+        )
+
+        cls.student = User.objects.create_user(
+            username="inv-perms-student",
+            email="inv-perms-student@test.com",
+            password="testpass123",
+            first_name="Perms",
+            last_name="Student",
+        )
+        cls.student.current_academy = cls.academy
+        cls.student.save()
+        Membership.objects.create(
+            user=cls.student, academy=cls.academy, role="student",
+            instruments=["Piano"], skill_level="beginner",
+        )
+
+        cls.invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="inv-perms-invited@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.auth_client = Client()
+        self.auth_client.login(username="inv-perms-owner@test.com", password="testpass123")
+
+    def test_student_cannot_send_invitation(self):
         """Student gets 403 when trying to invite a member."""
-        client.force_login(student_user)
-        url = reverse("academy-invite", kwargs={"slug": academy.slug})
-        response = client.post(url, {
+        self.client.force_login(self.student)
+        url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
+        response = self.client.post(url, {
             "email": "hack@example.com",
             "role": "student",
         })
@@ -386,69 +552,69 @@ class TestInvitationPermissions:
         # No invitation created
         assert not Invitation.objects.filter(email="hack@example.com").exists()
 
-    def test_instructor_cannot_send_invitation(self, client, instructor_user, academy):
+    def test_instructor_cannot_send_invitation(self):
         """Instructor gets 403 when trying to invite a member."""
-        client.force_login(instructor_user)
-        url = reverse("academy-invite", kwargs={"slug": academy.slug})
-        response = client.post(url, {
+        self.client.force_login(self.instructor)
+        url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
+        response = self.client.post(url, {
             "email": "hack@example.com",
             "role": "student",
         })
         assert response.status_code == 403
 
-    def test_resend_invitation_works_for_owner(self, auth_client, academy, invitation):
+    def test_resend_invitation_works_for_owner(self):
         """Owner can resend a pending invitation, which updates token and expiry."""
-        old_token = invitation.token
-        old_expires = invitation.expires_at
+        old_token = self.invitation.token
+        old_expires = self.invitation.expires_at
 
         url = reverse("resend-invitation", kwargs={
-            "slug": academy.slug,
-            "pk": invitation.pk,
+            "slug": self.academy.slug,
+            "pk": self.invitation.pk,
         })
-        response = auth_client.post(url)
+        response = self.auth_client.post(url)
         assert response.status_code == 200
 
-        invitation.refresh_from_db()
-        assert invitation.token != old_token  # new token
-        assert invitation.expires_at > old_expires  # extended expiry
+        self.invitation.refresh_from_db()
+        assert self.invitation.token != old_token  # new token
+        assert self.invitation.expires_at > old_expires  # extended expiry
 
         # Resend email sent
         assert len(mail.outbox) == 1
-        assert invitation.email in mail.outbox[0].to
+        assert self.invitation.email in mail.outbox[0].to
 
-    def test_student_cannot_resend_invitation(self, client, student_user, academy, invitation):
+    def test_student_cannot_resend_invitation(self):
         """Student gets 403 when trying to resend."""
-        client.force_login(student_user)
+        self.client.force_login(self.student)
         url = reverse("resend-invitation", kwargs={
-            "slug": academy.slug,
-            "pk": invitation.pk,
+            "slug": self.academy.slug,
+            "pk": self.invitation.pk,
         })
-        response = client.post(url)
+        response = self.client.post(url)
         assert response.status_code == 403
 
-    def test_cancel_invitation_works_for_owner(self, auth_client, academy, invitation):
+    def test_cancel_invitation_works_for_owner(self):
         """Owner can cancel a pending invitation, which deletes it."""
         url = reverse("cancel-invitation", kwargs={
-            "slug": academy.slug,
-            "pk": invitation.pk,
+            "slug": self.academy.slug,
+            "pk": self.invitation.pk,
         })
-        response = auth_client.post(url)
+        response = self.auth_client.post(url)
         assert response.status_code == 200
 
-        assert not Invitation.objects.filter(pk=invitation.pk).exists()
+        assert not Invitation.objects.filter(pk=self.invitation.pk).exists()
 
-    def test_student_cannot_cancel_invitation(self, client, student_user, academy, invitation):
+    def test_student_cannot_cancel_invitation(self):
         """Student gets 403 when trying to cancel."""
-        client.force_login(student_user)
+        self.client.force_login(self.student)
         url = reverse("cancel-invitation", kwargs={
-            "slug": academy.slug,
-            "pk": invitation.pk,
+            "slug": self.academy.slug,
+            "pk": self.invitation.pk,
         })
-        response = client.post(url)
+        response = self.client.post(url)
         assert response.status_code == 403
 
         # Invitation still exists
-        assert Invitation.objects.filter(pk=invitation.pk).exists()
+        assert Invitation.objects.filter(pk=self.invitation.pk).exists()
 
 
 # ---------------------------------------------------------------------------
@@ -456,68 +622,100 @@ class TestInvitationPermissions:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestNextUrlPreservation:
+class TestNextUrlPreservation(TestCase):
     """Test that ?next= is preserved through login/register links."""
 
-    def test_login_page_preserves_next_in_register_link(self, client):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Next URL Academy",
+            slug="inv-next-academy",
+            description="A test academy",
+            email="inv-next@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="inv-next-owner",
+            email="inv-next-owner@test.com",
+            password="testpass123",
+            first_name="Next",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+        cls.invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="inv-next-invited@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_login_page_preserves_next_in_register_link(self):
         """Login page's 'Register' link includes ?next= parameter."""
         next_url = "/invitation/some-token/accept/"
-        response = client.get(f"{reverse('login')}?next={next_url}")
+        response = self.client.get(f"{reverse('login')}?next={next_url}")
 
         assert response.status_code == 200
         content = response.content.decode()
         # The register link should include ?next=
         assert f"next={next_url}" in content or f"next=%2F" in content
 
-    def test_register_page_preserves_next_in_login_link(self, client):
+    def test_register_page_preserves_next_in_login_link(self):
         """Register page's 'Sign In' link includes ?next= parameter."""
         next_url = "/invitation/some-token/accept/"
-        response = client.get(f"{reverse('register')}?next={next_url}")
+        response = self.client.get(f"{reverse('register')}?next={next_url}")
 
         assert response.status_code == 200
         content = response.content.decode()
         # The login link should include ?next=
         assert f"next={next_url}" in content or f"next=%2F" in content
 
-    def test_register_redirects_to_next_url_after_signup(self, client):
+    def test_register_redirects_to_next_url_after_signup(self):
         """After registration, user is redirected to the ?next= URL."""
         next_url = "/invitation/some-token/accept/"
-        response = client.post(
+        response = self.client.post(
             f"{reverse('register')}?next={next_url}",
             {
-                "username": "newuser",
-                "email": "newuser@example.com",
+                "email": "inv-next-newuser@example.com",
                 "password1": "SecurePass123!",
                 "password2": "SecurePass123!",
-                "first_name": "New",
-                "last_name": "User",
+                "date_of_birth": "2000-01-01",
+                "accept_terms": "on",
                 "next": next_url,
             },
         )
         assert response.status_code == 302
         assert next_url in response.url
 
-    def test_accept_invitation_get_shows_login_link_with_next(self, client, invitation):
+    def test_accept_invitation_get_shows_login_link_with_next(self):
         """Accept page for unauthenticated user shows login link with ?next=."""
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.get(url)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.get(url)
 
         assert response.status_code == 200
         content = response.content.decode()
         # Login link should have ?next= pointing back to the accept URL
-        assert f"/invitation/{invitation.token}/accept/" in content
+        assert f"/invitation/{self.invitation.token}/accept/" in content
 
-    def test_accept_invitation_get_shows_register_link_with_next(self, client, invitation):
+    def test_accept_invitation_get_shows_register_link_with_next(self):
         """Accept page for unauthenticated user shows register link with ?next=."""
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.get(url)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.get(url)
 
         assert response.status_code == 200
         content = response.content.decode()
         # Register link should have ?next= pointing back to the accept URL
         assert "register" in content.lower()
-        assert invitation.token in content
+        assert self.invitation.token in content
 
 
 # ---------------------------------------------------------------------------
@@ -525,57 +723,100 @@ class TestNextUrlPreservation:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestInvitationEdgeCases:
+class TestInvitationEdgeCases(TestCase):
     """Edge cases around invitation acceptance."""
 
-    def test_accept_creates_membership_with_correct_role(self, client, academy, owner_user):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Edge Cases Academy",
+            slug="inv-edge-academy",
+            description="A test academy",
+            email="inv-edge@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="inv-edge-owner",
+            email="inv-edge-owner@test.com",
+            password="testpass123",
+            first_name="Edge",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+        cls.invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="inv-edge-invited@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+        cls.invited_user = User.objects.create_user(
+            username="inv-edge-inviteduser",
+            email="inv-edge-invited@example.com",
+            password="testpass123",
+            first_name="Invited",
+            last_name="User",
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.auth_client = Client()
+        self.auth_client.login(username="inv-edge-owner@test.com", password="testpass123")
+
+    def test_accept_creates_membership_with_correct_role(self):
         """Invitation role propagates to the created Membership."""
+        # Test-specific invitation + user — created inline because unique to this test
         inv = Invitation.objects.create(
-            academy=academy,
-            email="instructor_invite@example.com",
+            academy=self.academy,
+            email="inv-edge-instructor-invite@example.com",
             role="instructor",
             token=secrets.token_urlsafe(48),
-            invited_by=owner_user,
+            invited_by=self.owner,
             expires_at=timezone.now() + timezone.timedelta(days=7),
         )
         user = User.objects.create_user(
-            username="newinstructor",
-            email="instructor_invite@example.com",
+            username="inv-edge-newinstructor",
+            email="inv-edge-instructor-invite@example.com",
             password="testpass123",
         )
-        client.force_login(user)
+        self.client.force_login(user)
         url = reverse("accept-invitation", kwargs={"token": inv.token})
-        client.post(url)
+        self.client.post(url)
 
-        membership = Membership.objects.get(user=user, academy=academy)
+        membership = Membership.objects.get(user=user, academy=self.academy)
         assert membership.role == "instructor"
 
-    def test_accept_does_not_duplicate_membership(self, client, invitation, invited_user, academy):
+    def test_accept_does_not_duplicate_membership(self):
         """If user already has a membership (edge case), get_or_create handles it."""
         # Pre-create membership
         Membership.objects.create(
-            user=invited_user, academy=academy, role="student"
+            user=self.invited_user, academy=self.academy, role="student"
         )
-        client.force_login(invited_user)
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.post(url)
+        self.client.force_login(self.invited_user)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.post(url)
 
         assert response.status_code == 302
         assert Membership.objects.filter(
-            user=invited_user, academy=academy
+            user=self.invited_user, academy=self.academy
         ).count() == 1  # no duplicate
 
-    def test_htmx_invite_returns_partial(self, auth_client, academy):
+    def test_htmx_invite_returns_partial(self):
         """HTMX invitation request returns the partial template."""
-        url = reverse("academy-invite", kwargs={"slug": academy.slug})
-        response = auth_client.post(
+        url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
+        response = self.auth_client.post(
             url,
-            {"email": "htmxuser@example.com", "role": "student"},
+            {"email": "inv-edge-htmxuser@example.com", "role": "student"},
             HTTP_HX_REQUEST="true",
         )
         assert response.status_code == 200
         # Invitation created
         assert Invitation.objects.filter(
-            email="htmxuser@example.com", academy=academy
+            email="inv-edge-htmxuser@example.com", academy=self.academy
         ).exists()

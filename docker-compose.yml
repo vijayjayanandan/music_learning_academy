@@ -19,7 +19,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis (Channels layer + Celery broker + Cache)
+  # Redis (Channels layer + Cache)
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -46,7 +46,6 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=${DB_PASSWORD:-postgres}
       - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/1
       - REDIS_CACHE_URL=redis://redis:6379/2
     volumes:
       - static_files:/app/staticfiles
@@ -84,50 +83,6 @@ services:
     depends_on:
       web:
         condition: service_healthy
-
-  # Celery worker (async tasks: emails, payment processing)
-  celery-worker:
-    build: .
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.prod
-      - DB_HOST=db
-      - DB_NAME=music_academy
-      - DB_USER=postgres
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - REDIS_CACHE_URL=redis://redis:6379/2
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: celery -A config worker --loglevel=info --concurrency=2
-
-  # Celery beat (periodic tasks: reminders, trial expiry)
-  celery-beat:
-    build: .
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - DJANGO_SETTINGS_MODULE=config.settings.prod
-      - DB_HOST=db
-      - DB_NAME=music_academy
-      - DB_USER=postgres
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/1
-      - REDIS_CACHE_URL=redis://redis:6379/2
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: celery -A config beat --loglevel=info
 
 volumes:
   postgres_data:

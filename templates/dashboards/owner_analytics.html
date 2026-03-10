@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Analytics - {{ current_academy.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <!-- Header with back link and period selector -->
+  <div class="flex justify-between items-center flex-wrap gap-4">
+    <div>
+      <div class="text-sm breadcrumbs mb-1">
+        <ul><li><a href="{% url 'admin-dashboard' %}">Dashboard</a></li><li>Analytics</li></ul>
+      </div>
+      <h1 class="text-3xl font-bold">Analytics</h1>
+    </div>
+    <!-- Period selector: 7d / 30d / 90d tabs -->
+    <div class="join">
+      <a href="?days=7" class="join-item btn btn-sm {% if selected_days == 7 %}btn-active{% endif %}">7 days</a>
+      <a href="?days=30" class="join-item btn btn-sm {% if selected_days == 30 %}btn-active{% endif %}">30 days</a>
+      <a href="?days=90" class="join-item btn btn-sm {% if selected_days == 90 %}btn-active{% endif %}">90 days</a>
+    </div>
+  </div>
+
+  <!-- Data freshness label -->
+  <p class="text-xs text-gray-400">Data as of {{ data_freshness|date:"M d, Y g:i A" }}</p>
+
+  <!-- Section 1: Revenue Metrics -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title">Revenue</h2>
+      <!-- Stats row: MRR, ARPU, Total Revenue, Refund Rate -->
+      <div class="stats stats-vertical sm:stats-horizontal shadow w-full">
+        <div class="stat">
+          <div class="stat-title">Monthly Recurring Revenue</div>
+          <div class="stat-value text-success text-2xl">{{ mrr_display }}</div>
+          <div class="stat-desc">From active subscriptions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Avg Revenue Per Student</div>
+          <div class="stat-value text-primary text-2xl">{{ arpu_display }}</div>
+          <div class="stat-desc">This month</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Total Revenue ({{ selected_days }}d)</div>
+          <div class="stat-value text-2xl">{{ revenue_summary.total_display }}</div>
+          <div class="stat-desc">{{ revenue_summary.completed_count }} payments</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Refund Rate</div>
+          <div class="stat-value text-2xl {% if revenue_summary.refund_rate > 5 %}text-error{% endif %}">{{ revenue_summary.refund_rate }}%</div>
+          <div class="stat-desc">{{ revenue_summary.refund_count }} refunds</div>
+        </div>
+      </div>
+
+      <!-- Revenue by type breakdown -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+        {% for type, display in by_type_display.items %}
+        <div class="bg-base-200 rounded-lg p-3 text-center">
+          <div class="text-xs text-gray-500 uppercase">{{ type }}</div>
+          <div class="text-lg font-bold">{{ display }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Revenue trend (last 3 months) -->
+      <h3 class="font-semibold mt-4">Revenue Trend</h3>
+      <div class="grid grid-cols-3 gap-4">
+        {% for month in revenue_trend %}
+        <div class="bg-base-200 rounded-lg p-3 text-center">
+          <div class="text-xs text-gray-500">{{ month.month }}</div>
+          <div class="text-lg font-bold">{{ month.display }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Acquisition Funnel -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title">Student Acquisition Funnel ({{ selected_days }} days)</h2>
+      <!-- Funnel steps -->
+      <ul class="steps steps-vertical lg:steps-horizontal w-full mt-4">
+        <li class="step step-primary" data-content="{{ funnel.members_joined }}">
+          <div class="text-center">
+            <div class="font-bold">{{ funnel.members_joined }}</div>
+            <div class="text-xs">Joined</div>
+          </div>
+        </li>
+        <li class="step {% if funnel.enrolled > 0 %}step-primary{% endif %}" data-content="{{ funnel.enrolled }}">
+          <div class="text-center">
+            <div class="font-bold">{{ funnel.enrolled }}</div>
+            <div class="text-xs">Enrolled</div>
+            <div class="text-xs text-gray-400">{{ funnel.join_to_enroll_rate }}%</div>
+          </div>
+        </li>
+        <li class="step {% if funnel.started_learning > 0 %}step-primary{% endif %}">
+          <div class="text-center">
+            <div class="font-bold">{{ funnel.started_learning }}</div>
+            <div class="text-xs">Learning</div>
+            <div class="text-xs text-gray-400">{{ funnel.enroll_to_learn_rate }}%</div>
+          </div>
+        </li>
+        <li class="step {% if funnel.retained_30d > 0 %}step-primary{% endif %}">
+          <div class="text-center">
+            <div class="font-bold">{{ funnel.retained_30d }}</div>
+            <div class="text-xs">Retained 30d</div>
+            <div class="text-xs text-gray-400">{{ funnel.learn_to_retain_rate }}%</div>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Enrollment breakdown -->
+      <h3 class="font-semibold mt-6">Enrollment Status</h3>
+      <div class="stats stats-vertical sm:stats-horizontal shadow w-full mt-2">
+        <div class="stat">
+          <div class="stat-title">Active</div>
+          <div class="stat-value text-success text-xl">{{ enrollment_breakdown.active }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Completed</div>
+          <div class="stat-value text-primary text-xl">{{ enrollment_breakdown.completed }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Dropped</div>
+          <div class="stat-value text-error text-xl">{{ enrollment_breakdown.dropped }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Paused</div>
+          <div class="stat-value text-warning text-xl">{{ enrollment_breakdown.paused }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Total</div>
+          <div class="stat-value text-xl">{{ enrollment_breakdown.total }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Learning Quality -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title">Learning Quality</h2>
+      <div class="stats stats-vertical sm:stats-horizontal shadow w-full mt-2">
+        <div class="stat">
+          <div class="stat-title">Avg Progress</div>
+          <div class="stat-value text-primary text-xl">{{ learning.avg_progress }}%</div>
+          <div class="stat-desc">Across active enrollments</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Completion Rate</div>
+          <div class="stat-value text-success text-xl">{{ learning.completion_rate }}%</div>
+          <div class="stat-desc">All-time</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Attendance Rate</div>
+          <div class="stat-value text-xl">{{ learning.attendance_rate }}%</div>
+          <div class="stat-desc">{{ learning.total_sessions_completed }} sessions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">No-Show Rate</div>
+          <div class="stat-value text-xl {% if learning.no_show_rate > 15 %}text-error{% endif %}">{{ learning.no_show_rate }}%</div>
+        </div>
+      </div>
+      <!-- Reviews stat -->
+      <div class="mt-4 flex gap-4">
+        <div class="bg-base-200 rounded-lg p-3 text-center flex-1">
+          <div class="text-xs text-gray-500">Submissions Reviewed</div>
+          <div class="text-lg font-bold">{{ learning.total_reviewed }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

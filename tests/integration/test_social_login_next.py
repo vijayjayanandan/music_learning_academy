@@ -9,40 +9,25 @@ external provider), but we CAN test that the URLs are correctly
 constructed with the ?next= parameter in the rendered HTML.
 """
 
+import os
 import secrets
+import unittest.mock
 
 import pytest
+from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.accounts.models import User, Membership
+from apps.academies.models import Academy
 from apps.accounts.models import Invitation
 
 
-# Enable social login providers for all tests in this module
+# Env vars that enable social login buttons in templates
 SOCIAL_ENV = {
     "GOOGLE_OAUTH_CLIENT_ID": "fake-google-client-id",
     "FACEBOOK_APP_ID": "fake-facebook-app-id",
 }
-
-
-@pytest.fixture(autouse=True)
-def enable_social_login(monkeypatch):
-    """Set env vars so social login buttons are rendered."""
-    for key, value in SOCIAL_ENV.items():
-        monkeypatch.setenv(key, value)
-
-
-@pytest.fixture
-def invitation(db, academy, owner_user):
-    """Create a pending invitation for testing."""
-    return Invitation.objects.create(
-        academy=academy,
-        email="socialuser@example.com",
-        role="student",
-        token=secrets.token_urlsafe(48),
-        invited_by=owner_user,
-        expires_at=timezone.now() + timezone.timedelta(days=7),
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -50,14 +35,52 @@ def invitation(db, academy, owner_user):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestSocialButtonNextUrl:
+class TestSocialButtonNextUrl(TestCase):
     """Social login buttons include ?next= when a redirect URL is present."""
 
-    def test_login_page_social_buttons_include_next(self, client):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Social Next Academy",
+            slug="soc-nextuurl-iso",
+            description="Academy for social next URL tests",
+            email="soc-nextuurl@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="soc-nextuurl-owner",
+            email="soc-nextuurl-owner@test.com",
+            password="testpass123",
+            first_name="Social",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+        cls.invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="socialuser-nextuurl@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self._social_patcher = unittest.mock.patch.dict(os.environ, SOCIAL_ENV)
+        self._social_patcher.start()
+
+    def tearDown(self):
+        self._social_patcher.stop()
+
+    def test_login_page_social_buttons_include_next(self):
         """On the login page with ?next=, Google/Facebook buttons include ?next=."""
         next_url = "/invitation/some-token/accept/"
-        response = client.get(f"{reverse('login')}?next={next_url}")
+        response = self.client.get(f"{reverse('login')}?next={next_url}")
 
         assert response.status_code == 200
         content = response.content.decode()
@@ -69,10 +92,10 @@ class TestSocialButtonNextUrl:
         assert f"facebook/login/?next={next_url}" in content or \
                f"facebook/login/?next=%2F" in content
 
-    def test_register_page_social_buttons_include_next(self, client):
+    def test_register_page_social_buttons_include_next(self):
         """On the register page with ?next=, social buttons include ?next=."""
         next_url = "/invitation/some-token/accept/"
-        response = client.get(f"{reverse('register')}?next={next_url}")
+        response = self.client.get(f"{reverse('register')}?next={next_url}")
 
         assert response.status_code == 200
         content = response.content.decode()
@@ -81,29 +104,29 @@ class TestSocialButtonNextUrl:
         assert f"google/login/?next={next_url}" in content or \
                f"google/login/?next=%2F" in content
 
-    def test_accept_invitation_social_buttons_include_next(self, client, invitation):
+    def test_accept_invitation_social_buttons_include_next(self):
         """On the accept-invitation page (unauthenticated), social buttons
         include ?next= pointing back to the accept URL."""
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.get(url)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.get(url)
 
         assert response.status_code == 200
         content = response.content.decode()
 
         # Social buttons should include ?next= with the accept URL
-        expected_next = f"/invitation/{invitation.token}/accept/"
+        expected_next = f"/invitation/{self.invitation.token}/accept/"
         assert f"google/login/?next={expected_next}" in content or \
                f"google/login/?next=%2Finvitation" in content
 
-    def test_accept_invitation_context_includes_accept_url(self, client, invitation):
+    def test_accept_invitation_context_includes_accept_url(self):
         """AcceptInvitationView passes accept_url in context for social buttons."""
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.get(url)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.get(url)
 
         assert response.status_code == 200
         content = response.content.decode()
         # The accept URL should appear in the rendered page (in social button hrefs)
-        assert f"/invitation/{invitation.token}/accept/" in content
+        assert f"/invitation/{self.invitation.token}/accept/" in content
 
 
 # ---------------------------------------------------------------------------
@@ -111,13 +134,42 @@ class TestSocialButtonNextUrl:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestSocialButtonWithoutNext:
+class TestSocialButtonWithoutNext(TestCase):
     """Social login buttons work correctly without ?next= (no breakage)."""
 
-    def test_login_page_social_buttons_without_next(self, client):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Social Without Next Academy",
+            slug="soc-wonext-iso",
+            description="Academy for social without next tests",
+            email="soc-wonext@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="soc-wonext-owner",
+            email="soc-wonext-owner@test.com",
+            password="testpass123",
+            first_name="Social",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+    def setUp(self):
+        self.client = Client()
+        self._social_patcher = unittest.mock.patch.dict(os.environ, SOCIAL_ENV)
+        self._social_patcher.start()
+
+    def tearDown(self):
+        self._social_patcher.stop()
+
+    def test_login_page_social_buttons_without_next(self):
         """Social buttons render without ?next= when not provided."""
-        response = client.get(reverse("login"))
+        response = self.client.get(reverse("login"))
 
         assert response.status_code == 200
         content = response.content.decode()
@@ -128,9 +180,9 @@ class TestSocialButtonWithoutNext:
         # Should NOT have a dangling ?next= with empty value
         assert "?next=" not in content
 
-    def test_register_page_social_buttons_without_next(self, client):
+    def test_register_page_social_buttons_without_next(self):
         """Social buttons on register page render without ?next= when not provided."""
-        response = client.get(reverse("register"))
+        response = self.client.get(reverse("register"))
 
         assert response.status_code == 200
         content = response.content.decode()
@@ -145,28 +197,66 @@ class TestSocialButtonWithoutNext:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestSocialLoginAccessibility:
+class TestSocialLoginAccessibility(TestCase):
     """Social login URLs are accessible to unauthenticated users."""
 
-    def test_login_page_accessible_unauthenticated(self, client):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Social Access Academy",
+            slug="soc-access-iso",
+            description="Academy for social accessibility tests",
+            email="soc-access@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="soc-access-owner",
+            email="soc-access-owner@test.com",
+            password="testpass123",
+            first_name="Social",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+        cls.invitation = Invitation.objects.create(
+            academy=cls.academy,
+            email="socialuser-access@example.com",
+            role="student",
+            token=secrets.token_urlsafe(48),
+            invited_by=cls.owner,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self._social_patcher = unittest.mock.patch.dict(os.environ, SOCIAL_ENV)
+        self._social_patcher.start()
+
+    def tearDown(self):
+        self._social_patcher.stop()
+
+    def test_login_page_accessible_unauthenticated(self):
         """Login page with social buttons is accessible without authentication."""
-        response = client.get(reverse("login"))
+        response = self.client.get(reverse("login"))
         assert response.status_code == 200
         assert b"Google" in response.content
         assert b"Facebook" in response.content
 
-    def test_register_page_accessible_unauthenticated(self, client):
+    def test_register_page_accessible_unauthenticated(self):
         """Register page with social buttons is accessible without authentication."""
-        response = client.get(reverse("register"))
+        response = self.client.get(reverse("register"))
         assert response.status_code == 200
         assert b"Google" in response.content
         assert b"Facebook" in response.content
 
-    def test_accept_invitation_page_accessible_unauthenticated(self, client, invitation):
+    def test_accept_invitation_page_accessible_unauthenticated(self):
         """Accept invitation page shows social buttons for unauthenticated users."""
-        url = reverse("accept-invitation", kwargs={"token": invitation.token})
-        response = client.get(url)
+        url = reverse("accept-invitation", kwargs={"token": self.invitation.token})
+        response = self.client.get(url)
         assert response.status_code == 200
         assert b"Google" in response.content
         assert b"Facebook" in response.content
@@ -177,26 +267,59 @@ class TestSocialLoginAccessibility:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.integration
-@pytest.mark.django_db
-class TestSocialButtonEdgeCases:
+class TestSocialButtonEdgeCases(TestCase):
     """Edge cases for social button ?next= handling."""
 
-    def test_next_url_with_special_characters(self, client):
+    @classmethod
+    def setUpTestData(cls):
+        cls.academy = Academy.objects.create(
+            name="Social Edge Academy",
+            slug="soc-edge-iso",
+            description="Academy for social edge case tests",
+            email="soc-edge@academy.com",
+            timezone="UTC",
+            primary_instruments=["Piano"],
+            genres=["Classical"],
+        )
+        cls.owner = User.objects.create_user(
+            username="soc-edge-owner",
+            email="soc-edge-owner@test.com",
+            password="testpass123",
+            first_name="Social",
+            last_name="Owner",
+        )
+        cls.owner.current_academy = cls.academy
+        cls.owner.save()
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
+
+    def setUp(self):
+        self.client = Client()
+        self._social_patcher = unittest.mock.patch.dict(os.environ, SOCIAL_ENV)
+        self._social_patcher.start()
+
+    def tearDown(self):
+        self._social_patcher.stop()
+
+    def test_next_url_with_special_characters(self):
         """?next= with URL-safe special characters is handled correctly."""
         next_url = "/invitation/abc-123_def/accept/"
-        response = client.get(f"{reverse('login')}?next={next_url}")
+        response = self.client.get(f"{reverse('login')}?next={next_url}")
 
         assert response.status_code == 200
         content = response.content.decode()
         # The next URL should be present in the social button href
         assert "google/login/?next=" in content
 
-    def test_social_buttons_hidden_when_providers_not_configured(self, client, monkeypatch):
+    def test_social_buttons_hidden_when_providers_not_configured(self):
         """Social buttons are not rendered when providers are not configured."""
-        monkeypatch.delenv("GOOGLE_OAUTH_CLIENT_ID", raising=False)
-        monkeypatch.delenv("FACEBOOK_APP_ID", raising=False)
-
-        response = client.get(reverse("login"))
+        # Stop the setUp patcher so GOOGLE_OAUTH_CLIENT_ID / FACEBOOK_APP_ID are
+        # absent from os.environ for the duration of this test, then restart it
+        # so tearDown.stop() doesn't raise a RuntimeError.
+        self._social_patcher.stop()
+        try:
+            response = self.client.get(reverse("login"))
+        finally:
+            self._social_patcher.start()
 
         assert response.status_code == 200
         content = response.content.decode()

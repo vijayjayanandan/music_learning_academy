@@ -1,8 +1,21 @@
 """Reusable file upload validators for security."""
 
 import os
+import sys
 
 from django.core.exceptions import ValidationError
+
+# Try to import python-magic at module level. On Windows without libmagic DLL,
+# the import can hang indefinitely, so we skip it on Windows unless
+# python-magic-bin is installed (which bundles the DLL).
+_magic_available = False
+_magic_module = None
+try:
+    if sys.platform != "win32":
+        import magic as _magic_module
+        _magic_available = True
+except (ImportError, OSError):
+    pass
 
 # Extension-to-MIME-type mapping for allowed uploads
 ALLOWED_FILE_TYPES = {
@@ -73,18 +86,14 @@ def validate_file_upload(uploaded_file, allowed_extensions=None, max_size=None):
         max_mb = max_size / (1024 * 1024)
         raise ValidationError(f"File size exceeds the {max_mb:.0f}MB limit.")
 
-    # Check MIME type (read first bytes, then reset)
-    try:
-        import magic
+    # Check MIME type via python-magic (requires libmagic system library)
+    if _magic_available:
         file_head = uploaded_file.read(2048)
         uploaded_file.seek(0)
-        detected_mime = magic.from_buffer(file_head, mime=True)
+        detected_mime = _magic_module.from_buffer(file_head, mime=True)
         expected_mimes = ALLOWED_FILE_TYPES.get(ext, [])
         if expected_mimes and detected_mime not in expected_mimes:
             raise ValidationError(
                 f"File content does not match its extension '{ext}' "
                 f"(detected: {detected_mime})."
             )
-    except ImportError:
-        # python-magic not installed — fall back to extension-only check
-        pass

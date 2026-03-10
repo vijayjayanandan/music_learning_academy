@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Reschedule: {{ session.title }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="breadcrumbs text-sm">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'schedule-list' %}">Sessions</a></li>
+            <li><a href="{% url 'session-detail' session.pk %}">{{ session.title }}</a></li>
+            <li>Reschedule</li>
+        </ul>
+    </div>
+    <h1 class="text-2xl font-bold">Reschedule Session</h1>
+
+    {# Current session info #}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h2 class="card-title text-lg">Current Schedule</h2>
+            <p><strong>{{ session.title }}</strong></p>
+            <p class="text-sm text-base-content/60">
+                {{ session.scheduled_start|date:"l, M d, Y — h:i A" }} to {{ session.scheduled_end|date:"h:i A" }}
+            </p>
+            <p class="text-sm text-base-content/60">
+                Instructor: {{ session.instructor.get_full_name|default:session.instructor.email }}
+            </p>
+        </div>
+    </div>
+
+    {% if reschedules_remaining is not None %}
+    <div class="alert alert-info">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>You have <strong>{{ reschedules_remaining }}</strong> reschedule{{ reschedules_remaining|pluralize }} remaining this month.</span>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert alert-error">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    {# Slot selection form #}
+    {% if slots %}
+    <form method="post" class="card bg-base-100 shadow">
+        {% csrf_token %}
+        <div class="card-body space-y-4">
+            <h2 class="card-title text-lg">Pick a New Time</h2>
+            <p class="text-sm text-base-content/60">Choose from {{ session.instructor.get_full_name|default:"your instructor" }}'s available slots.</p>
+
+            <div class="space-y-2">
+                {% for slot in slots %}
+                <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-base-200 transition-colors"
+                       data-day="{{ slot.day_of_week }}">
+                    <input type="radio" name="slot" value="{{ slot.pk }}"
+                           class="radio radio-primary slot-radio" required
+                           data-day="{{ slot.day_of_week }}"
+                           data-day-name="{{ slot.get_day_of_week_display }}">
+                    <div class="flex-1">
+                        <span class="font-bold">{{ slot.get_day_of_week_display }}</span>
+                        <span class="text-sm text-base-content/60 ml-2">
+                            {{ slot.start_time|time:"h:i A" }} - {{ slot.end_time|time:"h:i A" }}
+                        </span>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">New Date</span>
+                    <span class="label-text-alt text-base-content/50" id="date-hint">Select a time slot first</span>
+                </label>
+                <input type="date" name="session_date" id="session-date"
+                       class="input input-bordered w-full" required disabled>
+                <div id="date-errors"></div>
+            </div>
+
+            <div class="form-control">
+                <label class="label"><span class="label-text">Reason (optional)</span></label>
+                <textarea name="reason" class="textarea textarea-bordered" rows="2"
+                          placeholder="e.g., Schedule conflict"></textarea>
+            </div>
+
+            <div class="card-actions justify-end">
+                <a href="{% url 'session-detail' session.pk %}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary" id="reschedule-btn" disabled>Reschedule</button>
+            </div>
+        </div>
+    </form>
+    {% else %}
+    <div class="card bg-base-100 shadow-lg">
+        <div class="card-body items-center text-center py-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+            </svg>
+            <h3 class="text-lg font-semibold mt-2">No Available Slots</h3>
+            <p class="text-base-content/60">Your instructor hasn't set up any availability. Contact them directly to reschedule.</p>
+            <a href="{% url 'session-detail' session.pk %}" class="btn btn-primary mt-4">Back to Session</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+(function() {
+    var dateInput = document.getElementById('session-date');
+    var rescheduleBtn = document.getElementById('reschedule-btn');
+    var dateHint = document.getElementById('date-hint');
+    var slotRadios = document.querySelectorAll('.slot-radio');
+
+    if (!dateInput || !slotRadios.length) return;
+
+    var today = new Date();
+    var todayStr = today.toISOString().split('T')[0];
+    dateInput.setAttribute('min', todayStr);
+
+    slotRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var selectedDay = parseInt(this.dataset.day);
+            var dayName = this.dataset.dayName;
+            dateInput.disabled = false;
+            dateInput.value = '';
+            dateHint.textContent = 'Pick a ' + dayName;
+            // Auto-fill next matching date
+            var nextDate = new Date(today);
+            var currentDay = nextDate.getDay();
+            var jsDay = (selectedDay + 1) % 7;
+            var daysUntil = (jsDay - currentDay + 7) % 7;
+            if (daysUntil === 0) daysUntil = 7; // At least next week for rescheduling
+            nextDate.setDate(nextDate.getDate() + daysUntil);
+            dateInput.value = nextDate.toISOString().split('T')[0];
+            checkReady();
+        });
+    });
+
+    dateInput.addEventListener('change', function() {
+        var selectedSlot = document.querySelector('.slot-radio:checked');
+        if (selectedSlot && this.value) {
+            var expectedDay = parseInt(selectedSlot.dataset.day);
+            var pickedDate = new Date(this.value + 'T12:00:00');
+            var pickedDay = (pickedDate.getDay() + 6) % 7;
+            var errorDiv = document.getElementById('date-errors');
+            if (pickedDay !== expectedDay) {
+                var dayName = selectedSlot.dataset.dayName;
+                errorDiv.innerHTML = '<label class="label"><span class="label-text-alt text-error">Please pick a ' + dayName + '.</span></label>';
+                rescheduleBtn.disabled = true;
+            } else {
+                errorDiv.innerHTML = '';
+                checkReady();
+            }
+        }
+    });
+
+    function checkReady() {
+        var slotSelected = document.querySelector('.slot-radio:checked');
+        rescheduleBtn.disabled = !(slotSelected && dateInput.value);
+    }
+})();
+</script>
+{% endblock %}

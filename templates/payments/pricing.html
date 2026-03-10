@@ -36,7 +36,16 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert mb-8">No subscription plans available yet.</div>
+    <div class="card bg-base-100 shadow-lg mb-8">
+        <div class="card-body items-center text-center py-12">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+            </svg>
+            <h3 class="text-lg font-semibold mt-4">No Plans Available Yet</h3>
+            <p class="text-base-content/60 max-w-md">Your academy hasn't set up pricing plans yet. You can still enroll in free courses.</p>
+            <a href="{% url 'course-list' %}" class="btn btn-primary mt-4">Browse Courses</a>
+        </div>
+    </div>
     {% endif %}
 
     {% if packages %}

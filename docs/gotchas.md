@@ -125,6 +125,22 @@
 
 ---
 
+## UX Design
+
+### G-018: Raw Forms Are Not UX — Design the Interaction Before Coding
+**Problem:** Book Session was shipped as a raw HTML form with a full-page reload on dropdown change, no date/slot validation, and 5 clicks to complete. It worked but felt like a prototype, not a product.
+**Why:** The coding agent received backend specs (model, view, template) but no UX spec. Without interaction design targets, agents default to the simplest implementation: `<form method="post">` with server-side processing.
+**Fix:** Every user-facing task now requires a UX spec BEFORE coding. The spec must include: (1) interaction flow with click count target (≤ 3), (2) all 4 states handled (empty, loading, error, success), (3) HTMX vs full reload decisions, (4) benchmark comparison ("should feel like Calendly, not a raw form"). See CLAUDE.md Sprint Lifecycle step 4 (UX DESIGN).
+**Found:** 2026-03-09 | **Ref:** Book Session UX audit
+
+### G-019: Form Inputs Without Client-Side Validation = Bad Data
+**Problem:** Book Session lets you select a "Monday" time slot and enter a Friday date. No validation that the date matches the slot's day of week.
+**Why:** Validation was only server-side (double-booking check) — no client-side constraints on the date input based on the selected slot.
+**Fix:** When a form has dependent fields (slot → date), use HTMX to dynamically constrain the dependent field. Or validate in `clean()` and return clear inline errors. Never let the user submit data that's obviously wrong.
+**Found:** 2026-03-09 | **Ref:** Book Session UX audit
+
+---
+
 ## Content & Rendering
 
 ### G-017: Lesson Content Field help_text Said "Markdown" but TinyMCE Stores HTML

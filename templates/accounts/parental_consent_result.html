@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Parental Consent{% endblock %}
+{% block unauth_content %}
+<div class="card bg-base-100 shadow-xl w-full max-w-md">
+    <div class="card-body text-center">
+        {% if success %}
+            {% if reason == "approved" %}
+            <div class="text-5xl mb-4 text-success" aria-hidden="true">&#10003;</div>
+            <h2 class="card-title justify-center text-2xl mb-2">Consent Approved</h2>
+            <p class="text-base-content/70 mb-4">
+                You have approved <strong>{{ child.get_full_name|default:child.email }}</strong>'s account.
+                They can now log in and use the platform.
+            </p>
+            {% elif reason == "already_approved" %}
+            <div class="text-5xl mb-4 text-info" aria-hidden="true">&#8505;</div>
+            <h2 class="card-title justify-center text-2xl mb-2">Already Approved</h2>
+            <p class="text-base-content/70 mb-4">
+                This account has already been approved. <strong>{{ child.get_full_name|default:child.email }}</strong> can log in normally.
+            </p>
+            {% endif %}
+        {% else %}
+            {% if reason == "expired" %}
+            <div class="text-5xl mb-4 text-warning" aria-hidden="true">&#9888;</div>
+            <h2 class="card-title justify-center text-2xl mb-2">Link Expired</h2>
+            <p class="text-base-content/70 mb-4">
+                This consent link has expired. The child will need to register again to receive a new consent request.
+            </p>
+            {% elif reason == "invalid" %}
+            <div class="text-5xl mb-4 text-error" aria-hidden="true">&#10007;</div>
+            <h2 class="card-title justify-center text-2xl mb-2">Invalid Link</h2>
+            <p class="text-base-content/70 mb-4">
+                This consent link is not valid. Please check the link in your email and try again.
+            </p>
+            {% endif %}
+        {% endif %}
+        <div class="mt-4">
+            <a href="{% url 'login' %}" class="btn btn-outline btn-sm">Go to Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

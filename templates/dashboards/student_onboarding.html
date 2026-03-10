@@ -1,0 +1,54 @@
+{% comment %}
+Student onboarding card — shown on the student dashboard for new members
+who have not yet set their preferences.  Dismissed via "Skip" or by saving.
+
+Context required:
+  - onboarding_form: StudentOnboardingForm instance
+{% endcomment %}
+
+<div class="card bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 shadow-lg mb-6">
+    <div class="card-body">
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 class="card-title text-xl">Welcome! Let's personalize your experience</h2>
+                <p class="text-base-content/70 mt-1">Help us recommend the right courses for you.</p>
+            </div>
+        </div>
+        <form method="post" action="{% url 'student-onboarding-submit' %}" class="mt-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Instruments (checkbox group) -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-semibold">What instruments interest you?</span></label>
+                    <div class="flex flex-wrap gap-2">
+                        {% for value, label in onboarding_form.instruments.field.choices %}
+                        <label class="label cursor-pointer gap-2">
+                            <input type="checkbox" name="instruments" value="{{ value }}" class="checkbox checkbox-primary checkbox-sm">
+                            <span class="label-text">{{ label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <!-- Skill Level -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-semibold">Your skill level</span></label>
+                    {{ onboarding_form.skill_level }}
+                </div>
+                <!-- Learning Goal -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-semibold">What's your learning goal?</span></label>
+                    {{ onboarding_form.learning_goal }}
+                </div>
+                <!-- Timezone -->
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-semibold">Your timezone</span></label>
+                    {{ onboarding_form.timezone }}
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button type="submit" name="action" value="skip" class="btn btn-ghost btn-sm">Skip for now</button>
+                <button type="submit" name="action" value="save" class="btn btn-primary">Save Preferences</button>
+            </div>
+        </form>
+    </div>
+</div>

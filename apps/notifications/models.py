@@ -10,6 +10,8 @@ class Notification(TimeStampedModel):
         ASSIGNMENT_DUE = "assignment_due", "Assignment Due"
         ASSIGNMENT_GRADED = "assignment_graded", "Assignment Graded"
         INVITATION = "invitation", "Academy Invitation"
+        SESSION_BOOKED = "session_booked", "Session Booked"
+        SESSION_RESCHEDULED = "session_rescheduled", "Session Rescheduled"
         GENERAL = "general", "General"
 
     recipient = models.ForeignKey(

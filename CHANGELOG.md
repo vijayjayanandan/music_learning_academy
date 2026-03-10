@@ -5,7 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- **Remove Celery, go synchronous + external cron** — all tasks now run synchronously (email ~200-500ms, DB updates ~10ms). Scheduled tasks handled by external cron service (cron-job.org) via secured `POST /cron/` endpoint with Bearer token auth. Eliminates $7-12/month worker process on Render.
+  - New `POST /cron/` endpoint with CRON_API_KEY Bearer auth + timing-safe comparison
+  - Task registry: `expire_trials`, `expire_grace_periods`, `send_session_reminders`, `generate_recurring_sessions`
+  - Supports `{"tasks": ["all"]}` or specific task names, returns per-task results
+  - Removed: `config/celery.py`, `celery-worker` + `celery-beat` Docker services, all `CELERY_*` settings
+  - Removed: `celery>=5.3` from requirements (Redis kept for Channels + cache)
+  - Removed: Celery from health check detail and Sentry integrations
+  - 12 new tests for cron endpoint (auth, validation, task execution)
+
 ### Added
+- **Booking/rescheduling notifications** — instructor and student notified on session booking; all parties notified on reschedule
+  - `session_booked` and `session_rescheduled` notification types
+  - Booking: instructor gets "New Session Booked", student gets "Booking Confirmed"
+  - Reschedule: attendees get "Session Rescheduled", actor gets "Reschedule Confirmed"
+  - All notifications include link to session detail page
+- **Per-academy reschedule limits** — configurable monthly reschedule limit for students
+  - `reschedule_limit_per_month` in Academy features (0 = unlimited, default)
+  - Students blocked with error message after reaching limit; resets monthly
+  - Remaining reschedules shown on student reschedule page
+  - Limit does not apply to instructors or owners
+  - 14 new tests covering notifications and reschedule limits
 - **Cloudflare R2 file storage** — dual-backend (public + private) with tenant-scoped paths
   - `PublicMediaStorage`: avatars, logos, thumbnails (direct URLs, no signing)
   - `PrivateMediaStorage`: recordings, submissions, library files (1hr signed URLs)

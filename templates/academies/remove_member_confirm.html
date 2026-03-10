@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Remove Member - {{ academy.name }}{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto space-y-6">
+  <div class="text-sm breadcrumbs">
+    <ul><li><a href="{% url 'academy-members' academy.slug %}">Members</a></li><li>Remove Member</li></ul>
+  </div>
+
+  <h1 class="text-2xl font-bold">Remove {{ member.user.get_full_name|default:member.user.email }}</h1>
+
+  <div class="alert alert-warning">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+    <span>This will remove {{ member.user.get_full_name|default:member.user.email }} from {{ academy.name }}.</span>
+  </div>
+
+  {% if course_count > 0 or session_count > 0 %}
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title text-lg">Affected Items</h2>
+      <ul class="list-disc list-inside space-y-1">
+        {% if course_count > 0 %}
+        <li>{{ course_count }} course{{ course_count|pluralize }}</li>
+        {% endif %}
+        {% if session_count > 0 %}
+        <li>{{ session_count }} upcoming session{{ session_count|pluralize }}</li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+
+  <form method="post" class="card bg-base-100 shadow">
+    <div class="card-body">
+      {% csrf_token %}
+      <h2 class="card-title text-lg">Reassign to</h2>
+      <select name="replacement_instructor" class="select select-bordered w-full">
+        <option value="">Leave unassigned</option>
+        {% for instructor in available_instructors %}
+        <option value="{{ instructor.user.pk }}">{{ instructor.user.get_full_name|default:instructor.user.email }}</option>
+        {% endfor %}
+      </select>
+      <div class="card-actions justify-end mt-4">
+        <a href="{% url 'academy-members' academy.slug %}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-error">Remove & Reassign</button>
+      </div>
+    </div>
+  </form>
+  {% else %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex gap-2 justify-end">
+      <a href="{% url 'academy-members' academy.slug %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-error">Confirm Removal</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

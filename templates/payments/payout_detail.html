@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Payout Detail{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <!-- Breadcrumbs -->
+  <div class="text-sm breadcrumbs">
+    <ul>
+      <li><a href="{% url 'admin-dashboard' %}">Dashboard</a></li>
+      <li><a href="{% url 'payout-list' %}">Payouts</a></li>
+      <li>Payout #{{ payout.pk }}</li>
+    </ul>
+  </div>
+
+  <div class="flex justify-between items-center">
+    <h1 class="text-3xl font-bold">Payout Detail</h1>
+    <span class="badge {% if payout.status == 'completed' %}badge-success{% elif payout.status == 'pending' %}badge-warning{% elif payout.status == 'failed' %}badge-error{% else %}badge-info{% endif %} badge-lg">
+      {{ payout.get_status_display }}
+    </span>
+  </div>
+
+  <!-- Payout info card -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title">Payout Summary</h2>
+      <div class="grid grid-cols-2 gap-4 mt-2">
+        <div><span class="text-sm text-gray-500">Instructor</span><p class="font-medium">{{ payout.instructor.get_full_name }}</p></div>
+        <div><span class="text-sm text-gray-500">Period</span><p class="font-medium">{{ payout.period_start|date:"M d, Y" }} — {{ payout.period_end|date:"M d, Y" }}</p></div>
+        {% if payout.paid_at %}
+        <div><span class="text-sm text-gray-500">Paid At</span><p class="font-medium">{{ payout.paid_at|date:"M d, Y g:i A" }}</p></div>
+        {% endif %}
+        {% if payout.notes %}
+        <div class="col-span-2"><span class="text-sm text-gray-500">Notes</span><p>{{ payout.notes }}</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Breakdown card -->
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title">Financial Breakdown</h2>
+      <div class="overflow-x-auto mt-2">
+        <table class="table">
+          <tbody>
+            <tr>
+              <td class="font-medium">Gross Revenue</td>
+              <td class="text-right text-lg">{{ gross_display }}</td>
+            </tr>
+            <tr>
+              <td class="font-medium text-error">Less: Refunds</td>
+              <td class="text-right text-lg text-error">-{{ refund_display }}</td>
+            </tr>
+            <tr>
+              <td class="font-medium text-warning">Less: Platform Fee ({{ fee_pct }}%)</td>
+              <td class="text-right text-lg text-warning">-{{ platform_fee_display }}</td>
+            </tr>
+            <tr class="border-t-2">
+              <td class="font-bold text-lg">Net Payout</td>
+              <td class="text-right text-2xl font-bold text-success">{{ net_display }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payments in this period -->
+  {% if payments %}
+  <div class="card bg-base-100 shadow">
+    <div class="card-body">
+      <h2 class="card-title">Payments in Period</h2>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Date</th><th>Student</th><th>Course</th><th>Amount</th><th>Invoice</th></tr>
+          </thead>
+          <tbody>
+            {% for payment in payments %}
+            <tr>
+              <td>{{ payment.paid_at|date:"M d" }}</td>
+              <td>{{ payment.student.get_full_name }}</td>
+              <td>{{ payment.course.title|default:"—" }}</td>
+              <td>{{ payment.amount_display }}</td>
+              <td><a href="{% url 'invoice-detail' payment.pk %}" class="link link-primary">{{ payment.invoice_number }}</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

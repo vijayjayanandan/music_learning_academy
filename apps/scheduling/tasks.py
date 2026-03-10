@@ -1,7 +1,6 @@
 import logging
 from datetime import timedelta
 
-from celery import shared_task
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -9,7 +8,6 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-@shared_task
 def send_session_reminders():
     """Send session reminder emails (24h and 1h before start). Runs every 5 minutes."""
     from apps.accounts.models import User
@@ -65,7 +63,6 @@ def send_session_reminders():
     return total_sent
 
 
-@shared_task
 def generate_recurring_sessions():
     """FEAT-018: Generate recurring sessions for the next 2 weeks."""
     from apps.scheduling.models import LiveSession
@@ -108,7 +105,7 @@ def generate_recurring_sessions():
             ).exists()
 
             if not exists and next_start > now:
-                from apps.scheduling.jitsi import generate_jitsi_room_name
+                from apps.scheduling.jitsi import generate_room_name
                 LiveSession.objects.create(
                     academy=session.academy,
                     title=session.title,
@@ -117,7 +114,7 @@ def generate_recurring_sessions():
                     scheduled_start=next_start,
                     scheduled_end=next_start + duration,
                     session_type=session.session_type,
-                    jitsi_room_name=generate_jitsi_room_name(
+                    room_name=generate_room_name(
                         session.academy.slug, f"recurring-{session.pk}-{next_start.isoformat()}"
                     ),
                     video_platform=session.video_platform,

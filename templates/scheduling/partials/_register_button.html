@@ -1,10 +1,12 @@
 {% if is_registered %}
 <span class="badge badge-success gap-2 p-3">&#10003; Registered</span>
+<p class="text-sm text-base-content/60 mt-1">You'll receive a reminder before the session starts.</p>
 {% else %}
 <form method="post" action="{% url 'session-register' session.pk %}"
       hx-post="{% url 'session-register' session.pk %}"
       hx-target="#register-btn" hx-swap="innerHTML">
     {% csrf_token %}
-    <button type="submit" class="btn btn-primary btn-sm w-full">Register</button>
+    <button type="submit" class="btn btn-primary btn-sm w-full">Reserve Your Spot</button>
 </form>
+<p class="text-sm text-base-content/60 mt-1">Register to receive reminders. You'll be able to join when the session starts.</p>
 {% endif %}

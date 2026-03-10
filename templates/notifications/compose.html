@@ -2,7 +2,15 @@
 {% block title %}Compose Message - Music Academy{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6">Compose Message</h1>
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li><a href="{% url 'message-inbox' %}">Messages</a></li>
+            <li>New Message</li>
+        </ul>
+    </div>
+    <h1 class="text-3xl font-bold mb-6">New Message</h1>
     <div class="card bg-base-100 shadow">
         <div class="card-body">
             <form method="post">
@@ -19,10 +27,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-control mb-4">
-                    <label class="label"><span class="label-text">Subject</span></label>
-                    <input type="text" name="subject" class="input input-bordered w-full" required>
-                </div>
+                <input type="hidden" name="subject" value="Conversation">
                 <div class="form-control mb-4">
                     <label class="label"><span class="label-text">Message</span></label>
                     <textarea name="body" class="textarea textarea-bordered w-full" rows="6" required></textarea>

@@ -14,15 +14,49 @@
                 {% endfor %}
             </div>
             {% endif %}
-            {% for field in form %}
+            {# Email #}
             <div class="form-control mb-3">
-                <label class="label"><span class="label-text">{{ field.label }}</span></label>
-                {{ field }}
-                {% for error in field.errors %}
+                <label class="label"><span class="label-text">{{ form.email.label }}</span></label>
+                {{ form.email }}
+                {% for error in form.email.errors %}
                 <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
                 {% endfor %}
             </div>
-            {% endfor %}
+            {# Password #}
+            <div class="form-control mb-3">
+                <label class="label"><span class="label-text">{{ form.password1.label }}</span></label>
+                {{ form.password1 }}
+                {% for error in form.password1.errors %}
+                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                {% endfor %}
+            </div>
+            {# Confirm Password #}
+            <div class="form-control mb-3">
+                <label class="label"><span class="label-text">{{ form.password2.label }}</span></label>
+                {{ form.password2 }}
+                {% for error in form.password2.errors %}
+                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                {% endfor %}
+            </div>
+            {# Date of Birth #}
+            <div class="form-control mb-3">
+                <label class="label"><span class="label-text">{{ form.date_of_birth.label }}</span></label>
+                {{ form.date_of_birth }}
+                {% if form.date_of_birth.help_text %}<label class="label"><span class="label-text-alt">{{ form.date_of_birth.help_text }}</span></label>{% endif %}
+                {% for error in form.date_of_birth.errors %}
+                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                {% endfor %}
+            </div>
+            {# Terms checkbox #}
+            <div class="form-control mt-2">
+                <label class="label cursor-pointer justify-start gap-3">
+                    {{ form.accept_terms }}
+                    <span class="label-text">I agree to the <a href="{% url 'terms' %}" class="link link-primary" target="_blank">Terms of Service</a> and <a href="{% url 'privacy' %}" class="link link-primary" target="_blank">Privacy Policy</a></span>
+                </label>
+                {% for error in form.accept_terms.errors %}
+                <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                {% endfor %}
+            </div>
             <div class="form-control mt-6">
                 <button type="submit" class="btn btn-primary">Create Account</button>
             </div>

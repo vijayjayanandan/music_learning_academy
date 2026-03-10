@@ -38,4 +38,6 @@ urlpatterns = [
     # GDPR: Data export & account deletion
     path("data-export/", views.DataExportView.as_view(), name="data-export"),
     path("delete-account/", views.AccountDeleteView.as_view(), name="account-delete"),
+    # Parental consent
+    path("parental-consent/<str:token>/approve/", views.ApproveParentalConsentView.as_view(), name="approve-parental-consent"),
 ]

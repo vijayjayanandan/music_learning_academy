@@ -69,5 +69,5 @@ def student_user(db, academy):
 
 @pytest.fixture
 def auth_client(client, owner_user):
-    client.login(username="owner@test.com", password="testpass123")
+    client.force_login(owner_user)
     return client

@@ -1,3 +1,5 @@
+import secrets
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -28,6 +30,11 @@ class User(AbstractUser):
         blank=True,
         related_name="current_users",
     )
+
+    # Compliance fields (COPPA / terms)
+    terms_accepted_at = models.DateTimeField(blank=True, null=True)
+    date_of_birth = models.DateField(blank=True, null=True)
+    parental_consent_given = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
@@ -75,8 +82,21 @@ class Membership(models.Model):
         ],
         default="beginner",
     )
+    learning_goal = models.CharField(max_length=255, blank=True, default="")
     bio = models.TextField(blank=True)
+    onboarding_skipped = models.BooleanField(default=False)
 
+    class MembershipStatus(models.TextChoices):
+        INVITED = "invited", "Invited"
+        ACTIVE = "active", "Active"
+        PAUSED = "paused", "Paused"
+        REMOVED = "removed", "Removed"
+
+    membership_status = models.CharField(
+        max_length=20,
+        choices=MembershipStatus.choices,
+        default=MembershipStatus.ACTIVE,
+    )
     is_active = models.BooleanField(default=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 
@@ -86,6 +106,17 @@ class Membership(models.Model):
 
     def __str__(self):
         return f"{self.user.email} @ {self.academy.name} ({self.role})"
+
+
+class ParentalConsent(models.Model):
+    child = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="parental_consent"
+    )
+    parent_email = models.EmailField()
+    token = models.CharField(max_length=64, unique=True, default=secrets.token_urlsafe)
+    created_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(blank=True, null=True)
+    expires_at = models.DateTimeField()
 
 
 class Invitation(models.Model):

@@ -439,12 +439,12 @@ def _handle_subscription_checkout(
     # Increment coupon usage if applicable
     _increment_coupon_usage(metadata, academy)
 
-    # Send payment confirmation email asynchronously
+    # Send payment confirmation email
     try:
         from apps.payments.tasks import send_payment_confirmation_email
-        send_payment_confirmation_email.delay(payment.pk)
+        send_payment_confirmation_email(payment.pk)
     except Exception:
-        logger.warning("Could not queue payment confirmation email for payment %s", payment.pk)
+        logger.warning("Could not send payment confirmation email for payment %s", payment.pk)
 
     logger.info(
         "Created subscription %s and payment for user %s, plan %s",
@@ -503,9 +503,9 @@ def _handle_course_checkout(
 
     try:
         from apps.payments.tasks import send_payment_confirmation_email
-        send_payment_confirmation_email.delay(payment.pk)
+        send_payment_confirmation_email(payment.pk)
     except Exception:
-        logger.warning("Could not queue payment confirmation email for payment %s", payment.pk)
+        logger.warning("Could not send payment confirmation email for payment %s", payment.pk)
 
     logger.info(
         "Created payment %s and enrollment for user %s, course '%s'",
@@ -740,3 +740,54 @@ def construct_webhook_event(
     except ValueError:
         logger.warning("Invalid Stripe webhook payload")
         raise
+
+
+# ---------------------------------------------------------------------------
+# Invoice payment failure → grace period
+# ---------------------------------------------------------------------------
+
+def handle_invoice_payment_failed(event_data: dict) -> None:
+    """
+    Handle invoice.payment_failed — triggers grace period for platform
+    subscriptions or marks student subscriptions as past_due.
+    """
+    from apps.payments.models import PlatformSubscription
+    from datetime import timedelta
+
+    stripe_sub_id = event_data.get("subscription", "")
+    if not stripe_sub_id:
+        logger.warning("invoice.payment_failed missing subscription ID")
+        return
+
+    # Check platform subscription first
+    try:
+        platform_sub = PlatformSubscription.objects.get(
+            stripe_subscription_id=stripe_sub_id,
+        )
+        platform_sub.status = PlatformSubscription.Status.GRACE
+        platform_sub.grace_period_ends_at = timezone.now() + timedelta(days=7)
+        platform_sub.save(update_fields=["status", "grace_period_ends_at", "updated_at"])
+        logger.info(
+            "Platform subscription %s moved to grace period (ends %s)",
+            platform_sub.pk, platform_sub.grace_period_ends_at,
+        )
+        return
+    except PlatformSubscription.DoesNotExist:
+        pass
+
+    # Fall back to student subscription
+    try:
+        subscription = Subscription.objects.get(
+            stripe_subscription_id=stripe_sub_id,
+        )
+        subscription.status = Subscription.Status.PAST_DUE
+        subscription.save(update_fields=["status", "updated_at"])
+        logger.info(
+            "Student subscription %s marked as past_due",
+            subscription.pk,
+        )
+    except Subscription.DoesNotExist:
+        logger.warning(
+            "invoice.payment_failed for unknown subscription %s",
+            stripe_sub_id,
+        )

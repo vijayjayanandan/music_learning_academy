@@ -103,7 +103,7 @@ class TestSendSessionReminders:
             scheduled_start=now + timedelta(hours=24),
             scheduled_end=now + timedelta(hours=25),
             session_type="one_on_one",
-            jitsi_room_name="reminder-room",
+            room_name="reminder-room",
             reminder_24h_sent=False,
         )
         from apps.scheduling.tasks import send_session_reminders
@@ -122,7 +122,7 @@ class TestSendSessionReminders:
             scheduled_start=now + timedelta(hours=24),
             scheduled_end=now + timedelta(hours=25),
             session_type="one_on_one",
-            jitsi_room_name="reminded-room",
+            room_name="reminded-room",
             reminder_24h_sent=True,
             reminder_1h_sent=True,
         )

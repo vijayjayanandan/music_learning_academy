@@ -41,6 +41,31 @@ class Academy(TimeStampedModel):
         help_text='e.g. {"practice_logs": true, "ear_training": false, "recordings": true}',
     )
 
+    # Setup wizard / onboarding
+    class SetupStatus(models.TextChoices):
+        NEW = "new", "New"
+        BASICS_DONE = "basics_done", "Basics Done"
+        BRANDING_DONE = "branding_done", "Branding Done"
+        TEAM_INVITED = "team_invited", "Team Invited"
+        CATALOG_READY = "catalog_ready", "Catalog Ready"
+        LIVE = "live", "Live"
+
+    setup_status = models.CharField(
+        max_length=20,
+        choices=SetupStatus.choices,
+        default=SetupStatus.NEW,
+        help_text="Current setup wizard progress",
+    )
+    currency = models.CharField(
+        max_length=3,
+        default="USD",
+        help_text="ISO 4217 currency code (e.g., USD, EUR, GBP, INR)",
+    )
+    minor_mode_enabled = models.BooleanField(
+        default=False,
+        help_text="Enable COPPA/minor safety features for this academy",
+    )
+
     # Subscription tier
     tier = models.ForeignKey(
         "payments.AcademyTier",
@@ -68,6 +93,7 @@ class Academy(TimeStampedModel):
         "library": True,
         "recitals": True,
         "ai_feedback": True,
+        "reschedule_limit_per_month": 0,
     }
 
     def __str__(self):
@@ -77,6 +103,76 @@ class Academy(TimeStampedModel):
         """Check if a feature is enabled for this academy."""
         features = self.features or {}
         return features.get(feature_name, self.DEFAULT_FEATURES.get(feature_name, True))
+
+    @property
+    def setup_progress(self):
+        """Return (completed_steps, total_steps, percentage)."""
+        total = 5
+        completed = 0
+        # 1. Basics: name and description filled
+        if self.name and self.description:
+            completed += 1
+        # 2. Branding: custom color (not default)
+        if self.primary_color != "#6366f1":
+            completed += 1
+        # 3. Team: at least one instructor
+        if self.memberships.filter(role="instructor", is_active=True).exists():
+            completed += 1
+        # 4. Course: at least one published course
+        if self.course_set.filter(is_published=True).exists():
+            completed += 1
+        # 5. Live: setup_status is "live"
+        if self.setup_status == "live":
+            completed += 1
+        pct = int((completed / total) * 100) if total > 0 else 0
+        return (completed, total, pct)
+
+    @property
+    def reschedule_limit(self):
+        """Monthly reschedule limit for students. 0 = unlimited."""
+        features = self.features or {}
+        return features.get("reschedule_limit_per_month", 0)
+
+
+def check_seat_limit(academy, role):
+    """Check if academy can add another member of the given role.
+
+    Returns (is_allowed, current_count, max_count).
+    Owner role is always allowed (no limit).
+    Tier limits override academy defaults when present.
+    """
+    from apps.accounts.models import Membership
+
+    if role == "owner":
+        return (True, 0, 0)
+
+    if role == "student":
+        max_count = academy.tier.max_students if academy.tier else academy.max_students
+        current = Membership.objects.filter(
+            academy=academy, role="student", is_active=True
+        ).count()
+    elif role == "instructor":
+        max_count = academy.tier.max_instructors if academy.tier else academy.max_instructors
+        current = Membership.objects.filter(
+            academy=academy, role="instructor", is_active=True
+        ).count()
+    else:
+        return (True, 0, 0)
+
+    return (current < max_count, current, max_count)
+
+
+def check_course_limit(academy):
+    """Check if academy can create another course.
+
+    Returns (is_allowed, current_count, max_count).
+    Tier max_courses is used when present, otherwise defaults to 50.
+    """
+    from apps.courses.models import Course
+
+    max_count = academy.tier.max_courses if academy.tier else 50
+    current = Course.objects.filter(academy=academy).count()
+    return (current < max_count, current, max_count)
 
 
 class Announcement(TimeStampedModel):

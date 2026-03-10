@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Cookie Policy — Music Learning Academy{% endblock %}
+
+{% block unauth_content %}
+<div class="card bg-base-100 shadow-xl max-w-3xl w-full">
+    <div class="card-body prose max-w-none">
+        {% include "legal/_cookies_content.html" %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="prose max-w-3xl mx-auto">
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li>Cookie Policy</li>
+        </ul>
+    </div>
+    {% include "legal/_cookies_content.html" %}
+</div>
+{% endblock %}

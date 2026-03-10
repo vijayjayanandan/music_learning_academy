@@ -31,7 +31,7 @@ class LiveSessionAdmin(admin.ModelAdmin):
     ]
     search_fields = ["title", "description", "instructor__email", "instrument_focus"]
     readonly_fields = [
-        "jitsi_room_name", "created_at", "updated_at",
+        "room_name", "created_at", "updated_at",
         "reminder_24h_sent", "reminder_1h_sent",
     ]
     autocomplete_fields = ["academy", "instructor", "course", "recurrence_parent"]
@@ -51,7 +51,7 @@ class LiveSessionAdmin(admin.ModelAdmin):
         }),
         ("Video", {
             "fields": (
-                "video_platform", "jitsi_room_name",
+                "video_platform", "room_name",
                 "external_meeting_url", "recording_url",
             ),
         }),

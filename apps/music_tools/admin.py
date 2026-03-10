@@ -61,7 +61,7 @@ class RecitalEventAdmin(admin.ModelAdmin):
     ]
     list_filter = ["status", "is_public", "academy"]
     search_fields = ["title", "description", "academy__name"]
-    readonly_fields = ["jitsi_room_name", "created_at", "updated_at"]
+    readonly_fields = ["room_name", "created_at", "updated_at"]
     autocomplete_fields = ["academy"]
     list_select_related = ["academy"]
     inlines = [RecitalPerformerInline]
@@ -75,7 +75,7 @@ class RecitalEventAdmin(admin.ModelAdmin):
             "fields": ("scheduled_start", "scheduled_end", "status"),
         }),
         ("Video", {
-            "fields": ("jitsi_room_name", "recording_url", "is_public"),
+            "fields": ("room_name", "recording_url", "is_public"),
         }),
         ("Timestamps", {
             "fields": ("created_at", "updated_at"),

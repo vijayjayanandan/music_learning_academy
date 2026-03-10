@@ -212,6 +212,16 @@ class PackageDeal(TenantScopedModel):
     def __str__(self):
         return f"{self.name} - {self.total_credits} credits (${self.price_cents / 100:.2f})"
 
+    @property
+    def price_display(self):
+        return f"${self.price_cents / 100:.2f}"
+
+    @property
+    def price_per_credit_display(self):
+        if self.total_credits == 0:
+            return "$0.00"
+        return f"${(self.price_cents / self.total_credits) / 100:.2f}"
+
 
 class PackagePurchase(TenantScopedModel):
     """Tracks a student's purchased package and remaining credits."""
@@ -256,3 +266,123 @@ class AcademyTier(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} (${self.price_cents / 100:.2f}/mo)"
+
+
+class FinancialAccount(TenantScopedModel):
+    """FEAT-028: Stripe Connect account status per academy."""
+
+    class Status(models.TextChoices):
+        NOT_STARTED = "not_started", "Not Started"
+        PENDING = "pending", "Pending Verification"
+        ACTIVE = "active", "Active"
+        RESTRICTED = "restricted", "Restricted"
+        DISABLED = "disabled", "Disabled"
+
+    stripe_account_id = models.CharField(max_length=100, blank=True, db_index=True)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.NOT_STARTED,
+    )
+    payouts_enabled = models.BooleanField(default=False)
+    charges_enabled = models.BooleanField(default=False)
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.academy.name} - Stripe Connect ({self.status})"
+
+
+class Refund(TenantScopedModel):
+    """Refund request/approval workflow."""
+
+    class Status(models.TextChoices):
+        REQUESTED = "requested", "Requested"
+        APPROVED = "approved", "Approved"
+        PROCESSING = "processing", "Processing"
+        COMPLETED = "completed", "Completed"
+        DENIED = "denied", "Denied"
+
+    payment = models.ForeignKey(
+        Payment, on_delete=models.CASCADE, related_name="refunds",
+    )
+    requested_by = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="refund_requests",
+    )
+    amount_cents = models.PositiveIntegerField(help_text="Refund amount in cents")
+    reason = models.TextField()
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.REQUESTED,
+    )
+    stripe_refund_id = models.CharField(max_length=100, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    processed_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="refunds_processed",
+    )
+    denial_reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Refund #{self.pk} - {self.payment.invoice_number} ({self.status})"
+
+    @property
+    def amount_display(self):
+        return f"${self.amount_cents / 100:.2f}"
+
+
+class PlatformSubscription(TimeStampedModel):
+    """Academy's subscription to the SaaS platform (trial/active/grace/cancelled)."""
+
+    class Status(models.TextChoices):
+        TRIAL = "trial", "Trial"
+        ACTIVE = "active", "Active"
+        PAST_DUE = "past_due", "Past Due"
+        GRACE = "grace", "Grace Period"
+        CANCELLED = "cancelled", "Cancelled"
+        EXPIRED = "expired", "Expired"
+
+    academy = models.OneToOneField(
+        "academies.Academy", on_delete=models.CASCADE,
+        related_name="platform_subscription",
+    )
+    tier = models.ForeignKey(
+        AcademyTier, on_delete=models.PROTECT, related_name="subscriptions",
+    )
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.TRIAL,
+    )
+    stripe_subscription_id = models.CharField(max_length=100, blank=True, db_index=True)
+    trial_started_at = models.DateTimeField(null=True, blank=True)
+    trial_ends_at = models.DateTimeField(null=True, blank=True)
+    current_period_start = models.DateTimeField(null=True, blank=True)
+    current_period_end = models.DateTimeField(null=True, blank=True)
+    grace_period_ends_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    trial_reminder_7d_sent = models.BooleanField(default=False)
+    trial_reminder_3d_sent = models.BooleanField(default=False)
+    trial_reminder_1d_sent = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.academy.name} - {self.tier.name} ({self.status})"
+
+    @property
+    def is_valid(self):
+        return self.status in (self.Status.TRIAL, self.Status.ACTIVE, self.Status.GRACE)
+
+    @property
+    def is_in_trial(self):
+        return self.status == self.Status.TRIAL
+
+    @property
+    def days_until_trial_expires(self):
+        if not self.is_in_trial or not self.trial_ends_at:
+            return None
+        from django.utils import timezone
+        delta = self.trial_ends_at - timezone.now()
+        return max(0, delta.days)

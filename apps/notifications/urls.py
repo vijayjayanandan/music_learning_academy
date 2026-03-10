@@ -8,7 +8,8 @@ urlpatterns = [
     path("partials/badge/", views.NotificationBadgePartialView.as_view(), name="notification-badge-partial"),
     # Messaging
     path("messages/", views.InboxView.as_view(), name="message-inbox"),
-    path("messages/sent/", views.SentView.as_view(), name="message-sent"),
+    path("messages/sent/", views.SentRedirectView.as_view(), name="message-sent"),
+    path("messages/with/<int:pk>/", views.ConversationWithView.as_view(), name="conversation-with"),
     path("messages/compose/", views.ComposeMessageView.as_view(), name="message-compose"),
     path("messages/<int:pk>/", views.MessageThreadView.as_view(), name="message-thread"),
     path("messages/unread-count/", views.UnreadMessageCountView.as_view(), name="message-unread-count"),

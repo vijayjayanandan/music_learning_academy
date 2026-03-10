@@ -1,43 +1,66 @@
 {% extends "base.html" %}
-{% block title %}{{ root_message.subject }} - Music Academy{% endblock %}
+{% block title %}Chat with {{ other_person.get_full_name|default:other_person.email }} - Music Academy{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto space-y-6">
-    <div class="breadcrumbs text-sm">
+<div class="max-w-2xl mx-auto flex flex-col" style="height: calc(100vh - 12rem)">
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs text-sm mb-2">
         <ul>
+            <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
             <li><a href="{% url 'message-inbox' %}">Messages</a></li>
-            <li>{{ root_message.subject|truncatechars:40 }}</li>
+            <li>{{ other_person.get_full_name|default:other_person.email }}</li>
         </ul>
     </div>
-    <h1 class="text-2xl font-bold">{{ root_message.subject }}</h1>
 
-    {% for msg in thread %}
-    <div class="card bg-base-100 shadow {% if msg.sender == request.user %}ml-8{% else %}mr-8{% endif %}">
-        <div class="card-body py-3">
-            <div class="flex justify-between items-center text-sm text-gray-500">
-                <span class="font-medium {% if msg.sender == request.user %}text-primary{% endif %}">
-                    {{ msg.sender.get_full_name|default:msg.sender.email }}
-                </span>
-                <span>{{ msg.created_at|timesince }} ago</span>
+    <!-- Header -->
+    <div class="flex items-center gap-3 mb-4">
+        <div class="avatar placeholder">
+            <div class="bg-neutral text-neutral-content rounded-full w-10">
+                <span>{{ other_person.first_name|first|upper|default:"?" }}</span>
             </div>
-            <p class="mt-2 whitespace-pre-wrap">{{ msg.body }}</p>
         </div>
+        <h1 class="text-xl font-bold">{{ other_person.get_full_name|default:other_person.email }}</h1>
     </div>
-    {% endfor %}
 
-    <div class="card bg-base-100 shadow">
-        <div class="card-body">
-            <h3 class="card-title text-lg">Reply</h3>
-            <form method="post" action="{% url 'message-compose' %}">
-                {% csrf_token %}
-                <input type="hidden" name="parent" value="{{ root_message.pk }}">
-                <input type="hidden" name="recipient" value="{% if root_message.sender == request.user %}{{ root_message.recipient.pk }}{% else %}{{ root_message.sender.pk }}{% endif %}">
-                <input type="hidden" name="subject" value="Re: {{ root_message.subject }}">
-                <div class="form-control mb-4">
-                    <textarea name="body" class="textarea textarea-bordered w-full" rows="3" placeholder="Type your reply..." required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary btn-sm">Send Reply</button>
-            </form>
+    <!-- Chat area (scrollable) -->
+    <div id="chat-area" class="flex-1 overflow-y-auto bg-base-200/30 rounded-box p-4">
+        <div id="chat-messages">
+            {% for msg in thread %}
+                {% include "notifications/partials/_chat_bubble.html" %}
+            {% endfor %}
         </div>
+        {% if not thread or thread.count == 0 %}
+        <p class="text-center text-base-content/50 py-8">Start the conversation!</p>
+        {% endif %}
+    </div>
+
+    <!-- Reply form -->
+    <div class="border-t pt-4 mt-2">
+        <form method="post" action="{% url 'message-thread' root_message.pk %}"
+              hx-post="{% url 'message-thread' root_message.pk %}"
+              hx-target="#chat-messages"
+              hx-swap="beforeend"
+              hx-indicator="#send-loading"
+              hx-on::after-request="this.reset(); document.getElementById('chat-area').scrollTop = document.getElementById('chat-area').scrollHeight;">
+            {% csrf_token %}
+            <div class="flex gap-2">
+                <input type="text" name="body" class="input input-bordered flex-1"
+                       placeholder="Type a message..." autocomplete="off" required>
+                <button type="submit" class="btn btn-primary">
+                    Send
+                </button>
+                <span id="send-loading" class="loading loading-spinner loading-sm htmx-indicator self-center"></span>
+            </div>
+        </form>
     </div>
 </div>
+
+<script>
+    // Auto-scroll to bottom on page load
+    document.addEventListener("DOMContentLoaded", function() {
+        var chatArea = document.getElementById("chat-area");
+        if (chatArea) {
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    });
+</script>
 {% endblock %}

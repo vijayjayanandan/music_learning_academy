@@ -23,6 +23,34 @@
                     {% endfor %}
                 </div>
                 {% endfor %}
+                {% if membership and user_role == "student" %}
+                <div class="divider">Learning Preferences</div>
+                <div class="form-control mb-3">
+                    <label class="label"><span class="label-text">Skill Level</span></label>
+                    <select name="skill_level" class="select select-bordered w-full">
+                        <option value="beginner" {% if membership.skill_level == "beginner" %}selected{% endif %}>Beginner</option>
+                        <option value="intermediate" {% if membership.skill_level == "intermediate" %}selected{% endif %}>Intermediate</option>
+                        <option value="advanced" {% if membership.skill_level == "advanced" %}selected{% endif %}>Advanced</option>
+                        <option value="professional" {% if membership.skill_level == "professional" %}selected{% endif %}>Professional</option>
+                    </select>
+                </div>
+                <div class="form-control mb-3">
+                    <label class="label"><span class="label-text">Learning Goal</span></label>
+                    <input type="text" name="learning_goal" value="{{ membership.learning_goal }}" class="input input-bordered w-full" placeholder="e.g., Learn to play guitar for fun">
+                </div>
+                <div class="form-control mb-3">
+                    <label class="label"><span class="label-text">Instruments</span></label>
+                    <div class="flex flex-wrap gap-3">
+                        {% for inst in available_instruments %}
+                        <label class="label cursor-pointer gap-2">
+                            <input type="checkbox" name="instruments" value="{{ inst }}" class="checkbox checkbox-primary checkbox-sm" {% if inst in membership.instruments %}checked{% endif %}>
+                            <span class="label-text">{{ inst }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="card-actions justify-end mt-4">
                     <a href="{% url 'profile' %}" class="btn btn-ghost">Cancel</a>
                     <button type="submit" class="btn btn-primary">Save Changes</button>

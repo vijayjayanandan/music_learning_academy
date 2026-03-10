@@ -72,7 +72,7 @@ class RecitalEvent(TenantScopedModel):
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.UPCOMING)
-    jitsi_room_name = models.CharField(max_length=255, unique=True)
+    room_name = models.CharField(max_length=255, unique=True)
     recording_url = models.URLField(blank=True)
     is_public = models.BooleanField(default=False)
 

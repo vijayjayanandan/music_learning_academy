@@ -188,6 +188,114 @@
                 </div>
 
                 {% with nav_path=request.path %}
+                {% if user_role == "student" %}
+                {# ── Student Sidebar: 5 always-visible + 2 collapsible groups ── #}
+                <ul class="menu w-full">
+                    <li><a href="{% url 'dashboard' %}" {% if nav_path == '/' or '/dashboard/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        Dashboard
+                    </a></li>
+                    <li><a href="{% url 'course-list' %}" {% if '/courses/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        Courses
+                    </a></li>
+                    <li><a href="{% url 'schedule-list' %}" {% if '/schedule/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        Live Sessions
+                    </a></li>
+                    <li><a href="{% url 'book-session' %}" {% if '/book-session/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                        </svg>
+                        Book Session
+                    </a></li>
+                    <li><a href="{% url 'practice-log-list' %}" {% if '/practice/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Practice
+                    </a></li>
+                    <li><a href="{% url 'enrollment-list' %}" {% if '/enrollments/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                        My Progress
+                    </a></li>
+
+                    <li><a href="{% url 'message-inbox' %}" {% if '/messages/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Messages
+                        <span hx-get="{% url 'message-unread-count' %}" hx-trigger="load, every 30s" hx-swap="innerHTML"></span>
+                    </a></li>
+
+                    {# ── Collapsible: Music Tools ── #}
+                    {% if academy_features.metronome or academy_features.tuner or academy_features.notation or academy_features.ear_training or academy_features.recordings or academy_features.library %}
+                    <li class="mt-4">
+                        <details {% if '/tools/' in nav_path or '/library/' in nav_path %}open{% endif %}>
+                            <summary class="font-medium">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V4.103A2.25 2.25 0 0 0 17.868 2.09l-6.736 1.924A2.25 2.25 0 0 0 9.5 6.177V9" />
+                                </svg>
+                                Music Tools
+                            </summary>
+                            <ul>
+                                {% if academy_features.metronome %}
+                                <li><a href="{% url 'metronome' %}" {% if '/tools/metronome/' in nav_path %}class="active"{% endif %}>Metronome</a></li>
+                                {% endif %}
+                                {% if academy_features.tuner %}
+                                <li><a href="{% url 'tuner' %}" {% if '/tools/tuner/' in nav_path %}class="active"{% endif %}>Tuner</a></li>
+                                {% endif %}
+                                {% if academy_features.notation %}
+                                <li><a href="{% url 'notation-renderer' %}" {% if '/tools/notation/' in nav_path %}class="active"{% endif %}>Notation</a></li>
+                                {% endif %}
+                                {% if academy_features.ear_training %}
+                                <li><a href="{% url 'ear-training-list' %}" {% if '/tools/ear-training/' in nav_path %}class="active"{% endif %}>Ear Training</a></li>
+                                {% endif %}
+                                {% if academy_features.recordings %}
+                                <li><a href="{% url 'recording-archive' %}" {% if '/tools/recordings/' in nav_path %}class="active"{% endif %}>Recordings</a></li>
+                                {% endif %}
+                                {% if academy_features.library %}
+                                <li><a href="{% url 'library-list' %}" {% if '/library/' in nav_path %}class="active"{% endif %}>Library</a></li>
+                                {% endif %}
+                            </ul>
+                        </details>
+                    </li>
+                    {% endif %}
+
+                    {# ── Collapsible: Account & Billing ── #}
+                    <li class="mt-2">
+                        <details {% if '/payments/' in nav_path or '/calendar/' in nav_path %}open{% endif %}>
+                            <summary class="font-medium">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                                </svg>
+                                Account & Billing
+                            </summary>
+                            <ul>
+                                <li><a href="{% url 'my-subscriptions' %}" {% if '/payments/subscriptions/' in nav_path %}class="active"{% endif %}>My Subscriptions</a></li>
+                                <li><a href="{% url 'my-packages' %}" {% if '/payments/packages/' in nav_path %}class="active"{% endif %}>My Packages</a></li>
+                                <li><a href="{% url 'pricing' %}" {% if '/payments/pricing/' in nav_path %}class="active"{% endif %}>Pricing</a></li>
+                                <li><a href="{% url 'payment-history' %}" {% if '/payments/history/' in nav_path %}class="active"{% endif %}>Payment History</a></li>
+                                <li><a href="{% url 'calendar-sync' %}" {% if '/calendar/' in nav_path %}class="active"{% endif %}>Calendar Sync</a></li>
+                            </ul>
+                        </details>
+                    </li>
+
+                    {# ── Events & Announcements (flat, below groups) ── #}
+                    {% if academy_features.recitals %}
+                    <li class="mt-2"><a href="{% url 'recital-list' %}" {% if '/recitals/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5" />
+                        </svg>
+                        Recitals
+                    </a></li>
+                    {% endif %}
+                    <li><a href="{% url 'academy-announcements' current_academy.slug %}" {% if '/announcements/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 0 1 0 3.46" />
+                        </svg>
+                        Announcements
+                    </a></li>
+                </ul>
+
+                {% else %}
+                {# ── Owner / Instructor Sidebar (unchanged) ── #}
                 <ul class="menu w-full">
                     <li><a href="{% url 'dashboard' %}" {% if nav_path == '/' or '/dashboard/' in nav_path %}class="active"{% endif %}>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
@@ -213,22 +321,56 @@
                         Practice
                     </a></li>
 
-                    {% if user_role == "student" %}
-                    <li><a href="{% url 'enrollment-list' %}" {% if '/enrollments/' in nav_path %}class="active"{% endif %}>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                        My Progress
-                    </a></li>
-                    <li><a href="{% url 'book-session' %}" {% if '/book-session/' in nav_path %}class="active"{% endif %}>Book Session</a></li>
-                    {% endif %}
-
                     {% if academy_features.metronome or academy_features.tuner or academy_features.notation or academy_features.ear_training or academy_features.recordings or academy_features.library %}
                     <li class="menu-title mt-4">Music Tools</li>
-                    {% if academy_features.metronome %}<li><a href="{% url 'metronome' %}" {% if '/tools/metronome/' in nav_path %}class="active"{% endif %}>Metronome</a></li>{% endif %}
-                    {% if academy_features.tuner %}<li><a href="{% url 'tuner' %}" {% if '/tools/tuner/' in nav_path %}class="active"{% endif %}>Tuner</a></li>{% endif %}
-                    {% if academy_features.notation %}<li><a href="{% url 'notation-renderer' %}" {% if '/tools/notation/' in nav_path %}class="active"{% endif %}>Notation</a></li>{% endif %}
-                    {% if academy_features.ear_training %}<li><a href="{% url 'ear-training-list' %}" {% if '/tools/ear-training/' in nav_path %}class="active"{% endif %}>Ear Training</a></li>{% endif %}
-                    {% if academy_features.recordings %}<li><a href="{% url 'recording-archive' %}" {% if '/tools/recordings/' in nav_path %}class="active"{% endif %}>Recordings</a></li>{% endif %}
-                    {% if academy_features.library %}<li><a href="{% url 'library-list' %}" {% if '/library/' in nav_path %}class="active"{% endif %}>Library</a></li>{% endif %}
+                    {% if academy_features.metronome %}
+                    <li><a href="{% url 'metronome' %}" {% if '/tools/metronome/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        Metronome
+                    </a></li>
+                    {% endif %}
+                    {% if academy_features.tuner %}
+                    <li><a href="{% url 'tuner' %}" {% if '/tools/tuner/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+                        </svg>
+                        Tuner
+                    </a></li>
+                    {% endif %}
+                    {% if academy_features.notation %}
+                    <li><a href="{% url 'notation-renderer' %}" {% if '/tools/notation/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V4.103A2.25 2.25 0 0 0 17.868 2.09l-6.736 1.924A2.25 2.25 0 0 0 9.5 6.177V9" />
+                        </svg>
+                        Notation
+                    </a></li>
+                    {% endif %}
+                    {% if academy_features.ear_training %}
+                    <li><a href="{% url 'ear-training-list' %}" {% if '/tools/ear-training/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+                        </svg>
+                        Ear Training
+                    </a></li>
+                    {% endif %}
+                    {% if academy_features.recordings %}
+                    <li><a href="{% url 'recording-archive' %}" {% if '/tools/recordings/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+                        </svg>
+                        Recordings
+                    </a></li>
+                    {% endif %}
+                    {% if academy_features.library %}
+                    <li><a href="{% url 'library-list' %}" {% if '/library/' in nav_path %}class="active"{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                        </svg>
+                        Library
+                    </a></li>
+                    {% endif %}
                     {% endif %}
 
                     {% if academy_features.recitals %}
@@ -257,6 +399,7 @@
                     <li><a href="{% url 'payment-history' %}" {% if '/payments/history/' in nav_path %}class="active"{% endif %}>Billing</a></li>
                     <li><a href="{% url 'calendar-sync' %}" {% if '/calendar/' in nav_path %}class="active"{% endif %}>Calendar Sync</a></li>
                 </ul>
+                {% endif %}
                 {% endwith %}
                 {% else %}
                 <div class="text-center py-8">
@@ -283,6 +426,7 @@
             <div class="flex gap-4">
                 <a href="{% url 'terms' %}" class="link link-hover">Terms of Service</a>
                 <a href="{% url 'privacy' %}" class="link link-hover">Privacy Policy</a>
+                <a href="{% url 'cookie-policy' %}" class="link link-hover">Cookie Policy</a>
             </div>
         </div>
     </footer>
@@ -315,5 +459,41 @@
         })();
     </script>
     {% block extra_js %}{% endblock %}
+
+    <!-- Cookie Consent Banner -->
+    <div id="cookie-consent-banner" class="fixed bottom-0 inset-x-0 z-50 hidden" role="dialog" aria-label="Cookie consent">
+        <div class="bg-base-100 border-t border-base-300 shadow-lg px-6 py-4">
+            <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <p class="text-sm text-base-content/80 flex-1">
+                    We use essential cookies for authentication and session management.
+                    No tracking or advertising cookies are used.
+                    See our <a href="{% url 'cookie-policy' %}" class="link link-primary">Cookie Policy</a> for details.
+                </p>
+                <div class="flex gap-2 shrink-0">
+                    <button id="cookie-accept" class="btn btn-primary btn-sm">Accept</button>
+                    <button id="cookie-decline" class="btn btn-ghost btn-sm">Decline non-essential</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var consent = localStorage.getItem('cookie_consent');
+            if (!consent) {
+                document.getElementById('cookie-consent-banner').classList.remove('hidden');
+                document.body.style.paddingBottom = '80px';
+            }
+            document.getElementById('cookie-accept').addEventListener('click', function() {
+                localStorage.setItem('cookie_consent', 'accepted');
+                document.getElementById('cookie-consent-banner').classList.add('hidden');
+                document.body.style.paddingBottom = '';
+            });
+            document.getElementById('cookie-decline').addEventListener('click', function() {
+                localStorage.setItem('cookie_consent', 'declined');
+                document.getElementById('cookie-consent-banner').classList.add('hidden');
+                document.body.style.paddingBottom = '';
+            });
+        })();
+    </script>
 </body>
 </html>

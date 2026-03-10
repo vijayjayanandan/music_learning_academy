@@ -1,0 +1,190 @@
+{# Partial: Step 2 - Available time slots for the selected instructor #}
+{# Loaded via HTMX into #slot-container #}
+<div data-booking-step="2">
+{% if slots|length > 0 %}
+<form hx-post="{% url 'book-session-confirm' %}"
+      hx-target="#slot-container"
+      hx-swap="innerHTML"
+      hx-indicator="#slots-loading">
+    {% csrf_token %}
+    <input type="hidden" name="instructor" value="{{ instructor_id }}">
+
+    <h2 class="text-lg font-semibold mb-3">Choose a time slot</h2>
+
+    {# P-007: Card Selection for slots #}
+    <div class="space-y-2 mb-4" id="slot-list">
+        {% for slot in slots %}
+        <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-base-200 transition-colors">
+            <input type="radio" name="slot" value="{{ slot.pk }}"
+                   class="radio radio-primary slot-radio"
+                   data-day-of-week="{{ slot.day_of_week }}"
+                   data-day-name="{{ slot.get_day_of_week_display }}"
+                   required>
+            <div class="flex-1">
+                <span class="font-bold">{{ slot.get_day_of_week_display }}</span>
+                <span class="text-sm text-base-content/60 ml-2">{{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}</span>
+            </div>
+        </label>
+        {% endfor %}
+    </div>
+
+    {# Date picker: disabled until slot is selected #}
+    <div class="form-control mb-4">
+        <label class="label">
+            <span class="label-text">Session Date</span>
+        </label>
+        <input type="date" name="session_date" id="booking-date-input"
+               class="input input-bordered w-full" required disabled>
+        <label class="label" id="date-hint">
+            <span class="label-text-alt text-base-content/60">Select a time slot first</span>
+        </label>
+        <label class="label hidden" id="date-error">
+            <span class="label-text-alt text-error"></span>
+        </label>
+    </div>
+
+    {# Continue button: disabled until slot + valid date selected #}
+    <button type="submit" id="continue-btn" class="btn btn-primary w-full" disabled>
+        Continue to Confirm
+    </button>
+</form>
+
+{% else %}
+{# P-001: Empty state -- instructor has no availability slots #}
+<div class="card bg-base-100 shadow-lg">
+    <div class="card-body items-center text-center py-8">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+        </svg>
+        <h3 class="text-lg font-semibold mt-3">No Available Slots</h3>
+        <p class="text-base-content/60 max-w-md">This instructor hasn't set up any availability yet. Check back later or choose a different instructor.</p>
+    </div>
+</div>
+{% endif %}
+</div>
+
+<script>
+(function() {
+    var dateInput = document.getElementById('booking-date-input');
+    var continueBtn = document.getElementById('continue-btn');
+    var dateHint = document.getElementById('date-hint');
+    var dateError = document.getElementById('date-error');
+
+    if (!dateInput) return;
+
+    // Set min date to today
+    var today = new Date();
+    var yyyy = today.getFullYear();
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
+    var dd = String(today.getDate()).padStart(2, '0');
+    dateInput.setAttribute('min', yyyy + '-' + mm + '-' + dd);
+
+    var selectedDayOfWeek = null; // Python convention: Mon=0
+    var selectedDayName = '';
+
+    // On slot radio change: enable date picker, auto-fill next matching date
+    document.querySelectorAll('.slot-radio').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            selectedDayOfWeek = parseInt(this.getAttribute('data-day-of-week'));
+            selectedDayName = this.getAttribute('data-day-name');
+
+            dateInput.disabled = false;
+
+            // Auto-fill the next matching date
+            var nextDate = getNextDayOfWeek(selectedDayOfWeek);
+            dateInput.value = formatDate(nextDate);
+
+            dateHint.querySelector('.label-text-alt').textContent =
+                'Choose any ' + selectedDayName + ' for your session.';
+
+            hideError();
+            validateState();
+        });
+    });
+
+    // On date change: validate day-of-week match client-side
+    dateInput.addEventListener('change', function() {
+        if (selectedDayOfWeek === null) return;
+
+        var dateVal = this.value;
+        if (!dateVal) {
+            hideError();
+            validateState();
+            return;
+        }
+
+        // Parse the date and get weekday
+        // JS: Sun=0, Mon=1 ... Sat=6
+        // Python: Mon=0, Tue=1 ... Sun=6
+        // Conversion: pythonDay = (jsDay + 6) % 7
+        var parts = dateVal.split('-');
+        var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        var jsDay = d.getDay();
+        var pythonDay = (jsDay + 6) % 7;
+
+        if (pythonDay !== selectedDayOfWeek) {
+            showError('This date is a ' + getDayName(pythonDay) + ', but the selected slot is on ' + selectedDayName + '.');
+            continueBtn.disabled = true;
+        } else {
+            hideError();
+            validateState();
+        }
+    });
+
+    function validateState() {
+        var slotSelected = document.querySelector('.slot-radio:checked');
+        var dateValid = dateInput.value && !dateError.classList.contains('hidden') === false;
+
+        // Check day-of-week if date is filled
+        if (slotSelected && dateInput.value) {
+            var parts = dateInput.value.split('-');
+            var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            var jsDay = d.getDay();
+            var pythonDay = (jsDay + 6) % 7;
+            if (pythonDay === selectedDayOfWeek) {
+                continueBtn.disabled = false;
+                return;
+            }
+        }
+        continueBtn.disabled = true;
+    }
+
+    function showError(msg) {
+        dateError.querySelector('.label-text-alt').textContent = msg;
+        dateError.classList.remove('hidden');
+    }
+
+    function hideError() {
+        dateError.classList.add('hidden');
+    }
+
+    function getNextDayOfWeek(pythonDay) {
+        // pythonDay: Mon=0, Tue=1 ... Sun=6
+        // Convert to JS day: jsDay = (pythonDay + 1) % 7
+        var jsTargetDay = (pythonDay + 1) % 7;
+        var d = new Date();
+        var currentJsDay = d.getDay();
+        var diff = jsTargetDay - currentJsDay;
+        if (diff <= 0) diff += 7;
+        d.setDate(d.getDate() + diff);
+        return d;
+    }
+
+    function formatDate(d) {
+        var yyyy = d.getFullYear();
+        var mm = String(d.getMonth() + 1).padStart(2, '0');
+        var dd = String(d.getDate()).padStart(2, '0');
+        return yyyy + '-' + mm + '-' + dd;
+    }
+
+    function getDayName(pythonDay) {
+        var names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        return names[pythonDay] || '';
+    }
+
+    // Update step indicator
+    if (window.updateBookingSteps) {
+        window.updateBookingSteps(2);
+    }
+})();
+</script>

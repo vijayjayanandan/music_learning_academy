@@ -11,4 +11,8 @@ urlpatterns = [
     path("<slug:slug>/members/invitation/<int:pk>/resend/", views.ResendInvitationView.as_view(), name="resend-invitation"),
     path("<slug:slug>/members/invitation/<int:pk>/cancel/", views.CancelInvitationView.as_view(), name="cancel-invitation"),
     path("<slug:slug>/announcements/", views.AnnouncementListView.as_view(), name="academy-announcements"),
+    path("<slug:slug>/setup/", views.SetupWizardView.as_view(), name="academy-setup"),
+    path("<slug:slug>/setup/<str:step>/", views.SetupWizardStepView.as_view(), name="academy-setup-step"),
+    path("<slug:slug>/share/", views.ShareLinkView.as_view(), name="academy-share"),
+    path("<slug:slug>/qr-code/", views.QRCodeView.as_view(), name="academy-qr-code"),
 ]
