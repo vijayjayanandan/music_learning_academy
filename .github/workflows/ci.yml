@@ -62,20 +62,24 @@ jobs:
 
       - name: Django system check
         env:
-          DJANGO_SETTINGS_MODULE: config.settings.dev
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          USE_SQLITE: "1"
         run: python manage.py check --fail-level WARNING
 
       - name: Run migrations
         env:
-          DJANGO_SETTINGS_MODULE: config.settings.dev
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          USE_SQLITE: "1"
         run: python manage.py migrate --noinput
 
       - name: Check for missing migrations
         env:
-          DJANGO_SETTINGS_MODULE: config.settings.dev
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          USE_SQLITE: "1"
         run: python manage.py makemigrations --check --dry-run
 
       - name: Run tests with coverage
         env:
-          DJANGO_SETTINGS_MODULE: config.settings.dev
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          USE_SQLITE: "1"
         run: python -m pytest tests/unit tests/integration -v --tb=short --cov=apps --cov-report=term-missing --cov-fail-under=60
