@@ -46,6 +46,30 @@ def _send_verification_email(request, user):
     )
 
 
+def _send_parental_consent_email(request, child, consent):
+    """Send a parental consent request email to the parent/guardian."""
+    from django.urls import reverse as url_reverse
+
+    protocol = "https" if request.is_secure() else "http"
+    domain = request.get_host()
+    approve_url = f"{protocol}://{domain}{url_reverse('approve-parental-consent', kwargs={'token': consent.token})}"
+    child_name = child.get_full_name() or child.email
+    plain_message = (
+        f"Hi,\n\n"
+        f"{child_name} ({child.email}) has registered for Music Learning Academy "
+        f"and requires your consent to use the platform (they are under 13).\n\n"
+        f"Please approve their account by visiting:\n{approve_url}\n\n"
+        f"This link expires in 7 days.\n\n"
+        f"If you did not expect this email, you can ignore it."
+    )
+    send_mail(
+        "Parental consent required - Music Learning Academy",
+        plain_message,
+        None,  # uses DEFAULT_FROM_EMAIL
+        [consent.parent_email],
+    )
+
+
 @method_decorator(ratelimit(key="ip", rate="5/5m", method="POST", block=True), name="post")
 class CustomLoginView(LoginView):
     template_name = "accounts/login.html"
@@ -75,7 +99,9 @@ class RegisterView(CreateView):
         return ctx
 
     def form_valid(self, form):
+        from datetime import timedelta
         from django.utils import timezone as tz
+        from apps.accounts.models import ParentalConsent
 
         response = super().form_valid(form)
         user = self.object
@@ -89,6 +115,30 @@ class RegisterView(CreateView):
         if form.cleaned_data.get("accept_terms"):
             user.terms_accepted_at = tz.now()
             update_fields.append("terms_accepted_at")
+
+        # COPPA age-gate: under-13 users need parental consent
+        if form._is_under_13():
+            parent_email = form.cleaned_data.get("parent_email", "").strip()
+            user.is_active = False
+            update_fields.append("is_active")
+            if update_fields:
+                user.save(update_fields=update_fields)
+
+            # Create parental consent record
+            consent = ParentalConsent.objects.create(
+                child=user,
+                parent_email=parent_email,
+                expires_at=tz.now() + timedelta(days=7),
+            )
+
+            # Send consent email to parent
+            _send_parental_consent_email(self.request, user, consent)
+
+            # Render the pending page instead of redirecting
+            return render(self.request, "accounts/parental_consent_pending.html", {
+                "parent_email": parent_email,
+            })
+
         if update_fields:
             user.save(update_fields=update_fields)
 

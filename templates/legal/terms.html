@@ -4,38 +4,7 @@
 {% block unauth_content %}
 <div class="card bg-base-100 shadow-xl max-w-3xl w-full">
     <div class="card-body prose max-w-none">
-        <h1>Terms of Service</h1>
-        <p class="text-sm text-gray-500">Last updated: March 2026</p>
-
-        <h2>1. Acceptance of Terms</h2>
-        <p>By accessing or using the Music Learning Academy platform, you agree to be bound by these Terms of Service. If you do not agree, please do not use the platform.</p>
-
-        <h2>2. Description of Service</h2>
-        <p>Music Learning Academy provides a multi-tenant platform for music academies to manage courses, lessons, live video sessions, and student progress tracking.</p>
-
-        <h2>3. User Accounts</h2>
-        <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account. You must provide accurate information during registration.</p>
-
-        <h2>4. Acceptable Use</h2>
-        <p>You agree not to use the platform for any unlawful purpose, upload harmful content, attempt to gain unauthorized access, or interfere with other users' enjoyment of the service.</p>
-
-        <h2>5. Intellectual Property</h2>
-        <p>Course content uploaded by instructors remains the property of the respective content creators. The platform's software and design are proprietary.</p>
-
-        <h2>6. Payments & Refunds</h2>
-        <p>Payments are processed securely via Stripe. Refund policies are set by individual academies. Subscription cancellations take effect at the end of the current billing period.</p>
-
-        <h2>7. Privacy</h2>
-        <p>Your use of the platform is also governed by our <a href="{% url 'privacy' %}">Privacy Policy</a>.</p>
-
-        <h2>8. Limitation of Liability</h2>
-        <p>The platform is provided "as is" without warranties. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service.</p>
-
-        <h2>9. Changes to Terms</h2>
-        <p>We may update these terms from time to time. Continued use of the platform after changes constitutes acceptance of the new terms.</p>
-
-        <h2>10. Contact</h2>
-        <p>For questions about these terms, please contact your academy administrator.</p>
+        {% include "legal/_terms_content.html" %}
     </div>
 </div>
 {% endblock %}
@@ -49,37 +18,6 @@
         </ul>
     </div>
 
-    <h1>Terms of Service</h1>
-    <p class="text-sm text-gray-500">Last updated: March 2026</p>
-
-    <h2>1. Acceptance of Terms</h2>
-    <p>By accessing or using the Music Learning Academy platform, you agree to be bound by these Terms of Service. If you do not agree, please do not use the platform.</p>
-
-    <h2>2. Description of Service</h2>
-    <p>Music Learning Academy provides a multi-tenant platform for music academies to manage courses, lessons, live video sessions, and student progress tracking.</p>
-
-    <h2>3. User Accounts</h2>
-    <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account. You must provide accurate information during registration.</p>
-
-    <h2>4. Acceptable Use</h2>
-    <p>You agree not to use the platform for any unlawful purpose, upload harmful content, attempt to gain unauthorized access, or interfere with other users' enjoyment of the service.</p>
-
-    <h2>5. Intellectual Property</h2>
-    <p>Course content uploaded by instructors remains the property of the respective content creators. The platform's software and design are proprietary.</p>
-
-    <h2>6. Payments & Refunds</h2>
-    <p>Payments are processed securely via Stripe. Refund policies are set by individual academies. Subscription cancellations take effect at the end of the current billing period.</p>
-
-    <h2>7. Privacy</h2>
-    <p>Your use of the platform is also governed by our <a href="{% url 'privacy' %}">Privacy Policy</a>.</p>
-
-    <h2>8. Limitation of Liability</h2>
-    <p>The platform is provided "as is" without warranties. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service.</p>
-
-    <h2>9. Changes to Terms</h2>
-    <p>We may update these terms from time to time. Continued use of the platform after changes constitutes acceptance of the new terms.</p>
-
-    <h2>10. Contact</h2>
-    <p>For questions about these terms, please contact your academy administrator.</p>
+    {% include "legal/_terms_content.html" %}
 </div>
 {% endblock %}

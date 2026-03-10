@@ -349,6 +349,11 @@ def handle_checkout_completed(session: stripe.checkout.Session) -> None:
         logger.error("Academy %s from checkout session %s does not exist", academy_id, session.id)
         return
 
+    # Idempotency: skip if we already processed this checkout session
+    if Payment.objects.filter(stripe_checkout_session_id=session.id).exists():
+        logger.info("Checkout session %s already processed — skipping (idempotent)", session.id)
+        return
+
     if payment_type == "subscription":
         _handle_subscription_checkout(session, metadata, user, academy)
     elif payment_type == "course":

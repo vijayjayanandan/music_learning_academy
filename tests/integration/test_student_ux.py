@@ -879,87 +879,93 @@ class TestStudentSidebarCollapsibleGroups(TestCase):
     def _get_sidebar_html(self, client, user):
         """Helper: log in and GET dashboard, return the decoded HTML content."""
         client.force_login(user)
-        response = client.get(reverse("dashboard"))
+        response = client.get(reverse("dashboard"), follow=True)
+        assert response.status_code == 200
+        return response.content.decode()
+
+    def _get_student_dashboard_content(self):
+        """Helper: GET the student dashboard (following redirect) and return decoded HTML."""
+        response = self.student_client.get(reverse("dashboard"), follow=True)
         assert response.status_code == 200
         return response.content.decode()
 
     def test_student_sidebar_has_dashboard_link(self):
         """Student sidebar contains 'Dashboard' as an always-visible item."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("dashboard") in content
         assert "Dashboard" in content
 
     def test_student_sidebar_has_courses_link(self):
         """Student sidebar contains 'Courses' as an always-visible item."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("course-list") in content
         assert "Courses" in content
 
     def test_student_sidebar_has_live_sessions_link(self):
         """Student sidebar contains 'Live Sessions' as an always-visible item."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("schedule-list") in content
         assert "Live Sessions" in content
 
     def test_student_sidebar_has_practice_link(self):
         """Student sidebar contains 'Practice' as an always-visible item."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("practice-log-list") in content
         assert "Practice" in content
 
     def test_student_sidebar_has_my_progress_link(self):
         """Student sidebar contains 'My Progress' as an always-visible item."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("enrollment-list") in content
         assert "My Progress" in content
 
     def test_student_sidebar_has_account_billing_collapsible(self):
         """Student sidebar contains 'Account & Billing' collapsible group."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert "Account &amp; Billing" in content or "Account & Billing" in content
         assert "<details" in content
         assert "<summary" in content
 
     def test_student_sidebar_account_billing_contains_subscriptions(self):
         """Account & Billing group contains 'My Subscriptions' link."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("my-subscriptions") in content
         assert "My Subscriptions" in content
 
     def test_student_sidebar_account_billing_contains_packages(self):
         """Account & Billing group contains 'My Packages' link."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("my-packages") in content
         assert "My Packages" in content
 
     def test_student_sidebar_account_billing_contains_pricing(self):
         """Account & Billing group contains 'Pricing' link."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("pricing") in content
         assert "Pricing" in content
 
     def test_student_sidebar_account_billing_contains_payment_history(self):
         """Account & Billing group contains 'Payment History' link."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("payment-history") in content
         assert "Payment History" in content
 
     def test_student_sidebar_has_music_tools_collapsible(self):
         """Student sidebar contains 'Music Tools' collapsible group (not flat menu-title)."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert "Music Tools" in content
         # Student sidebar uses <details>/<summary> pattern, not flat menu-title
         assert "<details" in content
 
     def test_student_sidebar_has_book_session_link(self):
         """Student sidebar contains 'Book Session' link next to Live Sessions."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("book-session") in content
         assert "Book Session" in content
 
     def test_owner_sidebar_unchanged_has_manage_section(self):
         """Owner sidebar still has the 'Manage' section with management items."""
-        response = self.auth_client.get(reverse("dashboard"))
+        response = self.auth_client.get(reverse("dashboard"), follow=True)
         content = response.content.decode()
         assert response.status_code == 200
         # Owner should see Manage section
@@ -969,7 +975,7 @@ class TestStudentSidebarCollapsibleGroups(TestCase):
 
     def test_owner_sidebar_unchanged_has_academy_section(self):
         """Owner sidebar still has the 'Academy' section with members, settings, etc."""
-        response = self.auth_client.get(reverse("dashboard"))
+        response = self.auth_client.get(reverse("dashboard"), follow=True)
         content = response.content.decode()
         assert response.status_code == 200
         assert "Members" in content
@@ -979,7 +985,7 @@ class TestStudentSidebarCollapsibleGroups(TestCase):
 
     def test_owner_sidebar_has_flat_account_section(self):
         """Owner sidebar still has the flat 'Account' section (not collapsible)."""
-        response = self.auth_client.get(reverse("dashboard"))
+        response = self.auth_client.get(reverse("dashboard"), follow=True)
         content = response.content.decode()
         assert response.status_code == 200
         # Owner sidebar should show Account as a menu-title (flat), not inside <details>
@@ -988,7 +994,7 @@ class TestStudentSidebarCollapsibleGroups(TestCase):
 
     def test_student_sidebar_does_not_have_manage_section(self):
         """Student sidebar does NOT contain 'Manage' section items like '+ New Course'."""
-        content = self.student_client.get(reverse("dashboard")).content.decode()
+        content = self._get_student_dashboard_content()
         assert reverse("course-create") not in content
         assert reverse("session-create") not in content
 
@@ -1008,5 +1014,5 @@ class TestStudentSidebarCollapsibleGroups(TestCase):
             reverse("payment-history"),
         ]
         for url in urls_to_check:
-            response = self.student_client.get(url)
+            response = self.student_client.get(url, follow=True)
             assert response.status_code == 200, f"URL {url} returned {response.status_code}"

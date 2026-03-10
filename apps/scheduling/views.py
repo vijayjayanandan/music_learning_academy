@@ -1,6 +1,9 @@
 import json
+from asgiref.sync import async_to_sync
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -57,6 +60,19 @@ class SessionCreateView(TenantMixin, CreateView):
         session = form.save(commit=False)
         session.academy = self.get_academy()
         session.instructor = self.request.user
+
+        # Check for double-booking overlap
+        overlap = LiveSession.objects.filter(
+            instructor=session.instructor,
+            academy=session.academy,
+            status=LiveSession.SessionStatus.SCHEDULED,
+            scheduled_start__lt=session.scheduled_end,
+            scheduled_end__gt=session.scheduled_start,
+        ).exists()
+        if overlap:
+            form.add_error(None, "This session overlaps with an existing scheduled session.")
+            return self.form_invalid(form)
+
         session.room_name = generate_room_name(
             self.get_academy().slug, id(session)
         )
@@ -123,8 +139,19 @@ class CancelSessionView(TenantMixin, View):
         if role == "instructor" and session.instructor != request.user:
             from django.http import HttpResponseForbidden
             return HttpResponseForbidden("You can only cancel your own sessions.")
+        before_status = session.status
         session.status = LiveSession.SessionStatus.CANCELLED
         session.save()
+        from apps.common.audit import AuditEvent, log_audit_event
+        log_audit_event(
+            action=AuditEvent.Action.SESSION_CANCELLED,
+            entity_type="session",
+            entity_id=session.pk,
+            description=f"Cancelled session: {session.title}",
+            before_state={"status": before_status},
+            after_state={"status": "cancelled"},
+            request=request,
+        )
         if request.htmx:
             return render(request, "scheduling/partials/_session_card.html", {
                 "session": session,
@@ -137,6 +164,15 @@ class RegisterForSessionView(TenantMixin, View):
         session = get_object_or_404(
             LiveSession, pk=pk, academy=self.get_academy()
         )
+
+        # Capacity check: 0 means unlimited
+        if session.max_participants > 0:
+            current_count = session.attendances.count()
+            if current_count >= session.max_participants:
+                from django.contrib import messages as django_messages
+                django_messages.error(request, "This session is full.")
+                return redirect("session-detail", pk=pk)
+
         attendance, created = SessionAttendance.objects.get_or_create(
             session=session,
             student=request.user,
@@ -165,8 +201,20 @@ class JoinSessionView(TenantMixin, DetailView):
         if not is_instructor and not is_registered:
             raise PermissionDenied("You are not registered for this session.")
 
-        ctx["jitsi_config"] = json.dumps(get_jitsi_config(session, user))
-        ctx["jitsi_domain"] = settings.JITSI_DOMAIN
+        # Check if LiveKit is configured
+        livekit_url = getattr(settings, "LIVEKIT_URL", "")
+        livekit_key = getattr(settings, "LIVEKIT_API_KEY", "")
+        livekit_secret = getattr(settings, "LIVEKIT_API_SECRET", "")
+
+        if livekit_url and livekit_key and livekit_secret:
+            from apps.scheduling.livekit_service import get_livekit_config
+            ctx["use_livekit"] = True
+            ctx["livekit_config"] = json.dumps(get_livekit_config(session, user))
+        else:
+            ctx["use_livekit"] = False
+            ctx["jitsi_config"] = json.dumps(get_jitsi_config(session, user))
+            ctx["jitsi_domain"] = settings.JITSI_DOMAIN
+
         ctx["session"] = session
         return ctx
 
@@ -770,6 +818,52 @@ class RescheduleSessionView(TenantMixin, View):
         )
 
         return redirect("session-detail", pk=new_session.pk)
+
+
+class StartRecordingView(TenantMixin, View):
+    """Start recording a live session via LiveKit."""
+
+    def post(self, request, pk):
+        session = get_object_or_404(
+            LiveSession, pk=pk, academy=self.get_academy()
+        )
+        try:
+            egress_id = async_to_sync(self._start_recording)(session)
+            session.recording_status = LiveSession.RecordingStatus.RECORDING
+            session.save(update_fields=["recording_status"])
+            cache.set(f"egress_{session.pk}", egress_id, timeout=7200)
+            return JsonResponse({"status": "recording", "egress_id": egress_id})
+        except Exception:
+            session.recording_status = LiveSession.RecordingStatus.FAILED
+            session.save(update_fields=["recording_status"])
+            return JsonResponse({"status": "failed"}, status=500)
+
+    async def _start_recording(self, session):
+        """Override point for LiveKit recording start."""
+        return None
+
+
+class StopRecordingView(TenantMixin, View):
+    """Stop recording a live session via LiveKit."""
+
+    def post(self, request, pk):
+        session = get_object_or_404(
+            LiveSession, pk=pk, academy=self.get_academy()
+        )
+        egress_id = cache.get(f"egress_{session.pk}")
+        try:
+            async_to_sync(self._stop_recording)(egress_id)
+            session.recording_status = LiveSession.RecordingStatus.PROCESSING
+            session.save(update_fields=["recording_status"])
+            return JsonResponse({"status": "processing"})
+        except Exception:
+            session.recording_status = LiveSession.RecordingStatus.FAILED
+            session.save(update_fields=["recording_status"])
+            return JsonResponse({"status": "failed"}, status=500)
+
+    async def _stop_recording(self, egress_id):
+        """Override point for LiveKit recording stop."""
+        return None
 
 
 class UpcomingSessionsPartialView(TenantMixin, ListView):

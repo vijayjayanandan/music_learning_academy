@@ -34,6 +34,10 @@ class RegisterForm(UserCreationForm):
         widget=forms.DateInput(attrs={"type": "date"}),
         help_text="Required for age verification.",
     )
+    parent_email = forms.EmailField(
+        required=False,
+        help_text="Required for users under 13. A consent request will be sent to this email.",
+    )
     accept_terms = forms.BooleanField(
         required=True,
         error_messages={
@@ -60,11 +64,37 @@ class RegisterForm(UserCreationForm):
         today = date.today()
         return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
+    def _is_under_13(self):
+        """Check if the user is under 13 based on date_of_birth."""
+        dob = self.cleaned_data.get("date_of_birth")
+        if not dob:
+            return False
+        return self._get_age(dob) < 13
+
     def clean_date_of_birth(self):
         dob = self.cleaned_data.get("date_of_birth")
         if dob and dob > date.today():
             raise forms.ValidationError("Date of birth cannot be in the future.")
         return dob
+
+    def clean(self):
+        cleaned_data = super().clean()
+        dob = cleaned_data.get("date_of_birth")
+        parent_email = cleaned_data.get("parent_email", "").strip()
+        email = cleaned_data.get("email", "")
+
+        if dob and self._get_age(dob) < 13:
+            if not parent_email:
+                self.add_error(
+                    "parent_email",
+                    "A parent or guardian email is required for users under 13.",
+                )
+            elif parent_email == email:
+                self.add_error(
+                    "parent_email",
+                    "Parent email cannot be the same as your email.",
+                )
+        return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)

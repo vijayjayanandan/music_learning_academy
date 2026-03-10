@@ -106,6 +106,7 @@
                         <p class="text-xs text-gray-500">{{ item.lesson.estimated_duration_minutes }} min</p>
                     </div>
                 </div>
+                <span class="badge {{ item.status_class }}">{{ item.status_badge }}</span>
             </div>
             {% endfor %}
         </div>

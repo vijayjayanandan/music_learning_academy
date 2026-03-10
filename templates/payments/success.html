@@ -6,6 +6,29 @@
         <div class="card-body">
             <div class="text-6xl mb-4">&#10003;</div>
             <h1 class="text-3xl font-bold text-success mb-4">Payment Successful!</h1>
+            {% if payment %}
+            <p class="text-base-content/70 mb-4">Your payment has been processed. You should receive a confirmation email shortly.</p>
+            <div class="divider"></div>
+            <h3 class="text-lg font-semibold">Purchase Details</h3>
+            <div class="space-y-2 text-sm mt-2">
+                <p><strong>Description:</strong> {{ payment.description }}</p>
+                {% if payment.course %}
+                <p><strong>Course:</strong> {{ payment.course.title }}</p>
+                {% endif %}
+                <p><strong>Amount:</strong> {{ payment.amount_display }}</p>
+                <p><strong>Invoice:</strong> {{ payment.invoice_number }}</p>
+            </div>
+            <div class="flex gap-4 justify-center mt-6">
+                {% if payment.payment_type == "course" and payment.course %}
+                <a href="{% url 'course-detail' slug=payment.course.slug %}" class="btn btn-primary">Start Learning</a>
+                {% elif payment.payment_type == "subscription" %}
+                <a href="{% url 'my-subscriptions' %}" class="btn btn-primary">View My Subscriptions</a>
+                {% elif payment.payment_type == "package" %}
+                <a href="{% url 'my-packages' %}" class="btn btn-primary">View My Packages</a>
+                {% endif %}
+                <a href="{% url 'payment-history' %}" class="btn btn-outline">View Receipts</a>
+            </div>
+            {% else %}
             <p class="text-base-content/70 mb-6">
                 Your payment has been processed. You should receive a confirmation email shortly.
             </p>
@@ -13,6 +36,7 @@
                 <a href="{% url 'payment-history' %}" class="btn btn-outline">View Receipts</a>
                 <a href="{% url 'dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>

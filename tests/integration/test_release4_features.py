@@ -417,7 +417,7 @@ class TestZoomMeetAlternative(TestCase):
         assert hasattr(LiveSession, "video_platform")
         assert hasattr(LiveSession, "external_meeting_url")
 
-    def test_default_video_platform_is_jitsi(self):
+    def test_default_video_platform_is_livekit(self):
         session = LiveSession.objects.create(
             title="Test Session",
             instructor=self.instructor,
@@ -426,7 +426,7 @@ class TestZoomMeetAlternative(TestCase):
             scheduled_end=timezone.now() + timedelta(hours=1),
             room_name="test-zoom-session",
         )
-        assert session.video_platform == "jitsi"
+        assert session.video_platform == "livekit"
 
     def test_zoom_platform(self):
         session = LiveSession.objects.create(

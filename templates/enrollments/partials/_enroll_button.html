@@ -1,12 +1,12 @@
 {% if enrollment %}
-<span class="badge badge-success gap-2 p-3">
-    &#10003; Enrolled
-</span>
-{% else %}
+<a href="{% url 'enrollment-detail' enrollment.pk %}" class="btn btn-success btn-sm">Continue Learning</a>
+{% elif course.is_free %}
 <form method="post" action="{% url 'enroll' course.slug %}"
       hx-post="{% url 'enroll' course.slug %}"
       hx-target="#enroll-area" hx-swap="innerHTML">
     {% csrf_token %}
-    <button type="submit" class="btn btn-primary btn-sm">Enroll Now</button>
+    <button type="submit" class="btn btn-primary btn-sm">Enroll Free</button>
 </form>
+{% else %}
+<a href="{% url 'checkout-course' course.slug %}" class="btn btn-primary btn-sm">Buy Course - {{ course.price_display }}</a>
 {% endif %}

@@ -12,8 +12,10 @@ from django.views import View
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 
+from django.db.models import Sum
+
 from apps.academies.mixins import TenantMixin
-from apps.accounts.models import Membership
+from apps.accounts.models import Invitation, Membership
 from apps.common.audit import AuditEvent
 from apps.courses.models import Course, PracticeAssignment
 from apps.dashboards.analytics import (
@@ -23,6 +25,7 @@ from apps.dashboards.analytics import (
 )
 from apps.dashboards.forms import StudentOnboardingForm
 from apps.enrollments.models import Enrollment, AssignmentSubmission
+from apps.payments.models import Payment, PlatformSubscription, Subscription
 from apps.scheduling.models import LiveSession
 
 
@@ -93,7 +96,121 @@ class AdminDashboardView(TenantMixin, TemplateView):
         # Priority CTA for admin dashboard
         ctx["priority_cta"] = _compute_owner_priority_cta(academy)
 
+        # Alerts for admin dashboard (sorted by priority)
+        ctx["alerts"] = _compute_admin_alerts(academy)
+
+        # Setup checklist (show if not live)
+        if academy.setup_status != "live":
+            completed, total, pct = academy.setup_progress
+            ctx["setup_checklist"] = {
+                "completed": completed,
+                "total": total,
+                "pct": pct,
+            }
+        else:
+            ctx["setup_checklist"] = None
+
+        # Platform Subscription info
+        try:
+            platform_sub = academy.platform_subscription
+            ctx["platform_subscription"] = platform_sub
+        except PlatformSubscription.DoesNotExist:
+            ctx["platform_subscription"] = None
+
+        # Monthly revenue
+        now = timezone.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        revenue_cents = Payment.objects.filter(
+            academy=academy,
+            status="completed",
+            paid_at__gte=month_start,
+        ).aggregate(total=Sum("amount_cents"))["total"] or 0
+        ctx["monthly_revenue_display"] = f"${revenue_cents / 100:,.2f}"
+
+        # Active student subscriptions count
+        ctx["active_subscriptions_count"] = Subscription.objects.filter(
+            academy=academy,
+            status="active",
+        ).count()
+
         return ctx
+
+
+def _compute_admin_alerts(academy):
+    """Compute a list of alert dicts for the admin dashboard.
+
+    Each alert has at minimum: title (str), priority (int).
+    Lower priority number = more urgent.
+    Alerts are sorted by priority ascending.
+    """
+    now = timezone.now()
+    alerts = []
+
+    # 1. Overdue submissions (priority 1) — submitted > 48h ago, not yet reviewed
+    overdue_threshold = now - timedelta(hours=48)
+    overdue_count = AssignmentSubmission.objects.filter(
+        academy=academy,
+        status="submitted",
+        created_at__lte=overdue_threshold,
+    ).count()
+    if overdue_count > 0:
+        alerts.append({
+            "title": f"{overdue_count} overdue submission(s)",
+            "priority": 1,
+            "type": "overdue",
+            "count": overdue_count,
+        })
+
+    # 2. Sessions starting soon (priority 3) — within next hour
+    soon_threshold = now + timedelta(hours=1)
+    soon_sessions = LiveSession.objects.filter(
+        academy=academy,
+        status="scheduled",
+        scheduled_start__gte=now,
+        scheduled_start__lte=soon_threshold,
+    ).count()
+    if soon_sessions > 0:
+        alerts.append({
+            "title": f"{soon_sessions} session(s) starting soon",
+            "priority": 3,
+            "type": "session_soon",
+            "count": soon_sessions,
+        })
+
+    # 3. Cancelled sessions today (priority 4)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow_start = today_start + timedelta(days=1)
+    cancelled_count = LiveSession.objects.filter(
+        academy=academy,
+        status="cancelled",
+        scheduled_start__gte=today_start,
+        scheduled_start__lt=tomorrow_start,
+    ).count()
+    if cancelled_count > 0:
+        alerts.append({
+            "title": f"{cancelled_count} cancelled session(s) today",
+            "priority": 4,
+            "type": "cancelled",
+            "count": cancelled_count,
+        })
+
+    # 4. Pending invitations (priority 5) — not accepted, not expired
+    pending_invites = Invitation.objects.filter(
+        academy=academy,
+        accepted=False,
+        expires_at__gt=now,
+    ).count()
+    if pending_invites > 0:
+        alerts.append({
+            "title": f"{pending_invites} pending invitation(s)",
+            "priority": 5,
+            "type": "invitation",
+            "count": pending_invites,
+        })
+
+    # Sort by priority (lower = more urgent)
+    alerts.sort(key=lambda a: a["priority"])
+    return alerts
 
 
 def _compute_owner_priority_cta(academy):
@@ -403,6 +520,34 @@ class StudentDashboardView(TenantMixin, TemplateView):
 
         # Single highest-priority CTA for the student
         ctx["priority_cta"] = _compute_student_priority_cta(user, academy)
+
+        # "Continue where you left off" — find the most recent active enrollment
+        # with an incomplete lesson and provide structured data for the template.
+        continue_learning = None
+        for enrollment in ctx["enrollments"]:
+            lessons = list(enrollment.course.lessons.order_by("order"))
+            if not lessons:
+                continue
+            completed_ids = set(
+                enrollment.lesson_progress.filter(is_completed=True).values_list("lesson_id", flat=True)
+            )
+            first_incomplete = None
+            for lesson in lessons:
+                if lesson.pk not in completed_ids:
+                    first_incomplete = lesson
+                    break
+            if first_incomplete:
+                continue_learning = {
+                    "course_title": enrollment.course.title,
+                    "lesson_title": first_incomplete.title,
+                    "progress_percent": enrollment.progress_percent,
+                    "lesson_url": reverse(
+                        "lesson-detail",
+                        kwargs={"slug": enrollment.course.slug, "pk": first_incomplete.pk},
+                    ),
+                }
+                break  # Use the first enrollment that has incomplete work
+        ctx["continue_learning"] = continue_learning
 
         return ctx
 

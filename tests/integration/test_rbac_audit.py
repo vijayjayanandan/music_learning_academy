@@ -113,6 +113,10 @@ class TestAuditEventModel(TestCase):
             entity_type="invitation",
             description="First event",
         )
+        # Ensure a different created_at timestamp (same-millisecond timestamps
+        # cause undefined ordering on PostgreSQL).
+        import time
+        time.sleep(0.01)
         e2 = AuditEvent.objects.create(
             academy=self.academy,
             actor=self.owner_user,

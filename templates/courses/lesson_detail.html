@@ -16,6 +16,9 @@
     <div class="flex justify-between items-start flex-wrap gap-4">
         <div>
             <h1 class="text-3xl font-bold">{{ object.title }}</h1>
+            {% if total_lessons %}
+            <p class="text-sm text-gray-500 mt-1">Lesson {{ lesson_number }} of {{ total_lessons }}</p>
+            {% endif %}
             {% if object.description %}
             <p class="text-gray-600 mt-1">{{ object.description }}</p>
             {% endif %}
@@ -154,5 +157,30 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Lesson Navigation -->
+    <div class="flex justify-between items-center mt-6">
+        <div>
+            {% if prev_lesson %}
+            <a href="{% url 'lesson-detail' course.slug prev_lesson.pk %}" class="btn btn-outline btn-sm gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                Previous Lesson
+            </a>
+            {% endif %}
+        </div>
+        <div>
+            {% if next_lesson %}
+            <a href="{% url 'lesson-detail' course.slug next_lesson.pk %}" class="btn btn-primary btn-sm gap-2">
+                Next Lesson
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </a>
+            {% else %}
+            <a href="{% url 'course-detail' course.slug %}" class="btn btn-outline btn-sm gap-2">
+                Back to Course
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </a>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

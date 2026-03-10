@@ -105,5 +105,63 @@
             </div>
         </div>
     </div>
+
+    {# ─── Session Recording (completed sessions only) ─── #}
+    {% if object.status == "completed" %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Session Recording</h3>
+            {% if object.recording_url %}
+            <video controls class="w-full rounded-lg" preload="metadata">
+                <source src="{{ object.recording_url }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            {% else %}
+            <div class="flex items-center gap-2">
+                <span class="loading loading-spinner loading-sm"></span>
+                <span>Recording processing...</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ─── Session Notes (completed sessions only) ─── #}
+    {% if object.status == "completed" %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Session Notes</h3>
+            {% if object.session_notes %}
+            <div class="prose max-w-none">
+                {{ object.session_notes|linebreaksbr }}
+            </div>
+            {% endif %}
+            {% if is_instructor or user_role == "owner" %}
+            <form method="post" action="{% url 'session-detail' object.pk %}" class="mt-4">
+                {% csrf_token %}
+                <textarea name="session_notes" class="textarea textarea-bordered w-full" rows="4" placeholder="Add session notes...">{{ object.session_notes }}</textarea>
+                <button type="submit" class="btn btn-primary btn-sm mt-2">Save Notes</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ─── Next Steps (completed sessions only) ─── #}
+    {% if object.status == "completed" %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Next Steps</h3>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <a href="{% url 'practice-log-create' %}" class="btn btn-primary btn-sm">Log Practice</a>
+                <a href="{% url 'schedule-list' %}" class="btn btn-ghost btn-sm">View All Sessions</a>
+                {% if object.course %}
+                <a href="{% url 'course-detail' object.course.slug %}" class="btn btn-secondary btn-sm">Continue Learning</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    </div>
 </div>
 {% endblock %}

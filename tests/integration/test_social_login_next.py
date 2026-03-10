@@ -312,13 +312,17 @@ class TestSocialButtonEdgeCases(TestCase):
 
     def test_social_buttons_hidden_when_providers_not_configured(self):
         """Social buttons are not rendered when providers are not configured."""
-        # Stop the setUp patcher so GOOGLE_OAUTH_CLIENT_ID / FACEBOOK_APP_ID are
-        # absent from os.environ for the duration of this test, then restart it
-        # so tearDown.stop() doesn't raise a RuntimeError.
+        # Stop the setUp patcher and explicitly remove all social env vars
+        # (load_dotenv may have loaded real values from .env).
         self._social_patcher.stop()
+        saved = {}
+        for key in ("GOOGLE_OAUTH_CLIENT_ID", "FACEBOOK_APP_ID"):
+            if key in os.environ:
+                saved[key] = os.environ.pop(key)
         try:
             response = self.client.get(reverse("login"))
         finally:
+            os.environ.update(saved)
             self._social_patcher.start()
 
         assert response.status_code == 200

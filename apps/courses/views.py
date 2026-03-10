@@ -210,6 +210,25 @@ class LessonDetailView(TenantMixin, DetailView):
             self.object.course.instructor == self.request.user
             or self.request.user.get_role_in(self.get_academy()) == "owner"
         )
+
+        # Prev/next lesson navigation
+        all_lessons = list(self.object.course.lessons.order_by("order"))
+        total_lessons = len(all_lessons)
+        ctx["total_lessons"] = total_lessons
+        current_index = None
+        for i, lesson in enumerate(all_lessons):
+            if lesson.pk == self.object.pk:
+                current_index = i
+                break
+        if current_index is not None:
+            ctx["lesson_number"] = current_index + 1
+            ctx["prev_lesson"] = all_lessons[current_index - 1] if current_index > 0 else None
+            ctx["next_lesson"] = all_lessons[current_index + 1] if current_index < total_lessons - 1 else None
+        else:
+            ctx["lesson_number"] = 1
+            ctx["prev_lesson"] = None
+            ctx["next_lesson"] = None
+
         return ctx
 
 

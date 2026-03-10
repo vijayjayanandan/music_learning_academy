@@ -10,6 +10,7 @@
                 <span class="badge badge-outline">{{ course.instrument }}</span>
                 <span class="badge badge-outline">{{ course.get_difficulty_level_display }}</span>
                 {% if course.genre %}<span class="badge badge-ghost">{{ course.genre }}</span>{% endif %}
+                {% if course.is_free %}<span class="badge badge-success">Free</span>{% else %}<span class="badge badge-info">{{ course.price_display }}</span>{% endif %}
             </div>
             <p class="text-sm text-gray-600 line-clamp-2">{{ course.description }}</p>
             <div class="text-sm text-gray-500 mt-2">

@@ -56,7 +56,7 @@
             <div class="card-body">
                 <h3 class="card-title">{{ pkg.name }}</h3>
                 <p>{{ pkg.description }}</p>
-                <p class="text-2xl font-bold">${{ pkg.price_cents|divisibleby:100 }} <span class="text-sm">for {{ pkg.total_credits }} credits</span></p>
+                <p class="text-2xl font-bold">{{ pkg.price_display }} <span class="text-sm">for {{ pkg.total_credits }} credits</span></p>
                 <form method="post" action="{% url 'package-purchase' pkg.pk %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-secondary">Purchase</button>

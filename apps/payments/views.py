@@ -134,8 +134,16 @@ class PaymentSuccessView(TenantMixin, View):
 
     def get(self, request):
         session_id = request.GET.get("session_id")
+        payment = None
+        if session_id:
+            payment = Payment.objects.filter(
+                stripe_checkout_session_id=session_id,
+                student=request.user,
+                academy=self.get_academy(),
+            ).select_related("course", "subscription__plan").first()
         return render(request, "payments/success.html", {
             "session_id": session_id,
+            "payment": payment,
         })
 
 

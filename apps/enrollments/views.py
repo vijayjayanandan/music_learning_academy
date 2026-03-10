@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, DetailView
@@ -49,13 +50,50 @@ class EnrollmentDetailView(TenantMixin, DetailView):
             lp.lesson_id: lp
             for lp in self.object.lesson_progress.select_related("lesson").all()
         }
+
+        # Build a map of lesson_id -> latest submission status
+        # A lesson's submission status comes from its assignments' submissions by this student
+        submission_status_map = {}
+        submissions = AssignmentSubmission.objects.filter(
+            student=self.request.user,
+            assignment__lesson__course=self.object.course,
+            academy=self.get_academy(),
+        ).select_related("assignment__lesson").order_by("-created_at")
+        for sub in submissions:
+            lesson_id = sub.assignment.lesson_id
+            # Keep the first (most recent) submission status per lesson
+            if lesson_id not in submission_status_map:
+                submission_status_map[lesson_id] = sub.status
+
         lesson_data = []
         for lesson in lessons:
             lp = progress_map.get(lesson.id)
+            is_completed = lp.is_completed if lp else False
+            sub_status = submission_status_map.get(lesson.id)
+
+            # Determine the display status badge
+            if is_completed:
+                status_badge = "Complete"
+                status_class = "badge-success"
+            elif sub_status == "needs_revision":
+                status_badge = "Needs Revision"
+                status_class = "badge-warning"
+            elif sub_status == "reviewed":
+                status_badge = "Reviewed"
+                status_class = "badge-info"
+            elif sub_status == "submitted":
+                status_badge = "Submitted"
+                status_class = "badge-accent"
+            else:
+                status_badge = "Not started"
+                status_class = "badge-ghost"
+
             lesson_data.append({
                 "lesson": lesson,
                 "progress": lp,
-                "is_completed": lp.is_completed if lp else False,
+                "is_completed": is_completed,
+                "status_badge": status_badge,
+                "status_class": status_class,
             })
         ctx["lesson_data"] = lesson_data
         ctx["progress_percent"] = self.object.progress_percent
@@ -105,11 +143,19 @@ class EnrollView(TenantMixin, View):
         )
         if created:
             invalidate_dashboard_cache(self.get_academy().pk)
+
+        # Redirect to the first lesson if one exists, otherwise fall back to course detail
+        first_lesson = course.lessons.order_by("order").first()
+        if first_lesson:
+            redirect_url = reverse("lesson-detail", kwargs={"slug": slug, "pk": first_lesson.pk})
+        else:
+            redirect_url = reverse("course-detail", kwargs={"slug": slug})
+
         if request.htmx:
-            return render(request, "enrollments/partials/_enroll_button.html", {
-                "course": course, "enrollment": enrollment,
-            })
-        return redirect("course-detail", slug=slug)
+            response = HttpResponse(status=204)
+            response["HX-Redirect"] = redirect_url
+            return response
+        return redirect(redirect_url)
 
 
 class UnenrollView(TenantMixin, View):

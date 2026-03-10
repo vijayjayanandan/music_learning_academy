@@ -26,10 +26,8 @@
             <a href="{% url 'course-edit' object.slug %}" class="btn btn-ghost btn-sm">Edit</a>
             {% endif %}
             <div id="enroll-area">
-                {% if not is_instructor and not enrollment %}
+                {% if not is_instructor %}
                     {% include "enrollments/partials/_enroll_button.html" with course=object enrollment=enrollment %}
-                {% elif enrollment %}
-                    <a href="{% url 'enrollment-detail' enrollment.pk %}" class="btn btn-success btn-sm">View Progress</a>
                 {% endif %}
             </div>
         </div>

@@ -17,6 +17,7 @@ from django.contrib import messages
 
 from apps.accounts.models import Membership, Invitation, User
 from apps.academies.models import check_seat_limit
+from apps.common.audit import AuditEvent, log_audit_event
 from .forms import AcademyForm, InvitationForm
 from .mixins import TenantMixin
 from .models import Academy, Announcement
@@ -184,6 +185,14 @@ class InviteMemberView(TenantMixin, View):
                 token=token,
                 invited_by=request.user,
                 expires_at=timezone.now() + timezone.timedelta(days=7),
+            )
+            # Audit log
+            log_audit_event(
+                action=AuditEvent.Action.MEMBER_INVITED,
+                entity_type="invitation",
+                entity_id=invitation.pk,
+                description=f"Invited {invitation.email} as {invitation.role}",
+                request=request,
             )
             # Send invitation email
             accept_url = request.build_absolute_uri(
@@ -437,11 +446,14 @@ class BrandedSignupView(View):
     def post(self, request, slug):
         academy = get_object_or_404(Academy, slug=slug)
         from apps.accounts.forms import RegisterForm
+        from apps.accounts.models import ParentalConsent
+        from apps.accounts.views import _send_parental_consent_email
         from django.contrib.auth import login as auth_login
         from django.db import transaction
 
         form = RegisterForm(request.POST)
         if form.is_valid():
+            from datetime import timedelta
             from django.utils import timezone as tz
 
             # Seat limit check before creating user
@@ -462,6 +474,30 @@ class BrandedSignupView(View):
                 if form.cleaned_data.get("accept_terms"):
                     user.terms_accepted_at = tz.now()
                     update_fields.append("terms_accepted_at")
+
+                # COPPA age-gate: under-13 users need parental consent
+                if form._is_under_13():
+                    parent_email = form.cleaned_data.get("parent_email", "").strip()
+                    user.is_active = False
+                    update_fields.append("is_active")
+                    user.current_academy = academy
+                    user.save(update_fields=update_fields)
+
+                    Membership.objects.create(
+                        user=user, academy=academy,
+                        role=Membership.Role.STUDENT,
+                    )
+
+                    consent = ParentalConsent.objects.create(
+                        child=user,
+                        parent_email=parent_email,
+                        expires_at=tz.now() + timedelta(days=7),
+                    )
+                    _send_parental_consent_email(request, user, consent)
+
+                    return render(request, "accounts/parental_consent_pending.html", {
+                        "parent_email": parent_email,
+                    })
 
                 Membership.objects.create(
                     user=user, academy=academy,
@@ -540,7 +576,19 @@ class RemoveMemberView(TenantMixin, View):
         # Security: use the current academy, not a slug-based lookup
         membership = get_object_or_404(Membership, pk=pk, academy=academy)
         if membership.role != Membership.Role.OWNER:
-            membership.delete()
+            before_state = {"role": membership.role, "is_active": membership.is_active}
+            membership.is_active = False
+            membership.membership_status = Membership.MembershipStatus.REMOVED
+            membership.save(update_fields=["is_active", "membership_status"])
+            log_audit_event(
+                action=AuditEvent.Action.MEMBER_REMOVED,
+                entity_type="membership",
+                entity_id=membership.pk,
+                description=f"Removed {membership.user.email} ({membership.role})",
+                before_state=before_state,
+                after_state={"role": membership.role, "is_active": False},
+                request=request,
+            )
         if request.htmx:
             members = Membership.objects.filter(academy=academy).select_related("user")
             return render(request, "academies/partials/_member_list.html", {
