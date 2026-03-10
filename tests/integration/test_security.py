@@ -12,7 +12,6 @@ from apps.enrollments.models import Enrollment
 
 @pytest.mark.integration
 class TestRBACEnforcement(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.academy = Academy.objects.create(
@@ -45,7 +44,9 @@ class TestRBACEnforcement(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -59,8 +60,11 @@ class TestRBACEnforcement(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
@@ -83,9 +87,13 @@ class TestRBACEnforcement(TestCase):
 
     def test_student_cannot_delete_course(self):
         course = Course.objects.create(
-            academy=self.academy, title="Protected", slug="sec-rbac-protected",
-            instructor=self.instructor, instrument="Piano",
-            difficulty_level="beginner", is_published=True,
+            academy=self.academy,
+            title="Protected",
+            slug="sec-rbac-protected",
+            instructor=self.instructor,
+            instrument="Piano",
+            difficulty_level="beginner",
+            is_published=True,
         )
         response = self.student_client.post(
             reverse("course-delete", kwargs={"slug": course.slug})
@@ -108,7 +116,6 @@ class TestRBACEnforcement(TestCase):
 
 @pytest.mark.integration
 class TestIDORPrevention(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.academy = Academy.objects.create(
@@ -130,7 +137,9 @@ class TestIDORPrevention(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -144,7 +153,9 @@ class TestIDORPrevention(TestCase):
         cls.student_a.current_academy = cls.academy
         cls.student_a.save()
         Membership.objects.create(
-            user=cls.student_a, academy=cls.academy, role="student",
+            user=cls.student_a,
+            academy=cls.academy,
+            role="student",
         )
 
         cls.student_b = User.objects.create_user(
@@ -157,24 +168,30 @@ class TestIDORPrevention(TestCase):
         cls.student_b.current_academy = cls.academy
         cls.student_b.save()
         Membership.objects.create(
-            user=cls.student_b, academy=cls.academy, role="student",
+            user=cls.student_b,
+            academy=cls.academy,
+            role="student",
         )
 
         cls.course = Course.objects.create(
-            academy=cls.academy, title="IDOR Test Course", slug="sec-idor-course",
-            instructor=cls.instructor, instrument="Piano",
-            difficulty_level="beginner", is_published=True,
+            academy=cls.academy,
+            title="IDOR Test Course",
+            slug="sec-idor-course",
+            instructor=cls.instructor,
+            instrument="Piano",
+            difficulty_level="beginner",
+            is_published=True,
         )
 
     def setUp(self):
         self.client_b = Client()
-        self.client_b.login(
-            username="sec-idor-b@test.com", password="testpass123"
-        )
+        self.client_b.login(username="sec-idor-b@test.com", password="testpass123")
 
     def test_student_cannot_view_other_enrollment(self):
         enrollment_a = Enrollment.objects.create(
-            student=self.student_a, course=self.course, academy=self.academy,
+            student=self.student_a,
+            course=self.course,
+            academy=self.academy,
         )
 
         # Student B tries to view Student A's enrollment — should be blocked
@@ -187,39 +204,42 @@ class TestIDORPrevention(TestCase):
 
 @pytest.mark.integration
 class TestXSSSanitization(TestCase):
-
     def test_sanitize_html_filter_strips_script(self):
         from apps.common.templatetags.sanitize import sanitize_html
+
         result = sanitize_html('<p>Hello</p><script>alert("xss")</script>')
         assert "<script>" not in result
         assert "Hello" in result
 
     def test_sanitize_html_allows_safe_tags(self):
         from apps.common.templatetags.sanitize import sanitize_html
-        result = sanitize_html('<p><strong>Bold</strong> and <em>italic</em></p>')
+
+        result = sanitize_html("<p><strong>Bold</strong> and <em>italic</em></p>")
         assert "<strong>" in result
         assert "<em>" in result
 
     def test_sanitize_html_strips_onclick(self):
         from apps.common.templatetags.sanitize import sanitize_html
+
         result = sanitize_html('<a href="#" onclick="alert(1)">Click</a>')
         assert "onclick" not in result
 
     def test_sanitize_html_strips_iframe(self):
         from apps.common.templatetags.sanitize import sanitize_html
+
         result = sanitize_html('<iframe src="evil.com"></iframe><p>OK</p>')
         assert "<iframe" not in result
         assert "OK" in result
 
     def test_sanitize_html_empty_input(self):
         from apps.common.templatetags.sanitize import sanitize_html
+
         assert sanitize_html("") == ""
         assert sanitize_html(None) == ""
 
 
 @pytest.mark.integration
 class TestFileUploadValidation(TestCase):
-
     def test_validate_rejects_disallowed_extension(self):
         from django.core.exceptions import ValidationError
         from django.core.files.uploadedfile import SimpleUploadedFile
@@ -249,7 +269,6 @@ class TestFileUploadValidation(TestCase):
 
 @pytest.mark.integration
 class TestSecurityHeaders(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.academy = Academy.objects.create(
@@ -288,13 +307,13 @@ class TestSecurityHeaders(TestCase):
 
     def test_403_template_renders(self):
         from django.template.loader import get_template
+
         template = get_template("403.html")
         assert template is not None
 
 
 @pytest.mark.integration
 class TestAuthenticationRequired(TestCase):
-
     def setUp(self):
         self.client = Client()
 

@@ -80,9 +80,7 @@ class TestStudentOnboardingCardVisibility(TestCase):
         )
         cls.owner.current_academy = cls.academy
         cls.owner.save()
-        Membership.objects.create(
-            user=cls.owner, academy=cls.academy, role="owner"
-        )
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
 
         # An instructor of the academy.
         cls.instructor = User.objects.create_user(
@@ -101,13 +99,19 @@ class TestStudentOnboardingCardVisibility(TestCase):
     def setUp(self):
         """Fresh HTTP clients for each test (no session bleed)."""
         self.client_new_student = Client()
-        self.client_new_student.login(username="new_student_vis@test.com", password="testpass123")
+        self.client_new_student.login(
+            username="new_student_vis@test.com", password="testpass123"
+        )
         self.client_onboarded = Client()
-        self.client_onboarded.login(username="onboarded_vis@test.com", password="testpass123")
+        self.client_onboarded.login(
+            username="onboarded_vis@test.com", password="testpass123"
+        )
         self.client_owner = Client()
         self.client_owner.login(username="owner_vis@test.com", password="testpass123")
         self.client_instructor = Client()
-        self.client_instructor.login(username="instructor_vis@test.com", password="testpass123")
+        self.client_instructor.login(
+            username="instructor_vis@test.com", password="testpass123"
+        )
 
     def test_new_student_sees_onboarding_card(self):
         """A brand-new student with default membership fields should see the card."""
@@ -179,18 +183,23 @@ class TestStudentOnboardingSubmit(TestCase):
     def setUp(self):
         """Fresh HTTP client for each test (no session bleed)."""
         self.client_new_student = Client()
-        self.client_new_student.login(username="new_student_sub@test.com", password="testpass123")
+        self.client_new_student.login(
+            username="new_student_sub@test.com", password="testpass123"
+        )
 
     def test_save_preferences_updates_membership(self):
         """Submitting the form with valid data should save to the membership."""
         url = reverse("student-onboarding-submit")
-        response = self.client_new_student.post(url, {
-            "action": "save",
-            "instruments": ["Piano", "Guitar"],
-            "skill_level": "intermediate",
-            "learning_goal": "Learn jazz piano",
-            "timezone": "US/Eastern",
-        })
+        response = self.client_new_student.post(
+            url,
+            {
+                "action": "save",
+                "instruments": ["Piano", "Guitar"],
+                "skill_level": "intermediate",
+                "learning_goal": "Learn jazz piano",
+                "timezone": "US/Eastern",
+            },
+        )
         # Should redirect back to student dashboard
         assert response.status_code == 302
         assert response.url == reverse("student-dashboard")
@@ -209,13 +218,17 @@ class TestStudentOnboardingSubmit(TestCase):
     def test_save_shows_success_message(self):
         """After saving, a success message should be in the messages framework."""
         url = reverse("student-onboarding-submit")
-        response = self.client_new_student.post(url, {
-            "action": "save",
-            "instruments": ["Piano"],
-            "skill_level": "beginner",
-            "learning_goal": "Have fun",
-            "timezone": "UTC",
-        }, follow=True)
+        response = self.client_new_student.post(
+            url,
+            {
+                "action": "save",
+                "instruments": ["Piano"],
+                "skill_level": "beginner",
+                "learning_goal": "Have fun",
+                "timezone": "UTC",
+            },
+            follow=True,
+        )
         assert response.status_code == 200
         messages_list = list(response.context["messages"])
         assert any("preferences have been saved" in str(m) for m in messages_list)
@@ -223,13 +236,16 @@ class TestStudentOnboardingSubmit(TestCase):
     def test_card_disappears_after_save(self):
         """After completing onboarding, revisiting the dashboard should not show the card."""
         # Save preferences
-        self.client_new_student.post(reverse("student-onboarding-submit"), {
-            "action": "save",
-            "instruments": ["Violin"],
-            "skill_level": "advanced",
-            "learning_goal": "Master violin",
-            "timezone": "Europe/London",
-        })
+        self.client_new_student.post(
+            reverse("student-onboarding-submit"),
+            {
+                "action": "save",
+                "instruments": ["Violin"],
+                "skill_level": "advanced",
+                "learning_goal": "Master violin",
+                "timezone": "Europe/London",
+            },
+        )
         # Revisit dashboard
         response = self.client_new_student.get(reverse("student-dashboard"))
         assert response.status_code == 200
@@ -256,11 +272,14 @@ class TestStudentOnboardingSubmit(TestCase):
     def test_partial_save_only_updates_provided_fields(self):
         """If a student only fills in some fields, only those should be updated."""
         url = reverse("student-onboarding-submit")
-        response = self.client_new_student.post(url, {
-            "action": "save",
-            "skill_level": "intermediate",
-            # No instruments, no learning_goal, no timezone
-        })
+        response = self.client_new_student.post(
+            url,
+            {
+                "action": "save",
+                "skill_level": "intermediate",
+                # No instruments, no learning_goal, no timezone
+            },
+        )
         assert response.status_code == 302
 
         membership = Membership.objects.get(user=self.new_student, academy=self.academy)
@@ -312,9 +331,7 @@ class TestStudentOnboardingPermissions(TestCase):
         )
         cls.owner.current_academy = cls.academy
         cls.owner.save()
-        Membership.objects.create(
-            user=cls.owner, academy=cls.academy, role="owner"
-        )
+        Membership.objects.create(user=cls.owner, academy=cls.academy, role="owner")
 
         # An instructor of the academy.
         cls.instructor = User.objects.create_user(
@@ -334,11 +351,15 @@ class TestStudentOnboardingPermissions(TestCase):
         """Fresh HTTP clients for each test (no session bleed)."""
         self.anon_client = Client()
         self.client_new_student = Client()
-        self.client_new_student.login(username="new_student_perms@test.com", password="testpass123")
+        self.client_new_student.login(
+            username="new_student_perms@test.com", password="testpass123"
+        )
         self.client_owner = Client()
         self.client_owner.login(username="owner_perms@test.com", password="testpass123")
         self.client_instructor = Client()
-        self.client_instructor.login(username="instructor_perms@test.com", password="testpass123")
+        self.client_instructor.login(
+            username="instructor_perms@test.com", password="testpass123"
+        )
 
     def test_unauthenticated_user_redirected(self):
         """Unauthenticated users should be redirected to login."""
@@ -350,21 +371,27 @@ class TestStudentOnboardingPermissions(TestCase):
     def test_owner_cannot_submit_onboarding(self):
         """Owners should be redirected away from the student onboarding endpoint."""
         url = reverse("student-onboarding-submit")
-        response = self.client_owner.post(url, {
-            "action": "save",
-            "skill_level": "advanced",
-            "learning_goal": "Hack the system",
-        })
+        response = self.client_owner.post(
+            url,
+            {
+                "action": "save",
+                "skill_level": "advanced",
+                "learning_goal": "Hack the system",
+            },
+        )
         assert response.status_code == 302
         assert response.url == reverse("dashboard")
 
     def test_instructor_cannot_submit_onboarding(self):
         """Instructors should be redirected away from the student onboarding endpoint."""
         url = reverse("student-onboarding-submit")
-        response = self.client_instructor.post(url, {
-            "action": "save",
-            "skill_level": "advanced",
-        })
+        response = self.client_instructor.post(
+            url,
+            {
+                "action": "save",
+                "skill_level": "advanced",
+            },
+        )
         assert response.status_code == 302
         assert response.url == reverse("dashboard")
 

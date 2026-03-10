@@ -13,8 +13,13 @@ class LessonProgressInline(admin.TabularInline):
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
     list_display = [
-        "student", "course", "academy", "status",
-        "progress_display", "enrolled_at", "completed_at",
+        "student",
+        "course",
+        "academy",
+        "status",
+        "progress_display",
+        "enrolled_at",
+        "completed_at",
     ]
     list_filter = ["status", "academy", "course"]
     search_fields = ["student__email", "student__first_name", "course__title"]
@@ -32,12 +37,17 @@ class EnrollmentAdmin(admin.ModelAdmin):
 @admin.register(LessonProgress)
 class LessonProgressAdmin(admin.ModelAdmin):
     list_display = [
-        "enrollment", "lesson", "is_completed",
-        "practice_time_minutes", "completed_at", "academy",
+        "enrollment",
+        "lesson",
+        "is_completed",
+        "practice_time_minutes",
+        "completed_at",
+        "academy",
     ]
     list_filter = ["is_completed", "academy"]
     search_fields = [
-        "enrollment__student__email", "lesson__title",
+        "enrollment__student__email",
+        "lesson__title",
         "enrollment__course__title",
     ]
     readonly_fields = ["completed_at", "created_at", "updated_at"]
@@ -48,36 +58,63 @@ class LessonProgressAdmin(admin.ModelAdmin):
 @admin.register(AssignmentSubmission)
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
     list_display = [
-        "assignment", "student", "academy", "status",
-        "grade", "practice_time_minutes", "reviewed_by", "created_at",
+        "assignment",
+        "student",
+        "academy",
+        "status",
+        "grade",
+        "practice_time_minutes",
+        "reviewed_by",
+        "created_at",
     ]
     list_filter = ["status", "academy"]
     search_fields = [
-        "student__email", "assignment__title",
-        "instructor_feedback", "grade",
+        "student__email",
+        "assignment__title",
+        "instructor_feedback",
+        "grade",
     ]
     readonly_fields = ["created_at", "updated_at", "reviewed_at"]
     autocomplete_fields = ["assignment", "student", "reviewed_by", "academy"]
     list_select_related = ["assignment", "student", "reviewed_by", "academy"]
 
     fieldsets = (
-        (None, {
-            "fields": ("assignment", "student", "academy"),
-        }),
-        ("Submission", {
-            "fields": (
-                "text_response", "recording_url", "recording",
-                "file_upload", "practice_time_minutes",
-            ),
-        }),
-        ("Review", {
-            "fields": (
-                "status", "instructor_feedback", "grade",
-                "rubric_scores", "reviewed_by", "reviewed_at",
-            ),
-        }),
-        ("Timestamps", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",),
-        }),
+        (
+            None,
+            {
+                "fields": ("assignment", "student", "academy"),
+            },
+        ),
+        (
+            "Submission",
+            {
+                "fields": (
+                    "text_response",
+                    "recording_url",
+                    "recording",
+                    "file_upload",
+                    "practice_time_minutes",
+                ),
+            },
+        ),
+        (
+            "Review",
+            {
+                "fields": (
+                    "status",
+                    "instructor_feedback",
+                    "grade",
+                    "rubric_scores",
+                    "reviewed_by",
+                    "reviewed_at",
+                ),
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
     )

@@ -10,7 +10,6 @@ from django.urls import reverse
 @pytest.mark.integration
 @override_settings(CRON_API_KEY="test-cron-secret-key")
 class TestCronEndpoint(TestCase):
-
     def setUp(self):
         self.client = Client()
         self.url = reverse("cron-run-tasks")

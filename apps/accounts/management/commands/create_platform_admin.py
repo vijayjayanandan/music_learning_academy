@@ -19,7 +19,9 @@ class Command(BaseCommand):
         password = os.environ.get("PLATFORM_ADMIN_PASSWORD", "ChangeMeNow123!")
 
         if User.objects.filter(email=email).exists():
-            self.stdout.write(self.style.WARNING(f"User {email} already exists — skipping"))
+            self.stdout.write(
+                self.style.WARNING(f"User {email} already exists — skipping")
+            )
             return
 
         User.objects.create_superuser(

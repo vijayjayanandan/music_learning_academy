@@ -40,12 +40,15 @@ def send_session_reminders():
                 except User.DoesNotExist:
                     user = None
 
-                html_message = render_to_string("emails/session_reminder_email.html", {
-                    "user": user,
-                    "session": session,
-                    "join_url": f"/schedule/{session.pk}/join/",
-                    "time_label": time_label,
-                })
+                html_message = render_to_string(
+                    "emails/session_reminder_email.html",
+                    {
+                        "user": user,
+                        "session": session,
+                        "join_url": f"/schedule/{session.pk}/join/",
+                        "time_label": time_label,
+                    },
+                )
                 send_mail(
                     subject=f"Reminder: {session.title} in {time_label}",
                     message=f"Your session '{session.title}' starts in {time_label}.",
@@ -106,6 +109,7 @@ def generate_recurring_sessions():
 
             if not exists and next_start > now:
                 from apps.scheduling.jitsi import generate_room_name
+
                 LiveSession.objects.create(
                     academy=session.academy,
                     title=session.title,
@@ -115,7 +119,8 @@ def generate_recurring_sessions():
                     scheduled_end=next_start + duration,
                     session_type=session.session_type,
                     room_name=generate_room_name(
-                        session.academy.slug, f"recurring-{session.pk}-{next_start.isoformat()}"
+                        session.academy.slug,
+                        f"recurring-{session.pk}-{next_start.isoformat()}",
                     ),
                     video_platform=session.video_platform,
                     external_meeting_url=session.external_meeting_url,

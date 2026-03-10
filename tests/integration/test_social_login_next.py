@@ -34,6 +34,7 @@ SOCIAL_ENV = {
 # Happy Path: ?next= included in social button URLs
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.integration
 class TestSocialButtonNextUrl(TestCase):
     """Social login buttons include ?next= when a redirect URL is present."""
@@ -86,11 +87,15 @@ class TestSocialButtonNextUrl(TestCase):
         content = response.content.decode()
 
         # Google button should include ?next=
-        assert f"google/login/?next={next_url}" in content or \
-               "google/login/?next=%2F" in content
+        assert (
+            f"google/login/?next={next_url}" in content
+            or "google/login/?next=%2F" in content
+        )
         # Facebook button should include ?next=
-        assert f"facebook/login/?next={next_url}" in content or \
-               "facebook/login/?next=%2F" in content
+        assert (
+            f"facebook/login/?next={next_url}" in content
+            or "facebook/login/?next=%2F" in content
+        )
 
     def test_register_page_social_buttons_include_next(self):
         """On the register page with ?next=, social buttons include ?next=."""
@@ -101,8 +106,10 @@ class TestSocialButtonNextUrl(TestCase):
         content = response.content.decode()
 
         # Google button should include ?next=
-        assert f"google/login/?next={next_url}" in content or \
-               "google/login/?next=%2F" in content
+        assert (
+            f"google/login/?next={next_url}" in content
+            or "google/login/?next=%2F" in content
+        )
 
     def test_accept_invitation_social_buttons_include_next(self):
         """On the accept-invitation page (unauthenticated), social buttons
@@ -115,8 +122,10 @@ class TestSocialButtonNextUrl(TestCase):
 
         # Social buttons should include ?next= with the accept URL
         expected_next = f"/invitation/{self.invitation.token}/accept/"
-        assert f"google/login/?next={expected_next}" in content or \
-               "google/login/?next=%2Finvitation" in content
+        assert (
+            f"google/login/?next={expected_next}" in content
+            or "google/login/?next=%2Finvitation" in content
+        )
 
     def test_accept_invitation_context_includes_accept_url(self):
         """AcceptInvitationView passes accept_url in context for social buttons."""
@@ -132,6 +141,7 @@ class TestSocialButtonNextUrl(TestCase):
 # ---------------------------------------------------------------------------
 # Boundary: No ?next= parameter (no breakage)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 class TestSocialButtonWithoutNext(TestCase):
@@ -195,6 +205,7 @@ class TestSocialButtonWithoutNext(TestCase):
 # ---------------------------------------------------------------------------
 # Permission: Social login URLs accessible to unauthenticated users
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 class TestSocialLoginAccessibility(TestCase):
@@ -265,6 +276,7 @@ class TestSocialLoginAccessibility(TestCase):
 # ---------------------------------------------------------------------------
 # Edge Cases
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 class TestSocialButtonEdgeCases(TestCase):

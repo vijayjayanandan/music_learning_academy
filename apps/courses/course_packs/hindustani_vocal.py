@@ -32,7 +32,13 @@ LESSONS = [
         "order": 1,
         "description": "Introduction to North Indian classical music — its philosophy, structure, and the raga-tala framework.",
         "estimated_duration_minutes": 40,
-        "topics": ["Hindustani music", "raga", "tala", "tanpura", "guru-shishya parampara"],
+        "topics": [
+            "Hindustani music",
+            "raga",
+            "tala",
+            "tanpura",
+            "guru-shishya parampara",
+        ],
         "content": """## Welcome to Hindustani Classical Music
 
 Hindustani classical music is one of the world's oldest and most sophisticated musical traditions, originating in North India over 2,000 years ago. Unlike Western music which is built on harmony (multiple notes sounding together), Hindustani music is fundamentally **melodic** — it explores the infinite possibilities within a single melodic line.
@@ -915,7 +921,13 @@ A taan requires a full, controlled breath. Before beginning a long taan:
         "order": 11,
         "description": "Learning Raga Bhimpalasi — a beautiful afternoon raga with komal Ga and Ni, known for its gentle, yearning quality.",
         "estimated_duration_minutes": 45,
-        "topics": ["Raga Bhimpalasi", "komal Ga", "komal Ni", "afternoon raga", "vakra movement"],
+        "topics": [
+            "Raga Bhimpalasi",
+            "komal Ga",
+            "komal Ni",
+            "afternoon raga",
+            "vakra movement",
+        ],
         "content": """## Raga Bhimpalasi: The Gentle Afternoon
 
 Raga Bhimpalasi is an afternoon raga (3 PM to 6 PM) of immense beauty and accessibility. It is one of the most beloved ragas in the Hindustani repertoire, known for its gentle, yearning quality. Where Yaman soars and Bhairav broods, Bhimpalasi tenderly aches.

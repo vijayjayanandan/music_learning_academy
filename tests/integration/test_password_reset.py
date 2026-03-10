@@ -9,7 +9,6 @@ from apps.academies.models import Academy
 
 @pytest.mark.integration
 class TestPasswordResetViews(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.academy = Academy.objects.create(
@@ -52,22 +51,31 @@ class TestPasswordResetViews(TestCase):
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_password_reset_sends_email(self):
-        response = self.client.post(reverse("password-reset"), {
-            "email": "owner@test.com",
-        })
+        response = self.client.post(
+            reverse("password-reset"),
+            {
+                "email": "owner@test.com",
+            },
+        )
         assert response.status_code == 302
         assert len(mail.outbox) == 1
         assert "Password reset" in mail.outbox[0].subject
 
     @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_password_reset_nonexistent_email_still_redirects(self):
-        response = self.client.post(reverse("password-reset"), {
-            "email": "nobody@test.com",
-        })
+        response = self.client.post(
+            reverse("password-reset"),
+            {
+                "email": "nobody@test.com",
+            },
+        )
         assert response.status_code == 302
         assert len(mail.outbox) == 0
 
     def test_login_page_has_forgot_password_link(self):
         response = self.client.get(reverse("login"))
         assert b"Forgot password?" in response.content
-        assert b"password-reset" in response.content or b"/accounts/password-reset/" in response.content
+        assert (
+            b"password-reset" in response.content
+            or b"/accounts/password-reset/" in response.content
+        )

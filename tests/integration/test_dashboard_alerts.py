@@ -50,7 +50,9 @@ class TestAdminDashboardAlerts(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -64,15 +66,22 @@ class TestAdminDashboardAlerts(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-alerts-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-alerts-iso@test.com", password="testpass123"
+        )
         self.student_client = Client()
-        self.student_client.login(username="student-alerts-iso@test.com", password="testpass123")
+        self.student_client.login(
+            username="student-alerts-iso@test.com", password="testpass123"
+        )
 
     def test_no_alerts_when_nothing_pending(self):
         """Dashboard shows no alerts section when everything is clear."""
@@ -90,7 +99,10 @@ class TestAdminDashboardAlerts(TestCase):
             description="A test course for alerts",
         )
         lesson = Lesson.objects.create(
-            title="Lesson 1", course=course, order=1, academy=self.academy,
+            title="Lesson 1",
+            course=course,
+            order=1,
+            academy=self.academy,
         )
         assignment = PracticeAssignment.objects.create(
             lesson=lesson,

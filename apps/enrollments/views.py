@@ -52,11 +52,15 @@ class EnrollmentDetailView(TenantMixin, DetailView):
         # Build a map of lesson_id -> latest submission status
         # A lesson's submission status comes from its assignments' submissions by this student
         submission_status_map = {}
-        submissions = AssignmentSubmission.objects.filter(
-            student=self.request.user,
-            assignment__lesson__course=self.object.course,
-            academy=self.get_academy(),
-        ).select_related("assignment__lesson").order_by("-created_at")
+        submissions = (
+            AssignmentSubmission.objects.filter(
+                student=self.request.user,
+                assignment__lesson__course=self.object.course,
+                academy=self.get_academy(),
+            )
+            .select_related("assignment__lesson")
+            .order_by("-created_at")
+        )
         for sub in submissions:
             lesson_id = sub.assignment.lesson_id
             # Keep the first (most recent) submission status per lesson
@@ -86,13 +90,15 @@ class EnrollmentDetailView(TenantMixin, DetailView):
                 status_badge = "Not started"
                 status_class = "badge-ghost"
 
-            lesson_data.append({
-                "lesson": lesson,
-                "progress": lp,
-                "is_completed": is_completed,
-                "status_badge": status_badge,
-                "status_class": status_class,
-            })
+            lesson_data.append(
+                {
+                    "lesson": lesson,
+                    "progress": lp,
+                    "is_completed": is_completed,
+                    "status_badge": status_badge,
+                    "status_class": status_class,
+                }
+            )
         ctx["lesson_data"] = lesson_data
         ctx["progress_percent"] = self.object.progress_percent
 
@@ -122,12 +128,21 @@ class EnrollView(TenantMixin, View):
             missing = prerequisites.exclude(pk__in=completed_courses)
             if missing.exists():
                 from django.contrib import messages
+
                 names = ", ".join(c.title for c in missing)
-                messages.error(request, f"You must complete these courses first: {names}")
+                messages.error(
+                    request, f"You must complete these courses first: {names}"
+                )
                 if request.htmx:
-                    return render(request, "enrollments/partials/_enroll_button.html", {
-                        "course": course, "enrollment": None, "prereq_missing": True,
-                    })
+                    return render(
+                        request,
+                        "enrollments/partials/_enroll_button.html",
+                        {
+                            "course": course,
+                            "enrollment": None,
+                            "prereq_missing": True,
+                        },
+                    )
                 return redirect("course-detail", slug=slug)
 
         # FEAT-023: Redirect to payment for paid courses
@@ -145,7 +160,9 @@ class EnrollView(TenantMixin, View):
         # Redirect to the first lesson if one exists, otherwise fall back to course detail
         first_lesson = course.lessons.order_by("order").first()
         if first_lesson:
-            redirect_url = reverse("lesson-detail", kwargs={"slug": slug, "pk": first_lesson.pk})
+            redirect_url = reverse(
+                "lesson-detail", kwargs={"slug": slug, "pk": first_lesson.pk}
+            )
         else:
             redirect_url = reverse("course-detail", kwargs={"slug": slug})
 
@@ -159,14 +176,19 @@ class EnrollView(TenantMixin, View):
 class UnenrollView(TenantMixin, View):
     def post(self, request, slug):
         course = get_object_or_404(Course, slug=slug, academy=self.get_academy())
-        Enrollment.objects.filter(
-            student=request.user, course=course
-        ).update(status="dropped")
+        Enrollment.objects.filter(student=request.user, course=course).update(
+            status="dropped"
+        )
         invalidate_dashboard_cache(self.get_academy().pk)
         if request.htmx:
-            return render(request, "enrollments/partials/_enroll_button.html", {
-                "course": course, "enrollment": None,
-            })
+            return render(
+                request,
+                "enrollments/partials/_enroll_button.html",
+                {
+                    "course": course,
+                    "enrollment": None,
+                },
+            )
         return redirect("course-detail", slug=slug)
 
 
@@ -187,22 +209,38 @@ class MarkLessonCompleteView(TenantMixin, View):
         progress.save()
 
         if request.htmx:
-            return render(request, "enrollments/partials/_lesson_progress_row.html", {
-                "lesson": lesson,
-                "progress": progress,
-                "enrollment": enrollment,
-            })
+            return render(
+                request,
+                "enrollments/partials/_lesson_progress_row.html",
+                {
+                    "lesson": lesson,
+                    "progress": progress,
+                    "enrollment": enrollment,
+                },
+            )
         return redirect("enrollment-detail", pk=pk)
 
 
 class SubmitAssignmentView(TenantMixin, View):
     ALLOWED_FILE_EXTENSIONS = {
-        '.pdf', '.doc', '.docx', '.txt',
-        '.png', '.jpg', '.jpeg', '.gif',
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".txt",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
     }
     ALLOWED_RECORDING_EXTENSIONS = {
-        '.mp3', '.wav', '.ogg', '.flac', '.m4a',
-        '.mp4', '.webm', '.mov',
+        ".mp3",
+        ".wav",
+        ".ogg",
+        ".flac",
+        ".m4a",
+        ".mp4",
+        ".webm",
+        ".mov",
     }
     MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
     MAX_RECORDING_SIZE = 100 * 1024 * 1024  # 100MB
@@ -220,7 +258,9 @@ class SubmitAssignmentView(TenantMixin, View):
 
         # Security: validate practice_time_minutes is a reasonable integer
         try:
-            practice_time = max(0, min(int(request.POST.get("practice_time_minutes", 0)), 1440))
+            practice_time = max(
+                0, min(int(request.POST.get("practice_time_minutes", 0)), 1440)
+            )
         except (ValueError, TypeError):
             practice_time = 0
 
@@ -235,7 +275,9 @@ class SubmitAssignmentView(TenantMixin, View):
         if request.FILES.get("file_upload"):
             uploaded = request.FILES["file_upload"]
             try:
-                validate_file_upload(uploaded, self.ALLOWED_FILE_EXTENSIONS, self.MAX_FILE_SIZE)
+                validate_file_upload(
+                    uploaded, self.ALLOWED_FILE_EXTENSIONS, self.MAX_FILE_SIZE
+                )
                 submission.file_upload = uploaded
                 submission.save()
             except DjangoValidationError:
@@ -244,16 +286,24 @@ class SubmitAssignmentView(TenantMixin, View):
         if request.FILES.get("recording"):
             recording = request.FILES["recording"]
             try:
-                validate_file_upload(recording, self.ALLOWED_RECORDING_EXTENSIONS, self.MAX_RECORDING_SIZE)
+                validate_file_upload(
+                    recording,
+                    self.ALLOWED_RECORDING_EXTENSIONS,
+                    self.MAX_RECORDING_SIZE,
+                )
                 submission.recording = recording
                 submission.save()
             except DjangoValidationError:
                 pass  # silently skip invalid files
 
         if request.htmx:
-            return render(request, "enrollments/partials/_submission_status.html", {
-                "submission": submission,
-            })
+            return render(
+                request,
+                "enrollments/partials/_submission_status.html",
+                {
+                    "submission": submission,
+                },
+            )
         return redirect("enrollment-detail", pk=pk)
 
 
@@ -261,14 +311,21 @@ class CertificateView(TenantMixin, View):
     def get(self, request, pk):
         # Security: filter by academy too (tenant isolation)
         enrollment = get_object_or_404(
-            Enrollment, pk=pk, student=request.user, status="completed",
-            academy=self.get_academy()
+            Enrollment,
+            pk=pk,
+            student=request.user,
+            status="completed",
+            academy=self.get_academy(),
         )
-        return render(request, "enrollments/certificate.html", {
-            "enrollment": enrollment,
-            "course": enrollment.course,
-            "student": enrollment.student,
-        })
+        return render(
+            request,
+            "enrollments/certificate.html",
+            {
+                "enrollment": enrollment,
+                "course": enrollment.course,
+                "student": enrollment.student,
+            },
+        )
 
 
 class CertificatePDFView(TenantMixin, View):
@@ -279,15 +336,22 @@ class CertificatePDFView(TenantMixin, View):
         from xhtml2pdf import pisa
 
         enrollment = get_object_or_404(
-            Enrollment, pk=pk, student=request.user, status="completed",
-            academy=self.get_academy()
+            Enrollment,
+            pk=pk,
+            student=request.user,
+            status="completed",
+            academy=self.get_academy(),
         )
-        html = render(request, "enrollments/certificate.html", {
-            "enrollment": enrollment,
-            "course": enrollment.course,
-            "student": enrollment.student,
-            "pdf_mode": True,
-        }).content.decode("utf-8")
+        html = render(
+            request,
+            "enrollments/certificate.html",
+            {
+                "enrollment": enrollment,
+                "course": enrollment.course,
+                "student": enrollment.student,
+                "pdf_mode": True,
+            },
+        ).content.decode("utf-8")
 
         buffer = BytesIO()
         pisa_status = pisa.CreatePDF(html, dest=buffer)
@@ -298,5 +362,7 @@ class CertificatePDFView(TenantMixin, View):
         buffer.seek(0)
         response = HttpResponse(buffer, content_type="application/pdf")
         slug = enrollment.course.slug
-        response["Content-Disposition"] = f'attachment; filename="certificate-{slug}.pdf"'
+        response["Content-Disposition"] = (
+            f'attachment; filename="certificate-{slug}.pdf"'
+        )
         return response

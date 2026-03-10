@@ -24,8 +24,11 @@ def _make_live_session(academy, instructor, **kwargs):
     # room_name must be unique — derive from title + a counter suffix
     if "room_name" not in defaults:
         import uuid
+
         defaults["room_name"] = f"room-{uuid.uuid4().hex[:8]}"
-    return LiveSession.objects.create(academy=academy, instructor=instructor, **defaults)
+    return LiveSession.objects.create(
+        academy=academy, instructor=instructor, **defaults
+    )
 
 
 @pytest.mark.integration
@@ -74,7 +77,7 @@ class TestSessionRecordingPlayback(TestCase):
         assert response.status_code == 200
         content = response.content.decode()
         assert "Session Recording" in content
-        assert '<video controls' in content
+        assert "<video controls" in content
         assert "https://example.com/recordings/session-1.mp4" in content
 
     def test_completed_session_without_recording_shows_processing(self):
@@ -93,7 +96,7 @@ class TestSessionRecordingPlayback(TestCase):
         assert "Session Recording" in content
         assert "Recording processing..." in content
         assert "loading-spinner" in content
-        assert '<video' not in content
+        assert "<video" not in content
 
     def test_scheduled_session_hides_recording_section(self):
         """Scheduled sessions should not show the recording section at all."""

@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("courses", "0005_course_courses_cou_academy_a1c896_idx_and_more"),
     ]

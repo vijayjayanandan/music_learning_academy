@@ -38,6 +38,7 @@ def health_check_detail(request):
     # Check Redis (cache backend)
     try:
         from django.core.cache import cache
+
         cache.set("_health_check", "ok", 10)
         if cache.get("_health_check") == "ok":
             checks["redis"] = True
@@ -46,12 +47,15 @@ def health_check_detail(request):
 
     # Check R2/S3 storage (only when configured)
     from django.conf import settings
+
     if getattr(settings, "USE_R2_STORAGE", False):
         checks["storage_r2"] = False
         try:
             from apps.common.storage import PrivateMediaStorage
+
             storage = PrivateMediaStorage()
             from django.core.files.base import ContentFile
+
             test_key = "_health_check_r2.txt"
             storage.save(test_key, ContentFile(b"ok"))
             storage.delete(test_key)

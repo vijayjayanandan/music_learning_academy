@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("enrollments", "0004_enrollment_enrollments_academy_d488e7_idx_and_more"),
     ]

@@ -37,11 +37,15 @@ class TestRichTextEditorForms(TestCase):
 
     def test_course_form_non_tinymce_fields_have_css_classes(self):
         form = CourseForm()
-        assert "input input-bordered" in form.fields["title"].widget.attrs.get("class", "")
+        assert "input input-bordered" in form.fields["title"].widget.attrs.get(
+            "class", ""
+        )
 
     def test_lesson_form_non_tinymce_fields_have_css_classes(self):
         form = LessonForm()
-        assert "input input-bordered" in form.fields["title"].widget.attrs.get("class", "")
+        assert "input input-bordered" in form.fields["title"].widget.attrs.get(
+            "class", ""
+        )
 
 
 @pytest.mark.integration
@@ -72,7 +76,9 @@ class TestRichTextEditorTemplates(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="rt-templates-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="rt-templates-owner@test.com", password="testpass123"
+        )
 
     def test_course_create_includes_form_media(self):
         response = self.auth_client.get(reverse("course-create"))
@@ -130,7 +136,9 @@ class TestRichTextEditorTemplates(TestCase):
             academy=self.academy,
             order=1,
         )
-        response = self.auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
+        response = self.auth_client.get(
+            reverse("lesson-detail", args=[course.slug, lesson.pk])
+        )
         assert response.status_code == 200
         assert b"<h2>Welcome</h2>" in response.content
         assert b"<em>rich</em>" in response.content
@@ -151,12 +159,14 @@ class TestRichTextEditorTemplates(TestCase):
         )
         lesson = Lesson.objects.create(
             title="Render Lesson",
-            content='<p>Learn the <strong>C major</strong> scale.</p><ul><li>Step 1</li><li>Step 2</li></ul>',
+            content="<p>Learn the <strong>C major</strong> scale.</p><ul><li>Step 1</li><li>Step 2</li></ul>",
             course=course,
             academy=self.academy,
             order=1,
         )
-        response = self.auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
+        response = self.auth_client.get(
+            reverse("lesson-detail", args=[course.slug, lesson.pk])
+        )
         content = response.content.decode()
         assert response.status_code == 200
         # HTML should be rendered, not escaped (no &lt;p&gt; etc.)
@@ -186,7 +196,9 @@ class TestRichTextEditorTemplates(TestCase):
             academy=self.academy,
             order=1,
         )
-        response = self.auth_client.get(reverse("lesson-detail", args=[course.slug, lesson.pk]))
+        response = self.auth_client.get(
+            reverse("lesson-detail", args=[course.slug, lesson.pk])
+        )
         content = response.content.decode()
         assert response.status_code == 200
         # Safe HTML should remain

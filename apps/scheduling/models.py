@@ -56,9 +56,13 @@ class LiveSession(TenantScopedModel):
         CUSTOM = "custom", "Custom URL"
 
     video_platform = models.CharField(
-        max_length=20, choices=VideoPlatform.choices, default=VideoPlatform.LIVEKIT,
+        max_length=20,
+        choices=VideoPlatform.choices,
+        default=VideoPlatform.LIVEKIT,
     )
-    external_meeting_url = models.URLField(blank=True, help_text="External meeting URL if not using LiveKit")
+    external_meeting_url = models.URLField(
+        blank=True, help_text="External meeting URL if not using LiveKit"
+    )
 
     status = models.CharField(
         max_length=20,
@@ -70,14 +74,23 @@ class LiveSession(TenantScopedModel):
     reminder_1h_sent = models.BooleanField(default=False)
     is_recurring = models.BooleanField(default=False)
     recurrence_rule = models.CharField(
-        max_length=20, blank=True,
-        choices=[("weekly", "Weekly"), ("biweekly", "Bi-weekly"), ("monthly", "Monthly")],
+        max_length=20,
+        blank=True,
+        choices=[
+            ("weekly", "Weekly"),
+            ("biweekly", "Bi-weekly"),
+            ("monthly", "Monthly"),
+        ],
     )
     recurrence_parent = models.ForeignKey(
-        "self", on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="recurrence_instances"
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recurrence_instances",
     )
     recording_url = models.URLField(blank=True)
+
     class RecordingStatus(models.TextChoices):
         NOT_REQUESTED = "not_requested", "Not Requested"
         RECORDING = "recording", "Recording"
@@ -91,7 +104,10 @@ class LiveSession(TenantScopedModel):
         default=RecordingStatus.NOT_REQUESTED,
     )
     rescheduled_from = models.ForeignKey(
-        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="rescheduled_to",
         help_text="Original session this was rescheduled from",
     )
@@ -148,7 +164,9 @@ class InstructorAvailability(TenantScopedModel):
         SUNDAY = 6, "Sunday"
 
     instructor = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="availability_slots",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="availability_slots",
     )
     day_of_week = models.IntegerField(choices=DayOfWeek.choices)
     start_time = models.TimeField()
@@ -172,8 +190,11 @@ class SessionNote(TenantScopedModel):
         "accounts.User", on_delete=models.CASCADE, related_name="session_notes_written"
     )
     student = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="session_notes_about",
-        null=True, blank=True,
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="session_notes_about",
+        null=True,
+        blank=True,
     )
     content = models.TextField()
 

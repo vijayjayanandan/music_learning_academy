@@ -45,7 +45,9 @@ class TestAcademySetupFields(TestCase):
 
     def test_setup_status_default_is_new(self):
         """New academies should default to 'new' setup status."""
-        academy = Academy.objects.create(name="Default Status", slug="default-status-ob")
+        academy = Academy.objects.create(
+            name="Default Status", slug="default-status-ob"
+        )
         assert academy.setup_status == "new"
 
     def test_setup_status_choices(self):
@@ -122,7 +124,9 @@ class TestSetupProgress(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -200,13 +204,18 @@ class TestSetupWizard(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-wizard-ob@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-wizard-ob@test.com", password="testpass123"
+        )
         self.anon_client = Client()
 
     def test_owner_can_access_wizard(self):
@@ -219,7 +228,9 @@ class TestSetupWizard(TestCase):
     def test_student_cannot_access_wizard(self):
         """Students should get 403 (owner-only view)."""
         student_client = Client()
-        student_client.login(username="student-wizard-ob@test.com", password="testpass123")
+        student_client.login(
+            username="student-wizard-ob@test.com", password="testpass123"
+        )
         url = reverse("academy-setup", args=[self.academy.slug])
         response = student_client.get(url)
         assert response.status_code == 403
@@ -238,12 +249,15 @@ class TestSetupWizard(TestCase):
         self.academy.setup_status = "new"
         self.academy.save()
         url = reverse("academy-setup-step", args=[self.academy.slug, "basics"])
-        response = self.auth_client.post(url, {
-            "name": self.academy.name,
-            "description": "Updated description",
-            "timezone": "UTC",
-            "currency": "USD",
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "name": self.academy.name,
+                "description": "Updated description",
+                "timezone": "UTC",
+                "currency": "USD",
+            },
+        )
         assert response.status_code == 302
         assert "branding" in response.url
         self.academy.refresh_from_db()
@@ -254,10 +268,13 @@ class TestSetupWizard(TestCase):
         self.academy.setup_status = "basics_done"
         self.academy.save()
         url = reverse("academy-setup-step", args=[self.academy.slug, "branding"])
-        response = self.auth_client.post(url, {
-            "primary_color": "#ff5733",
-            "welcome_message": "Hello!",
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "primary_color": "#ff5733",
+                "welcome_message": "Hello!",
+            },
+        )
         assert response.status_code == 302
         assert "team" in response.url
         self.academy.refresh_from_db()
@@ -352,7 +369,9 @@ class TestDashboardSetupChecklist(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-checklist-ob@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-checklist-ob@test.com", password="testpass123"
+        )
 
     def test_checklist_shown_when_setup_incomplete(self):
         """Dashboard should show checklist when academy is not live."""
@@ -423,13 +442,18 @@ class TestShareLink(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-share-ob@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-share-ob@test.com", password="testpass123"
+        )
 
     def test_owner_can_access_share_page(self):
         """Owner should get 200 on the share page."""
@@ -448,7 +472,9 @@ class TestShareLink(TestCase):
     def test_student_cannot_access_share_page(self):
         """Students should get 403 on the share page."""
         student_client = Client()
-        student_client.login(username="student-share-ob@test.com", password="testpass123")
+        student_client.login(
+            username="student-share-ob@test.com", password="testpass123"
+        )
         url = reverse("academy-share", args=[self.academy.slug])
         response = student_client.get(url)
         assert response.status_code == 403
@@ -463,7 +489,9 @@ class TestShareLink(TestCase):
     def test_student_cannot_access_qr_code(self):
         """Students should get 403 on the QR code endpoint."""
         student_client = Client()
-        student_client.login(username="student-share-ob@test.com", password="testpass123")
+        student_client.login(
+            username="student-share-ob@test.com", password="testpass123"
+        )
         url = reverse("academy-qr-code", args=[self.academy.slug])
         response = student_client.get(url)
         assert response.status_code == 403
@@ -481,17 +509,20 @@ class TestCurrencyForm(TestCase):
     def test_currency_in_academy_form(self):
         """AcademyForm should include the currency field."""
         from apps.academies.forms import AcademyForm
+
         form = AcademyForm()
         assert "currency" in form.fields
 
     def test_basics_form_has_currency(self):
         """AcademyBasicsForm (wizard step 1) should include the currency field."""
         from apps.academies.forms import AcademyBasicsForm
+
         form = AcademyBasicsForm()
         assert "currency" in form.fields
 
     def test_branding_form_has_no_currency(self):
         """AcademyBrandingForm should NOT include currency (that is in basics)."""
         from apps.academies.forms import AcademyBrandingForm
+
         form = AcademyBrandingForm()
         assert "currency" not in form.fields

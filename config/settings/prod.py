@@ -7,6 +7,7 @@ DEBUG = False
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 if SENTRY_DSN:
     import sentry_sdk
+
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
@@ -94,9 +95,15 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 if os.environ.get("R2_ACCESS_KEY_ID") or os.environ.get("AWS_ACCESS_KEY_ID"):
     USE_R2_STORAGE = True
     DEFAULT_FILE_STORAGE = "apps.common.storage.PrivateMediaStorage"
-    AWS_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", os.environ.get("AWS_ACCESS_KEY_ID"))
-    AWS_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY", os.environ.get("AWS_SECRET_ACCESS_KEY"))
-    AWS_STORAGE_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME", os.environ.get("AWS_STORAGE_BUCKET_NAME"))
+    AWS_ACCESS_KEY_ID = os.environ.get(
+        "R2_ACCESS_KEY_ID", os.environ.get("AWS_ACCESS_KEY_ID")
+    )
+    AWS_SECRET_ACCESS_KEY = os.environ.get(
+        "R2_SECRET_ACCESS_KEY", os.environ.get("AWS_SECRET_ACCESS_KEY")
+    )
+    AWS_STORAGE_BUCKET_NAME = os.environ.get(
+        "R2_BUCKET_NAME", os.environ.get("AWS_STORAGE_BUCKET_NAME")
+    )
     AWS_S3_ENDPOINT_URL = os.environ.get("R2_ENDPOINT_URL", "")
     AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
     AWS_S3_SIGNATURE_VERSION = "s3v4"  # Required for Cloudflare R2

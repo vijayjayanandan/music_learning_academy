@@ -54,7 +54,9 @@ class TestLibraryEmptyState(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-ux-library@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-ux-library@test.com", password="testpass123"
+        )
 
     def test_empty_library_returns_200(self):
         response = self.auth_client.get(reverse("library-list"))
@@ -109,7 +111,9 @@ class TestNotificationsEmptyState(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-ux-notif@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-ux-notif@test.com", password="testpass123"
+        )
 
     def test_empty_notifications_returns_200(self):
         response = self.auth_client.get(reverse("notification-list"))
@@ -164,7 +168,9 @@ class TestPricingEmptyState(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-ux-pricing@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-ux-pricing@test.com", password="testpass123"
+        )
 
     def test_empty_pricing_returns_200(self):
         response = self.auth_client.get(reverse("pricing"))
@@ -225,7 +231,11 @@ class TestCourseDetailLearningOutcomes(TestCase):
         course = CourseFactory(
             academy=self.academy,
             instructor=self.owner,
-            learning_outcomes=["Read sheet music", "Play basic chords", "Understand rhythm"],
+            learning_outcomes=[
+                "Read sheet music",
+                "Play basic chords",
+                "Understand rhythm",
+            ],
         )
         url = reverse("course-detail", kwargs={"slug": course.slug})
         response = self.auth_client.get(url)
@@ -313,7 +323,9 @@ class TestStudentPriorityCTA(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -327,8 +339,11 @@ class TestStudentPriorityCTA(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
@@ -429,9 +444,7 @@ class TestStudentPriorityCTA(TestCase):
         """Student with assignment due within 48h sees 'Submit Assignment' CTA (priority 3)."""
         course = CourseFactory(academy=self.academy, instructor=self.instructor)
         lesson = LessonFactory(course=course, academy=self.academy)
-        EnrollmentFactory(
-            academy=self.academy, student=self.student, course=course
-        )
+        EnrollmentFactory(academy=self.academy, student=self.student, course=course)
         # Assignment due in 24 hours (within the 48h threshold)
         PracticeAssignmentFactory(
             academy=self.academy,
@@ -538,7 +551,9 @@ class TestProfileLearningPreferences(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -552,13 +567,18 @@ class TestProfileLearningPreferences(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-ux-profile@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-ux-profile@test.com", password="testpass123"
+        )
 
     def test_student_profile_shows_learning_preferences(self):
         """Student profile page shows the Learning Preferences card."""
@@ -642,14 +662,17 @@ class TestProfileLearningPreferences(TestCase):
         """Student can update learning preferences via profile edit form."""
         client = Client()
         client.force_login(self.student)
-        response = client.post(reverse("profile-edit"), {
-            "first_name": self.student.first_name,
-            "last_name": self.student.last_name,
-            "timezone": "UTC",
-            "skill_level": "advanced",
-            "learning_goal": "Perform at a recital",
-            "instruments": ["Guitar", "Voice"],
-        })
+        response = client.post(
+            reverse("profile-edit"),
+            {
+                "first_name": self.student.first_name,
+                "last_name": self.student.last_name,
+                "timezone": "UTC",
+                "skill_level": "advanced",
+                "learning_goal": "Perform at a recital",
+                "instruments": ["Guitar", "Voice"],
+            },
+        )
 
         assert response.status_code == 302  # redirect to profile on success
 
@@ -669,14 +692,17 @@ class TestProfileLearningPreferences(TestCase):
 
         client = Client()
         client.force_login(self.student)
-        response = client.post(reverse("profile-edit"), {
-            "first_name": self.student.first_name,
-            "last_name": self.student.last_name,
-            "timezone": "UTC",
-            "skill_level": "beginner",
-            "learning_goal": "",
-            # No instruments submitted
-        })
+        response = client.post(
+            reverse("profile-edit"),
+            {
+                "first_name": self.student.first_name,
+                "last_name": self.student.last_name,
+                "timezone": "UTC",
+                "skill_level": "beginner",
+                "learning_goal": "",
+                # No instruments submitted
+            },
+        )
 
         assert response.status_code == 302
         membership.refresh_from_db()
@@ -721,7 +747,9 @@ class TestSessionRegisterCopyImprovement(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -735,8 +763,11 @@ class TestSessionRegisterCopyImprovement(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
@@ -865,13 +896,18 @@ class TestStudentSidebarCollapsibleGroups(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-ux-sidebar@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-ux-sidebar@test.com", password="testpass123"
+        )
         self.student_client = Client()
         self.student_client.force_login(self.student)
 
@@ -1014,4 +1050,6 @@ class TestStudentSidebarCollapsibleGroups(TestCase):
         ]
         for url in urls_to_check:
             response = self.student_client.get(url, follow=True)
-            assert response.status_code == 200, f"URL {url} returned {response.status_code}"
+            assert response.status_code == 200, (
+                f"URL {url} returned {response.status_code}"
+            )

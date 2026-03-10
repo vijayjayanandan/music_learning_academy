@@ -10,7 +10,9 @@ def generate_room_name(academy_slug, session_id):
     return f"mla-{academy_slug}-{hash_suffix}"
 
 
-def generate_access_token(room_name, participant_identity, participant_name, is_instructor=False):
+def generate_access_token(
+    room_name, participant_identity, participant_name, is_instructor=False
+):
     """Generate a LiveKit JWT access token for a participant."""
     token = livekit_api.AccessToken(
         settings.LIVEKIT_API_KEY,
@@ -66,19 +68,21 @@ async def start_recording(room_name, filepath):
     )
     try:
         s3_output = livekit_api.S3Upload(
-            access_key=getattr(settings, 'R2_ACCESS_KEY_ID', ''),
-            secret=getattr(settings, 'R2_SECRET_ACCESS_KEY', ''),
-            bucket=getattr(settings, 'R2_BUCKET_NAME', ''),
-            endpoint=getattr(settings, 'R2_ENDPOINT_URL', ''),
-            region='auto',
+            access_key=getattr(settings, "R2_ACCESS_KEY_ID", ""),
+            secret=getattr(settings, "R2_SECRET_ACCESS_KEY", ""),
+            bucket=getattr(settings, "R2_BUCKET_NAME", ""),
+            endpoint=getattr(settings, "R2_ENDPOINT_URL", ""),
+            region="auto",
             filepath=filepath,
         )
         request = livekit_api.RoomCompositeEgressRequest(
             room_name=room_name,
-            file_outputs=[livekit_api.EncodedFileOutput(
-                file_type=livekit_api.EncodedFileType.MP4,
-                s3=s3_output,
-            )],
+            file_outputs=[
+                livekit_api.EncodedFileOutput(
+                    file_type=livekit_api.EncodedFileType.MP4,
+                    s3=s3_output,
+                )
+            ],
         )
         result = await lkapi.egress.start_room_composite_egress(request)
         return result.egress_id
@@ -94,6 +98,8 @@ async def stop_recording(egress_id):
         settings.LIVEKIT_API_SECRET,
     )
     try:
-        await lkapi.egress.stop_egress(livekit_api.StopEgressRequest(egress_id=egress_id))
+        await lkapi.egress.stop_egress(
+            livekit_api.StopEgressRequest(egress_id=egress_id)
+        )
     finally:
         await lkapi.aclose()

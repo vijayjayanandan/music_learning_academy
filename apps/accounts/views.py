@@ -28,10 +28,13 @@ def _send_verification_email(request, user):
     protocol = "https" if request.is_secure() else "http"
     domain = request.get_host()
     verify_url = f"{protocol}://{domain}/accounts/verify-email/{uid}/{token}/"
-    html_message = render_to_string("emails/verification_email.html", {
-        "user": user,
-        "verify_url": verify_url,
-    })
+    html_message = render_to_string(
+        "emails/verification_email.html",
+        {
+            "user": user,
+            "verify_url": verify_url,
+        },
+    )
     plain_message = (
         f"Hi {user.first_name or 'there'},\n\n"
         f"Please verify your email address by visiting:\n{verify_url}\n\n"
@@ -70,7 +73,9 @@ def _send_parental_consent_email(request, child, consent):
     )
 
 
-@method_decorator(ratelimit(key="ip", rate="5/5m", method="POST", block=True), name="post")
+@method_decorator(
+    ratelimit(key="ip", rate="5/5m", method="POST", block=True), name="post"
+)
 class CustomLoginView(LoginView):
     template_name = "accounts/login.html"
     redirect_authenticated_user = True
@@ -80,7 +85,9 @@ class CustomLogoutView(LogoutView):
     next_page = reverse_lazy("login")
 
 
-@method_decorator(ratelimit(key="ip", rate="3/10m", method="POST", block=True), name="post")
+@method_decorator(
+    ratelimit(key="ip", rate="3/10m", method="POST", block=True), name="post"
+)
 class RegisterView(CreateView):
     model = User
     form_class = RegisterForm
@@ -135,9 +142,13 @@ class RegisterView(CreateView):
             _send_parental_consent_email(self.request, user, consent)
 
             # Render the pending page instead of redirecting
-            return render(self.request, "accounts/parental_consent_pending.html", {
-                "parent_email": parent_email,
-            })
+            return render(
+                self.request,
+                "accounts/parental_consent_pending.html",
+                {
+                    "parent_email": parent_email,
+                },
+            )
 
         if update_fields:
             user.save(update_fields=update_fields)
@@ -164,7 +175,9 @@ class VerifyEmailView(View):
             return render(request, "accounts/email_verification_invalid.html")
 
 
-@method_decorator(ratelimit(key="ip", rate="2/10m", method="POST", block=True), name="post")
+@method_decorator(
+    ratelimit(key="ip", rate="2/10m", method="POST", block=True), name="post"
+)
 class ResendVerificationView(LoginRequiredMixin, View):
     def post(self, request):
         if not request.user.email_verified:
@@ -180,11 +193,15 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["memberships"] = self.request.user.memberships.select_related("academy").all()
+        ctx["memberships"] = self.request.user.memberships.select_related(
+            "academy"
+        ).all()
         # Add current membership for Learning Preferences section (students only)
         academy = getattr(self.request, "academy", None)
         if academy:
-            ctx["membership"] = self.request.user.memberships.filter(academy=academy).first()
+            ctx["membership"] = self.request.user.memberships.filter(
+                academy=academy
+            ).first()
         return ctx
 
 
@@ -195,7 +212,18 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy("profile")
 
     # Default instruments when academy doesn't specify any
-    DEFAULT_INSTRUMENTS = ["Piano", "Guitar", "Violin", "Voice", "Drums", "Bass", "Cello", "Flute", "Saxophone", "Other"]
+    DEFAULT_INSTRUMENTS = [
+        "Piano",
+        "Guitar",
+        "Violin",
+        "Voice",
+        "Drums",
+        "Bass",
+        "Cello",
+        "Flute",
+        "Saxophone",
+        "Other",
+    ]
 
     def get_object(self):
         return self.request.user
@@ -224,14 +252,20 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
         # Save learning preferences for student memberships
         membership = self._get_membership()
         if membership and membership.role == "student":
-            membership.skill_level = self.request.POST.get("skill_level", membership.skill_level)
-            membership.learning_goal = self.request.POST.get("learning_goal", membership.learning_goal)
+            membership.skill_level = self.request.POST.get(
+                "skill_level", membership.skill_level
+            )
+            membership.learning_goal = self.request.POST.get(
+                "learning_goal", membership.learning_goal
+            )
             instruments = self.request.POST.getlist("instruments")
             if instruments:
                 membership.instruments = instruments
             else:
                 membership.instruments = []
-            membership.save(update_fields=["skill_level", "learning_goal", "instruments"])
+            membership.save(
+                update_fields=["skill_level", "learning_goal", "instruments"]
+            )
         return response
 
 
@@ -244,7 +278,9 @@ class SwitchAcademyView(LoginRequiredMixin, View):
         return redirect("dashboard")
 
 
-@method_decorator(ratelimit(key="ip", rate="3/10m", method="POST", block=True), name="post")
+@method_decorator(
+    ratelimit(key="ip", rate="3/10m", method="POST", block=True), name="post"
+)
 class RateLimitedPasswordResetView(PasswordResetView):
     template_name = "accounts/password_reset_form.html"
     email_template_name = "accounts/password_reset_email.html"
@@ -262,16 +298,25 @@ class ParentDashboardView(LoginRequiredMixin, View):
         for child in children:
             from apps.enrollments.models import Enrollment
             from apps.practice.models import PracticeLog
+
             enrollments = Enrollment.objects.filter(student=child, status="active")
-            recent_practice = PracticeLog.objects.filter(student=child).order_by("-date")[:5]
-            children_data.append({
-                "user": child,
-                "enrollments": enrollments,
-                "recent_practice": recent_practice,
-            })
-        return render(request, "accounts/parent_dashboard.html", {
-            "children_data": children_data,
-        })
+            recent_practice = PracticeLog.objects.filter(student=child).order_by(
+                "-date"
+            )[:5]
+            children_data.append(
+                {
+                    "user": child,
+                    "enrollments": enrollments,
+                    "recent_practice": recent_practice,
+                }
+            )
+        return render(
+            request,
+            "accounts/parent_dashboard.html",
+            {
+                "children_data": children_data,
+            },
+        )
 
 
 class LinkChildView(LoginRequiredMixin, View):
@@ -284,26 +329,35 @@ class LinkChildView(LoginRequiredMixin, View):
 
     def post(self, request):
         from django.contrib import messages as django_messages
+
         child_email = request.POST.get("child_email", "").strip()
         try:
             child = User.objects.get(email=child_email)
             # Security: prevent linking if child already has a parent
             if child.parent is not None:
-                django_messages.error(request, "This account is already linked to a parent.")
+                django_messages.error(
+                    request, "This account is already linked to a parent."
+                )
                 return redirect("parent-dashboard")
             # Security: prevent linking yourself
             if child == request.user:
-                django_messages.error(request, "You cannot link your own account as a child.")
+                django_messages.error(
+                    request, "You cannot link your own account as a child."
+                )
                 return redirect("parent-dashboard")
             # Security: verify shared academy membership
             parent_academy_ids = set(
                 request.user.memberships.values_list("academy_id", flat=True)
             )
             child_academy_ids = set(
-                child.memberships.filter(role="student").values_list("academy_id", flat=True)
+                child.memberships.filter(role="student").values_list(
+                    "academy_id", flat=True
+                )
             )
             if not parent_academy_ids & child_academy_ids:
-                django_messages.error(request, "No shared academy found with this student.")
+                django_messages.error(
+                    request, "No shared academy found with this student."
+                )
                 return redirect("parent-dashboard")
             child.parent = request.user
             child.save(update_fields=["parent"])
@@ -377,12 +431,16 @@ class DataExportView(LoginRequiredMixin, View):
             },
             "memberships": list(
                 user.memberships.select_related("academy").values(
-                    "academy__name", "role", "joined_at",
+                    "academy__name",
+                    "role",
+                    "joined_at",
                 )
             ),
             "enrollments": list(
                 Enrollment.objects.filter(student=user).values(
-                    "course__title", "status", "enrolled_at",
+                    "course__title",
+                    "status",
+                    "enrolled_at",
                 )
             ),
             "assignment_submissions": submission_files,
@@ -390,7 +448,10 @@ class DataExportView(LoginRequiredMixin, View):
             "practice_analyses": analysis_files,
             "practice_logs": list(
                 PracticeLog.objects.filter(student=user).values(
-                    "date", "duration_minutes", "instrument", "notes",
+                    "date",
+                    "duration_minutes",
+                    "instrument",
+                    "notes",
                 )
             ),
         }
@@ -412,7 +473,9 @@ class AccountDeleteView(LoginRequiredMixin, View):
     def post(self, request):
         confirmation = request.POST.get("confirm_email", "")
         if confirmation != request.user.email:
-            messages.error(request, "Email confirmation did not match. Account not deleted.")
+            messages.error(
+                request, "Email confirmation did not match. Account not deleted."
+            )
             return redirect("account-delete")
         user = request.user
         logout(request)
@@ -432,6 +495,7 @@ class ApproveParentalConsentView(TemplateView):
 
         try:
             from apps.accounts.models import ParentalConsent
+
             consent = ParentalConsent.objects.get(token=token)
         except ParentalConsent.DoesNotExist:
             ctx["success"] = False
@@ -439,6 +503,7 @@ class ApproveParentalConsentView(TemplateView):
             return ctx
 
         from django.utils import timezone as tz
+
         now = tz.now()
 
         if consent.expires_at < now:
@@ -472,6 +537,7 @@ class _DjangoJSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
         from datetime import date, datetime
+
         if isinstance(obj, (date, datetime)):
             return obj.isoformat()
         return super().default(obj)

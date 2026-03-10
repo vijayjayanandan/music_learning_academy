@@ -16,7 +16,6 @@ def migrate_livekit_to_jitsi(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("scheduling", "0005_livesession_external_meeting_url_and_more"),
     ]

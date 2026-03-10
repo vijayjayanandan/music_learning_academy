@@ -40,6 +40,7 @@ def get_public_storage():
     if getattr(settings, "USE_R2_STORAGE", False):
         return PublicMediaStorage()
     from django.core.files.storage import default_storage
+
     return default_storage
 
 
@@ -48,6 +49,7 @@ def get_private_storage():
     if getattr(settings, "USE_R2_STORAGE", False):
         return PrivateMediaStorage()
     from django.core.files.storage import default_storage
+
     return default_storage
 
 

@@ -12,7 +12,6 @@ from apps.scheduling.models import LiveSession
 
 @pytest.mark.integration
 class TestJoinSessionLivekitConfig(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.academy = Academy.objects.create(
@@ -28,7 +27,9 @@ class TestJoinSessionLivekitConfig(TestCase):
         )
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
-        Membership.objects.create(user=cls.instructor, academy=cls.academy, role="instructor")
+        Membership.objects.create(
+            user=cls.instructor, academy=cls.academy, role="instructor"
+        )
 
         cls.student = User.objects.create_user(
             username="vid_student_joinconfig",
@@ -50,9 +51,13 @@ class TestJoinSessionLivekitConfig(TestCase):
 
     def setUp(self):
         self.instructor_client = Client()
-        self.instructor_client.login(username="vidinst-joinconfig@test.com", password="testpass123")
+        self.instructor_client.login(
+            username="vidinst-joinconfig@test.com", password="testpass123"
+        )
         self.student_client = Client()
-        self.student_client.login(username="vidstu-joinconfig@test.com", password="testpass123")
+        self.student_client.login(
+            username="vidstu-joinconfig@test.com", password="testpass123"
+        )
 
     @override_settings(
         LIVEKIT_URL="wss://test.livekit.cloud",

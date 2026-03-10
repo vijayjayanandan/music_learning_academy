@@ -46,11 +46,14 @@ class PracticeLogListView(TenantMixin, ListView):
         ctx["form"] = PracticeLogForm()
         today = timezone.now().date()
         week_start = today - timedelta(days=today.weekday())
-        ctx["weekly_minutes"] = PracticeLog.objects.filter(
-            student=self.request.user,
-            academy=self.get_academy(),
-            date__gte=week_start,
-        ).aggregate(total=Sum("duration_minutes"))["total"] or 0
+        ctx["weekly_minutes"] = (
+            PracticeLog.objects.filter(
+                student=self.request.user,
+                academy=self.get_academy(),
+                date__gte=week_start,
+            ).aggregate(total=Sum("duration_minutes"))["total"]
+            or 0
+        )
 
         # Calculate streak
         streak = 0

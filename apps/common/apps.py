@@ -7,4 +7,5 @@ class CommonConfig(AppConfig):
 
     def ready(self):
         from apps.common.signals import connect_file_cleanup_signals
+
         connect_file_cleanup_signals()

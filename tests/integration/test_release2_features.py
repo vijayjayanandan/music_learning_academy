@@ -1,4 +1,5 @@
 """Tests for FEAT-013 through FEAT-022 (Release 2: Retention)."""
+
 import pytest
 from datetime import date, timedelta
 from django.test import TestCase, Client
@@ -49,8 +50,11 @@ class TestPracticeJournal(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
@@ -84,13 +88,16 @@ class TestPracticeJournal(TestCase):
         assert response.status_code == 200
 
     def test_create_practice_log(self):
-        response = self.auth_client.post(reverse("practice-log-create"), {
-            "date": date.today().isoformat(),
-            "duration_minutes": 45,
-            "instrument": "Guitar",
-            "pieces_worked_on": "Stairway to Heaven",
-            "notes": "Worked on solo section",
-        })
+        response = self.auth_client.post(
+            reverse("practice-log-create"),
+            {
+                "date": date.today().isoformat(),
+                "duration_minutes": 45,
+                "instrument": "Guitar",
+                "pieces_worked_on": "Stairway to Heaven",
+                "notes": "Worked on solo section",
+            },
+        )
         assert response.status_code == 302
         assert PracticeLog.objects.filter(student=self.owner).exists()
 
@@ -132,9 +139,12 @@ class TestPracticeStreaksAndGoals(TestCase):
         assert hasattr(PracticeGoal, "is_active")
 
     def test_set_goal(self):
-        response = self.auth_client.post(reverse("practice-set-goal"), {
-            "weekly_minutes_target": 180,
-        })
+        response = self.auth_client.post(
+            reverse("practice-set-goal"),
+            {
+                "weekly_minutes_target": 180,
+            },
+        )
         assert response.status_code == 302
         goal = PracticeGoal.objects.get(student=self.owner, academy=self.academy)
         assert goal.weekly_minutes_target == 180
@@ -160,12 +170,18 @@ class TestPracticeStreaksAndGoals(TestCase):
         today = date.today()
         week_start = today - timedelta(days=today.weekday())
         PracticeLog.objects.create(
-            student=self.owner, academy=self.academy,
-            date=week_start, duration_minutes=60, instrument="Piano",
+            student=self.owner,
+            academy=self.academy,
+            date=week_start,
+            duration_minutes=60,
+            instrument="Piano",
         )
         PracticeLog.objects.create(
-            student=self.owner, academy=self.academy,
-            date=week_start + timedelta(days=1), duration_minutes=45, instrument="Piano",
+            student=self.owner,
+            academy=self.academy,
+            date=week_start + timedelta(days=1),
+            duration_minutes=45,
+            instrument="Piano",
         )
         response = self.auth_client.get(reverse("practice-log-list"))
         assert response.context["weekly_minutes"] == 105
@@ -196,7 +212,9 @@ class TestRubricGrading(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -205,37 +223,57 @@ class TestRubricGrading(TestCase):
 
     def test_rubric_scores_default_empty(self):
         course = Course.objects.create(
-            title="Test Course", slug="rel2-rubric-course",
-            description="Test", instructor=self.instructor, academy=self.academy,
+            title="Test Course",
+            slug="rel2-rubric-course",
+            description="Test",
+            instructor=self.instructor,
+            academy=self.academy,
             instrument="Piano",
         )
         lesson = Lesson.objects.create(
-            course=course, title="Lesson 1", academy=self.academy, order=1,
+            course=course,
+            title="Lesson 1",
+            academy=self.academy,
+            order=1,
         )
         assignment = PracticeAssignment.objects.create(
-            lesson=lesson, title="Play scales", description="Play all major scales",
+            lesson=lesson,
+            title="Play scales",
+            description="Play all major scales",
             academy=self.academy,
         )
         sub = AssignmentSubmission.objects.create(
-            assignment=assignment, student=self.instructor, academy=self.academy,
+            assignment=assignment,
+            student=self.instructor,
+            academy=self.academy,
         )
         assert sub.rubric_scores == {}
 
     def test_rubric_scores_stores_json(self):
         course = Course.objects.create(
-            title="Rubric Course", slug="rel2-rubric-course-2",
-            description="Test", instructor=self.instructor, academy=self.academy,
+            title="Rubric Course",
+            slug="rel2-rubric-course-2",
+            description="Test",
+            instructor=self.instructor,
+            academy=self.academy,
             instrument="Piano",
         )
         lesson = Lesson.objects.create(
-            course=course, title="Lesson 1", academy=self.academy, order=1,
+            course=course,
+            title="Lesson 1",
+            academy=self.academy,
+            order=1,
         )
         assignment = PracticeAssignment.objects.create(
-            lesson=lesson, title="Performance", description="Play sonata",
+            lesson=lesson,
+            title="Performance",
+            description="Play sonata",
             academy=self.academy,
         )
         sub = AssignmentSubmission.objects.create(
-            assignment=assignment, student=self.instructor, academy=self.academy,
+            assignment=assignment,
+            student=self.instructor,
+            academy=self.academy,
             rubric_scores={"tone": 8, "rhythm": 7, "technique": 9, "expression": 8},
         )
         sub.refresh_from_db()
@@ -268,7 +306,9 @@ class TestSessionNotes(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -282,8 +322,11 @@ class TestSessionNotes(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def test_session_note_model_fields(self):
@@ -337,7 +380,9 @@ class TestRecurringSessions(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -415,7 +460,9 @@ class TestCoursePrerequisites(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -424,13 +471,19 @@ class TestCoursePrerequisites(TestCase):
 
     def test_add_prerequisite(self):
         course1 = Course.objects.create(
-            title="Piano Basics", slug="rel2-piano-basics",
-            description="Beginner", instructor=self.instructor, academy=self.academy,
+            title="Piano Basics",
+            slug="rel2-piano-basics",
+            description="Beginner",
+            instructor=self.instructor,
+            academy=self.academy,
             instrument="Piano",
         )
         course2 = Course.objects.create(
-            title="Piano Intermediate", slug="rel2-piano-intermediate",
-            description="Intermediate", instructor=self.instructor, academy=self.academy,
+            title="Piano Intermediate",
+            slug="rel2-piano-intermediate",
+            description="Intermediate",
+            instructor=self.instructor,
+            academy=self.academy,
             instrument="Piano",
         )
         course2.prerequisite_courses.add(course1)
@@ -472,12 +525,18 @@ class TestCertificateOfCompletion(TestCase):
 
     def test_certificate_requires_completed_enrollment(self):
         course = Course.objects.create(
-            title="Cert Course", slug="rel2-cert-course",
-            description="Test", instructor=self.owner, academy=self.academy,
+            title="Cert Course",
+            slug="rel2-cert-course",
+            description="Test",
+            instructor=self.owner,
+            academy=self.academy,
             instrument="Piano",
         )
         enrollment = Enrollment.objects.create(
-            student=self.owner, course=course, academy=self.academy, status="active",
+            student=self.owner,
+            course=course,
+            academy=self.academy,
+            status="active",
         )
         # Should 404 since enrollment is not completed
         response = self.auth_client.get(reverse("certificate", args=[enrollment.pk]))
@@ -485,12 +544,18 @@ class TestCertificateOfCompletion(TestCase):
 
     def test_certificate_renders_for_completed(self):
         course = Course.objects.create(
-            title="Completed Course", slug="rel2-completed-course",
-            description="Test", instructor=self.owner, academy=self.academy,
+            title="Completed Course",
+            slug="rel2-completed-course",
+            description="Test",
+            instructor=self.owner,
+            academy=self.academy,
             instrument="Piano",
         )
         enrollment = Enrollment.objects.create(
-            student=self.owner, course=course, academy=self.academy, status="completed",
+            student=self.owner,
+            course=course,
+            academy=self.academy,
+            status="completed",
         )
         response = self.auth_client.get(reverse("certificate", args=[enrollment.pk]))
         assert response.status_code == 200
@@ -553,10 +618,16 @@ class TestAcademyAnnouncements(TestCase):
 
     def test_announcements_ordering(self):
         Announcement.objects.create(
-            academy=self.academy, author=self.owner, title="Regular", body="...",
+            academy=self.academy,
+            author=self.owner,
+            title="Regular",
+            body="...",
         )
         Announcement.objects.create(
-            academy=self.academy, author=self.owner, title="Pinned", body="...",
+            academy=self.academy,
+            author=self.owner,
+            title="Pinned",
+            body="...",
             is_pinned=True,
         )
         announcements = Announcement.objects.filter(academy=self.academy)
@@ -597,8 +668,11 @@ class TestGroupChat(TestCase):
 
     def test_course_chat_loads(self):
         course = Course.objects.create(
-            title="Chat Course", slug="rel2-chat-course",
-            description="Test", instructor=self.owner, academy=self.academy,
+            title="Chat Course",
+            slug="rel2-chat-course",
+            description="Test",
+            instructor=self.owner,
+            academy=self.academy,
             instrument="Piano",
         )
         response = self.auth_client.get(reverse("course-chat", args=[course.slug]))
@@ -608,8 +682,11 @@ class TestGroupChat(TestCase):
         from apps.notifications.models import ChatMessage
 
         course = Course.objects.create(
-            title="Chat Course 2", slug="rel2-chat-course-2",
-            description="Test", instructor=self.owner, academy=self.academy,
+            title="Chat Course 2",
+            slug="rel2-chat-course-2",
+            description="Test",
+            instructor=self.owner,
+            academy=self.academy,
             instrument="Piano",
         )
         response = self.auth_client.post(

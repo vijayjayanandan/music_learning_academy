@@ -9,18 +9,37 @@ from apps.academies.mixins import TenantMixin
 from .models import LibraryResource
 
 ALLOWED_LIBRARY_EXTENSIONS = {
-    '.pdf', '.doc', '.docx', '.txt', '.rtf',
-    '.png', '.jpg', '.jpeg', '.gif', '.svg',
-    '.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac',
-    '.mp4', '.webm', '.mov',
-    '.mid', '.midi', '.musicxml', '.mxl',
-    '.zip',
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".txt",
+    ".rtf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".mp3",
+    ".wav",
+    ".ogg",
+    ".flac",
+    ".m4a",
+    ".aac",
+    ".mp4",
+    ".webm",
+    ".mov",
+    ".mid",
+    ".midi",
+    ".musicxml",
+    ".mxl",
+    ".zip",
 }
 MAX_LIBRARY_FILE_SIZE = 100 * 1024 * 1024  # 100MB
 
 
 class LibraryListView(TenantMixin, ListView):
     """FEAT-042: Content library - browse and search."""
+
     model = LibraryResource
     template_name = "library/list.html"
     context_object_name = "resources"
@@ -50,16 +69,22 @@ class LibraryUploadView(TenantMixin, View):
 
     def dispatch(self, request, *args, **kwargs):
         # Security: only instructors and owners can upload library resources
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             role = request.user.get_role_in(request.academy)
             if role not in ("owner", "instructor"):
-                return HttpResponseForbidden("Only instructors and owners can upload library resources.")
+                return HttpResponseForbidden(
+                    "Only instructors and owners can upload library resources."
+                )
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        return render(request, "library/upload.html", {
-            "resource_types": LibraryResource.ResourceType.choices,
-        })
+        return render(
+            request,
+            "library/upload.html",
+            {
+                "resource_types": LibraryResource.ResourceType.choices,
+            },
+        )
 
     def post(self, request):
         if request.FILES.get("file"):
@@ -68,10 +93,12 @@ class LibraryUploadView(TenantMixin, View):
             ext = os.path.splitext(uploaded_file.name)[1].lower()
             if ext not in ALLOWED_LIBRARY_EXTENSIONS:
                 from django.contrib import messages
+
                 messages.error(request, f"File type '{ext}' is not allowed.")
                 return redirect("library-upload")
             if uploaded_file.size > MAX_LIBRARY_FILE_SIZE:
                 from django.contrib import messages
+
                 messages.error(request, "File exceeds the 100MB size limit.")
                 return redirect("library-upload")
             LibraryResource.objects.create(
@@ -93,7 +120,9 @@ class LibraryDetailView(TenantMixin, View):
 
     def get(self, request, pk):
         resource = get_object_or_404(
-            LibraryResource, pk=pk, academy=self.get_academy(),
+            LibraryResource,
+            pk=pk,
+            academy=self.get_academy(),
         )
         resource.download_count += 1
         resource.save(update_fields=["download_count"])
@@ -107,9 +136,13 @@ class LibraryDeleteView(TenantMixin, View):
         # Security: only owners and instructors can delete library resources
         role = request.user.get_role_in(self.get_academy())
         if role not in ("owner", "instructor"):
-            return HttpResponseForbidden("Only instructors and owners can delete library resources.")
+            return HttpResponseForbidden(
+                "Only instructors and owners can delete library resources."
+            )
         resource = get_object_or_404(
-            LibraryResource, pk=pk, academy=self.get_academy(),
+            LibraryResource,
+            pk=pk,
+            academy=self.get_academy(),
         )
         resource.delete()
         return redirect("library-list")

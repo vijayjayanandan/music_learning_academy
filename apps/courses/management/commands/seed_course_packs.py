@@ -33,13 +33,16 @@ class Command(BaseCommand):
         try:
             academy = Academy.objects.get(slug=options["academy"])
         except Academy.DoesNotExist:
-            self.stderr.write(self.style.ERROR(
-                f"Academy '{options['academy']}' not found. Run seed_demo_data first."
-            ))
+            self.stderr.write(
+                self.style.ERROR(
+                    f"Academy '{options['academy']}' not found. Run seed_demo_data first."
+                )
+            )
             return
 
         # Get an instructor to assign courses to
         from apps.accounts.models import Membership
+
         instructor_membership = Membership.objects.filter(
             academy=academy, role="instructor"
         ).first()
@@ -49,7 +52,9 @@ class Command(BaseCommand):
                 academy=academy, role="owner"
             ).first()
         if not instructor_membership:
-            self.stderr.write(self.style.ERROR("No instructor or owner found in this academy."))
+            self.stderr.write(
+                self.style.ERROR("No instructor or owner found in this academy.")
+            )
             return
 
         instructor = instructor_membership.user
@@ -91,7 +96,9 @@ class Command(BaseCommand):
                 "difficulty_level": course_data["difficulty_level"],
                 "prerequisites": course_data.get("prerequisites", ""),
                 "learning_outcomes": course_data.get("learning_outcomes", []),
-                "estimated_duration_weeks": course_data.get("estimated_duration_weeks", 12),
+                "estimated_duration_weeks": course_data.get(
+                    "estimated_duration_weeks", 12
+                ),
                 "max_students": course_data.get("max_students", 30),
                 "is_published": True,
                 "published_at": timezone.now(),
@@ -114,7 +121,9 @@ class Command(BaseCommand):
                 order=lesson_data["order"],
                 content=self._md_to_html(lesson_data.get("content", "")),
                 topics=lesson_data.get("topics", []),
-                estimated_duration_minutes=lesson_data.get("estimated_duration_minutes", 30),
+                estimated_duration_minutes=lesson_data.get(
+                    "estimated_duration_minutes", 30
+                ),
                 is_published=True,
             )
             self.stdout.write(f"    Lesson {lesson.order}: {lesson.title}")
@@ -126,7 +135,9 @@ class Command(BaseCommand):
                     title=assignment_data["title"],
                     description=assignment_data["description"],
                     assignment_type=assignment_data.get("type", "practice"),
-                    practice_minutes_target=assignment_data.get("practice_minutes_target", 30),
+                    practice_minutes_target=assignment_data.get(
+                        "practice_minutes_target", 30
+                    ),
                     tempo_bpm=assignment_data.get("tempo_bpm"),
                     instructions=assignment_data.get("instructions", ""),
                 )
@@ -137,4 +148,5 @@ class Command(BaseCommand):
     def _load_hindustani_vocal(self, academy, instructor):
         self.stdout.write("\nLoading: Hindustani Vocal Foundations...")
         from apps.courses.course_packs.hindustani_vocal import COURSE, LESSONS
+
         self._load_course_pack(academy, instructor, COURSE, LESSONS)

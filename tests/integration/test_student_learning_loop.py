@@ -56,7 +56,9 @@ class TestLessonNavigation(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -70,25 +72,38 @@ class TestLessonNavigation(TestCase):
             is_published=True,
         )
         cls.lesson1 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson One", order=1,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson One",
+            order=1,
             estimated_duration_minutes=30,
         )
         cls.lesson2 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Two", order=2,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Two",
+            order=2,
             estimated_duration_minutes=45,
         )
         cls.lesson3 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Three", order=3,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Three",
+            order=3,
             estimated_duration_minutes=60,
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="sll-nav-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="sll-nav-owner@test.com", password="testpass123"
+        )
 
     def test_lesson_shows_position_indicator(self):
         """Lesson page should show 'Lesson X of Y' indicator."""
-        url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson2.pk})
+        url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson2.pk}
+        )
         response = self.auth_client.get(url)
         assert response.status_code == 200
         content = response.content.decode()
@@ -96,7 +111,9 @@ class TestLessonNavigation(TestCase):
 
     def test_first_lesson_has_no_prev(self):
         """First lesson should not have a Previous Lesson link."""
-        url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk})
+        url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk}
+        )
         response = self.auth_client.get(url)
         content = response.content.decode()
         assert "Previous Lesson" not in content
@@ -104,7 +121,9 @@ class TestLessonNavigation(TestCase):
 
     def test_middle_lesson_has_both_nav(self):
         """Middle lesson should have both Previous and Next links."""
-        url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson2.pk})
+        url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson2.pk}
+        )
         response = self.auth_client.get(url)
         content = response.content.decode()
         assert "Previous Lesson" in content
@@ -112,7 +131,9 @@ class TestLessonNavigation(TestCase):
 
     def test_last_lesson_shows_back_to_course(self):
         """Last lesson should show 'Back to Course' instead of 'Next Lesson'."""
-        url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson3.pk})
+        url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson3.pk}
+        )
         response = self.auth_client.get(url)
         content = response.content.decode()
         assert "Previous Lesson" in content
@@ -121,7 +142,9 @@ class TestLessonNavigation(TestCase):
 
     def test_context_has_navigation_data(self):
         """View context should include prev_lesson, next_lesson, lesson_number, total_lessons."""
-        url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson2.pk})
+        url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson2.pk}
+        )
         response = self.auth_client.get(url)
         assert response.context["lesson_number"] == 2
         assert response.context["total_lessons"] == 3
@@ -131,7 +154,9 @@ class TestLessonNavigation(TestCase):
     def test_unauthenticated_cannot_view_lesson(self):
         """Unauthenticated user should be redirected to login."""
         anon_client = Client()
-        url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk})
+        url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk}
+        )
         response = anon_client.get(url)
         assert response.status_code == 302
         assert "/accounts/login/" in response.url
@@ -167,7 +192,9 @@ class TestPostEnrollmentRedirect(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -181,8 +208,11 @@ class TestPostEnrollmentRedirect(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.course = Course.objects.create(
@@ -195,27 +225,40 @@ class TestPostEnrollmentRedirect(TestCase):
             is_published=True,
         )
         cls.lesson1 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson One", order=1,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson One",
+            order=1,
             estimated_duration_minutes=30,
         )
         cls.lesson2 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Two", order=2,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Two",
+            order=2,
             estimated_duration_minutes=45,
         )
         cls.lesson3 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Three", order=3,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Three",
+            order=3,
             estimated_duration_minutes=60,
         )
 
     def setUp(self):
         self.student_client = Client()
-        self.student_client.login(username="sll-enroll-student@test.com", password="testpass123")
+        self.student_client.login(
+            username="sll-enroll-student@test.com", password="testpass123"
+        )
 
     def test_enroll_redirects_to_first_lesson(self):
         """After enrolling, student should be redirected to the first lesson."""
         url = reverse("enroll", kwargs={"slug": self.course.slug})
         response = self.student_client.post(url)
-        expected_url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk})
+        expected_url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk}
+        )
         assert response.status_code == 302
         assert expected_url in response.url
 
@@ -224,15 +267,21 @@ class TestPostEnrollmentRedirect(TestCase):
         url = reverse("enroll", kwargs={"slug": self.course.slug})
         response = self.student_client.post(url, HTTP_HX_REQUEST="true")
         assert response.status_code == 204
-        expected_url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk})
+        expected_url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk}
+        )
         assert response["HX-Redirect"] == expected_url
 
     def test_enroll_no_lessons_falls_back(self):
         """If course has no lessons, enrollment should fall back to course detail."""
         course = Course.objects.create(
-            academy=self.academy, title="Empty Course", slug="sll-enroll-empty-course",
-            description="No lessons", instructor=self.instructor,
-            instrument="Piano", is_published=True,
+            academy=self.academy,
+            title="Empty Course",
+            slug="sll-enroll-empty-course",
+            description="No lessons",
+            instructor=self.instructor,
+            instrument="Piano",
+            is_published=True,
         )
         url = reverse("enroll", kwargs={"slug": course.slug})
         response = self.student_client.post(url)
@@ -278,7 +327,9 @@ class TestContinueLearning(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -292,8 +343,11 @@ class TestContinueLearning(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.course = Course.objects.create(
@@ -306,30 +360,46 @@ class TestContinueLearning(TestCase):
             is_published=True,
         )
         cls.lesson1 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson One", order=1,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson One",
+            order=1,
             estimated_duration_minutes=30,
         )
         cls.lesson2 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Two", order=2,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Two",
+            order=2,
             estimated_duration_minutes=45,
         )
         cls.lesson3 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Three", order=3,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Three",
+            order=3,
             estimated_duration_minutes=60,
         )
 
     def setUp(self):
         self.student_client = Client()
-        self.student_client.login(username="sll-continue-student@test.com", password="testpass123")
+        self.student_client.login(
+            username="sll-continue-student@test.com", password="testpass123"
+        )
 
     def test_continue_learning_shows_first_incomplete_lesson(self):
         """Dashboard should show the first incomplete lesson."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         # Mark first lesson as complete
         LessonProgress.objects.create(
-            academy=self.academy, enrollment=enrollment, lesson=self.lesson1, is_completed=True,
+            academy=self.academy,
+            enrollment=enrollment,
+            lesson=self.lesson1,
+            is_completed=True,
         )
 
         url = reverse("student-dashboard")
@@ -343,7 +413,9 @@ class TestContinueLearning(TestCase):
     def test_continue_learning_context_data(self):
         """Context should include continue_learning dict with correct data."""
         Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
 
         url = reverse("student-dashboard")
@@ -353,7 +425,9 @@ class TestContinueLearning(TestCase):
         assert cl["course_title"] == self.course.title
         assert cl["lesson_title"] == self.lesson1.title
         assert cl["progress_percent"] == 0
-        expected_url = reverse("lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk})
+        expected_url = reverse(
+            "lesson-detail", kwargs={"slug": self.course.slug, "pk": self.lesson1.pk}
+        )
         assert cl["lesson_url"] == expected_url
 
     def test_no_continue_learning_when_no_enrollments(self):
@@ -403,7 +477,9 @@ class TestLessonStatusDisplay(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -417,8 +493,11 @@ class TestLessonStatusDisplay(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.course = Course.objects.create(
@@ -431,26 +510,39 @@ class TestLessonStatusDisplay(TestCase):
             is_published=True,
         )
         cls.lesson1 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson One", order=1,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson One",
+            order=1,
             estimated_duration_minutes=30,
         )
         cls.lesson2 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Two", order=2,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Two",
+            order=2,
             estimated_duration_minutes=45,
         )
         cls.lesson3 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Three", order=3,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Three",
+            order=3,
             estimated_duration_minutes=60,
         )
 
     def setUp(self):
         self.student_client = Client()
-        self.student_client.login(username="sll-status-student@test.com", password="testpass123")
+        self.student_client.login(
+            username="sll-status-student@test.com", password="testpass123"
+        )
 
     def test_not_started_shows_badge(self):
         """Lessons with no progress should show 'Not started' badge."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -460,10 +552,15 @@ class TestLessonStatusDisplay(TestCase):
     def test_completed_shows_badge(self):
         """Completed lessons should show 'Complete' badge."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         LessonProgress.objects.create(
-            academy=self.academy, enrollment=enrollment, lesson=self.lesson1, is_completed=True,
+            academy=self.academy,
+            enrollment=enrollment,
+            lesson=self.lesson1,
+            is_completed=True,
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -473,15 +570,23 @@ class TestLessonStatusDisplay(TestCase):
     def test_submitted_shows_badge(self):
         """Lessons with submitted assignments should show 'Submitted' badge."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         assignment = PracticeAssignment.objects.create(
-            academy=self.academy, lesson=self.lesson1, title="Practice Scales",
-            description="Practice all scales", assignment_type="practice",
+            academy=self.academy,
+            lesson=self.lesson1,
+            title="Practice Scales",
+            description="Practice all scales",
+            assignment_type="practice",
         )
         AssignmentSubmission.objects.create(
-            academy=self.academy, assignment=assignment, student=self.student,
-            text_response="Done", status="submitted",
+            academy=self.academy,
+            assignment=assignment,
+            student=self.student,
+            text_response="Done",
+            status="submitted",
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -491,15 +596,23 @@ class TestLessonStatusDisplay(TestCase):
     def test_needs_revision_shows_badge(self):
         """Lessons with needs_revision submissions should show 'Needs Revision' badge."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         assignment = PracticeAssignment.objects.create(
-            academy=self.academy, lesson=self.lesson1, title="Practice Scales",
-            description="Practice all scales", assignment_type="practice",
+            academy=self.academy,
+            lesson=self.lesson1,
+            title="Practice Scales",
+            description="Practice all scales",
+            assignment_type="practice",
         )
         AssignmentSubmission.objects.create(
-            academy=self.academy, assignment=assignment, student=self.student,
-            text_response="Done", status="needs_revision",
+            academy=self.academy,
+            assignment=assignment,
+            student=self.student,
+            text_response="Done",
+            status="needs_revision",
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -509,15 +622,23 @@ class TestLessonStatusDisplay(TestCase):
     def test_reviewed_shows_badge(self):
         """Lessons with reviewed submissions should show 'Reviewed' badge."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         assignment = PracticeAssignment.objects.create(
-            academy=self.academy, lesson=self.lesson1, title="Practice Scales",
-            description="Practice all scales", assignment_type="practice",
+            academy=self.academy,
+            lesson=self.lesson1,
+            title="Practice Scales",
+            description="Practice all scales",
+            assignment_type="practice",
         )
         AssignmentSubmission.objects.create(
-            academy=self.academy, assignment=assignment, student=self.student,
-            text_response="Done", status="reviewed",
+            academy=self.academy,
+            assignment=assignment,
+            student=self.student,
+            text_response="Done",
+            status="reviewed",
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -527,10 +648,14 @@ class TestLessonStatusDisplay(TestCase):
     def test_other_student_cannot_view_enrollment(self):
         """Another student should not be able to view someone else's enrollment."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         other_user = User.objects.create_user(
-            username="sll-status-other", email="sll-status-other@test.com", password="testpass123",
+            username="sll-status-other",
+            email="sll-status-other@test.com",
+            password="testpass123",
         )
         other_user.current_academy = self.academy
         other_user.save()
@@ -544,7 +669,9 @@ class TestLessonStatusDisplay(TestCase):
     def test_lesson_data_in_context(self):
         """Context lesson_data items should have lesson and is_completed fields."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -586,7 +713,9 @@ class TestEnrollmentDetailCTA(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -600,8 +729,11 @@ class TestEnrollmentDetailCTA(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.course = Course.objects.create(
@@ -614,26 +746,39 @@ class TestEnrollmentDetailCTA(TestCase):
             is_published=True,
         )
         cls.lesson1 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson One", order=1,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson One",
+            order=1,
             estimated_duration_minutes=30,
         )
         cls.lesson2 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Two", order=2,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Two",
+            order=2,
             estimated_duration_minutes=45,
         )
         cls.lesson3 = Lesson.objects.create(
-            academy=cls.academy, course=cls.course, title="Lesson Three", order=3,
+            academy=cls.academy,
+            course=cls.course,
+            title="Lesson Three",
+            order=3,
             estimated_duration_minutes=60,
         )
 
     def setUp(self):
         self.student_client = Client()
-        self.student_client.login(username="sll-cta-student@test.com", password="testpass123")
+        self.student_client.login(
+            username="sll-cta-student@test.com", password="testpass123"
+        )
 
     def test_zero_progress_shows_start_cta(self):
         """At 0% progress, enrollment detail should show 'Start First Lesson' CTA."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -650,7 +795,9 @@ class TestEnrollmentDetailCTA(TestCase):
     def test_zero_progress_context_has_first_incomplete_lesson(self):
         """At 0% progress, context should have first_incomplete_lesson set to first lesson."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -660,11 +807,16 @@ class TestEnrollmentDetailCTA(TestCase):
     def test_partial_progress_shows_continue_cta(self):
         """At partial progress, enrollment detail should show 'Continue Lesson' CTA."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         # Mark first lesson complete
         LessonProgress.objects.create(
-            academy=self.academy, enrollment=enrollment, lesson=self.lesson1, is_completed=True,
+            academy=self.academy,
+            enrollment=enrollment,
+            lesson=self.lesson1,
+            is_completed=True,
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -684,14 +836,22 @@ class TestEnrollmentDetailCTA(TestCase):
     def test_partial_progress_context_has_correct_lesson(self):
         """At partial progress, first_incomplete_lesson should be the next incomplete lesson."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         # Mark first two lessons complete
         LessonProgress.objects.create(
-            academy=self.academy, enrollment=enrollment, lesson=self.lesson1, is_completed=True,
+            academy=self.academy,
+            enrollment=enrollment,
+            lesson=self.lesson1,
+            is_completed=True,
         )
         LessonProgress.objects.create(
-            academy=self.academy, enrollment=enrollment, lesson=self.lesson2, is_completed=True,
+            academy=self.academy,
+            enrollment=enrollment,
+            lesson=self.lesson2,
+            is_completed=True,
         )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -702,12 +862,17 @@ class TestEnrollmentDetailCTA(TestCase):
     def test_complete_progress_shows_congratulations(self):
         """At 100% progress, enrollment detail should show congratulations message."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         # Mark all lessons complete
         for lesson in [self.lesson1, self.lesson2, self.lesson3]:
             LessonProgress.objects.create(
-                academy=self.academy, enrollment=enrollment, lesson=lesson, is_completed=True,
+                academy=self.academy,
+                enrollment=enrollment,
+                lesson=lesson,
+                is_completed=True,
             )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -723,11 +888,16 @@ class TestEnrollmentDetailCTA(TestCase):
     def test_complete_progress_context_has_no_incomplete_lesson(self):
         """At 100% progress, first_incomplete_lesson should be None."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         for lesson in [self.lesson1, self.lesson2, self.lesson3]:
             LessonProgress.objects.create(
-                academy=self.academy, enrollment=enrollment, lesson=lesson, is_completed=True,
+                academy=self.academy,
+                enrollment=enrollment,
+                lesson=lesson,
+                is_completed=True,
             )
         url = reverse("enrollment-detail", kwargs={"pk": enrollment.pk})
         response = self.student_client.get(url)
@@ -737,10 +907,14 @@ class TestEnrollmentDetailCTA(TestCase):
     def test_other_student_cannot_see_cta(self):
         """Another student should not be able to view enrollment detail (and thus the CTA)."""
         enrollment = Enrollment.objects.create(
-            academy=self.academy, student=self.student, course=self.course,
+            academy=self.academy,
+            student=self.student,
+            course=self.course,
         )
         other_user = User.objects.create_user(
-            username="sll-cta-other", email="sll-cta-other@test.com", password="testpass123",
+            username="sll-cta-other",
+            email="sll-cta-other@test.com",
+            password="testpass123",
         )
         other_user.current_academy = self.academy
         other_user.save()

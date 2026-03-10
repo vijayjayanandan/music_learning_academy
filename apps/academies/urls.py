@@ -4,15 +4,45 @@ from . import views
 urlpatterns = [
     path("create/", views.AcademyCreateView.as_view(), name="academy-create"),
     path("<slug:slug>/", views.AcademyDetailView.as_view(), name="academy-detail"),
-    path("<slug:slug>/settings/", views.AcademySettingsView.as_view(), name="academy-settings"),
-    path("<slug:slug>/members/", views.MemberListView.as_view(), name="academy-members"),
-    path("<slug:slug>/members/invite/", views.InviteMemberView.as_view(), name="academy-invite"),
-    path("<slug:slug>/members/<int:pk>/remove/", views.RemoveMemberView.as_view(), name="academy-remove-member"),
-    path("<slug:slug>/members/invitation/<int:pk>/resend/", views.ResendInvitationView.as_view(), name="resend-invitation"),
-    path("<slug:slug>/members/invitation/<int:pk>/cancel/", views.CancelInvitationView.as_view(), name="cancel-invitation"),
-    path("<slug:slug>/announcements/", views.AnnouncementListView.as_view(), name="academy-announcements"),
+    path(
+        "<slug:slug>/settings/",
+        views.AcademySettingsView.as_view(),
+        name="academy-settings",
+    ),
+    path(
+        "<slug:slug>/members/", views.MemberListView.as_view(), name="academy-members"
+    ),
+    path(
+        "<slug:slug>/members/invite/",
+        views.InviteMemberView.as_view(),
+        name="academy-invite",
+    ),
+    path(
+        "<slug:slug>/members/<int:pk>/remove/",
+        views.RemoveMemberView.as_view(),
+        name="academy-remove-member",
+    ),
+    path(
+        "<slug:slug>/members/invitation/<int:pk>/resend/",
+        views.ResendInvitationView.as_view(),
+        name="resend-invitation",
+    ),
+    path(
+        "<slug:slug>/members/invitation/<int:pk>/cancel/",
+        views.CancelInvitationView.as_view(),
+        name="cancel-invitation",
+    ),
+    path(
+        "<slug:slug>/announcements/",
+        views.AnnouncementListView.as_view(),
+        name="academy-announcements",
+    ),
     path("<slug:slug>/setup/", views.SetupWizardView.as_view(), name="academy-setup"),
-    path("<slug:slug>/setup/<str:step>/", views.SetupWizardStepView.as_view(), name="academy-setup-step"),
+    path(
+        "<slug:slug>/setup/<str:step>/",
+        views.SetupWizardStepView.as_view(),
+        name="academy-setup-step",
+    ),
     path("<slug:slug>/share/", views.ShareLinkView.as_view(), name="academy-share"),
     path("<slug:slug>/qr-code/", views.QRCodeView.as_view(), name="academy-qr-code"),
 ]

@@ -80,10 +80,12 @@ class TestRateLimiting(TestCase):
 
     def test_ratelimit_middleware_registered(self):
         from django.conf import settings
+
         assert "apps.common.middleware.RatelimitMiddleware" in settings.MIDDLEWARE
 
     def test_ratelimit_settings_configured(self):
         from django.conf import settings
+
         assert settings.RATELIMIT_USE_CACHE == "default"
         assert settings.RATELIMIT_FAIL_OPEN is True
 
@@ -92,6 +94,7 @@ class TestRateLimiting(TestCase):
 class TestSecurityMiddleware(TestCase):
     def test_security_headers_middleware_registered(self):
         from django.conf import settings
+
         assert "apps.common.middleware.SecurityHeadersMiddleware" in settings.MIDDLEWARE
 
     def test_403_template_exists(self):

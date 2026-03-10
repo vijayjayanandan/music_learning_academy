@@ -5,6 +5,7 @@ Verifies that:
 - Unread badge endpoint returns correct count
 - Unauthenticated users cannot access messaging endpoints
 """
+
 import pytest
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -50,7 +51,9 @@ class TestMessageSidebarVisibility(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -64,17 +67,26 @@ class TestMessageSidebarVisibility(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="msg-sidebar-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="msg-sidebar-owner@test.com", password="testpass123"
+        )
         self.instructor_client = Client()
-        self.instructor_client.login(username="msg-sidebar-instructor@test.com", password="testpass123")
+        self.instructor_client.login(
+            username="msg-sidebar-instructor@test.com", password="testpass123"
+        )
         self.student_client = Client()
-        self.student_client.login(username="msg-sidebar-student@test.com", password="testpass123")
+        self.student_client.login(
+            username="msg-sidebar-student@test.com", password="testpass123"
+        )
 
     def test_owner_sees_messages_in_sidebar(self):
         response = self.auth_client.get(reverse("dashboard"), follow=True)
@@ -138,8 +150,11 @@ class TestUnreadMessageCountBadge(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Guitar"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Guitar"],
+            skill_level="beginner",
         )
 
         cls.instructor = User.objects.create_user(
@@ -152,17 +167,25 @@ class TestUnreadMessageCountBadge(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Guitar"],
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="msg-unread-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="msg-unread-owner@test.com", password="testpass123"
+        )
         self.student_client = Client()
-        self.student_client.login(username="msg-unread-student@test.com", password="testpass123")
+        self.student_client.login(
+            username="msg-unread-student@test.com", password="testpass123"
+        )
         self.instructor_client = Client()
-        self.instructor_client.login(username="msg-unread-instructor@test.com", password="testpass123")
+        self.instructor_client.login(
+            username="msg-unread-instructor@test.com", password="testpass123"
+        )
 
     def test_zero_unread_returns_empty(self):
         response = self.auth_client.get(reverse("message-unread-count"))
@@ -174,7 +197,9 @@ class TestUnreadMessageCountBadge(TestCase):
     def test_unread_messages_show_badge_count(self):
         # Create a sender
         sender = User.objects.create_user(
-            email="msg-unread-sender@test.com", username="msg-unread-sender", password="testpass123"
+            email="msg-unread-sender@test.com",
+            username="msg-unread-sender",
+            password="testpass123",
         )
         Membership.objects.create(user=sender, academy=self.academy, role="instructor")
         # Create 3 unread messages
@@ -195,7 +220,9 @@ class TestUnreadMessageCountBadge(TestCase):
 
     def test_read_messages_not_counted(self):
         sender = User.objects.create_user(
-            email="msg-unread-sender2@test.com", username="msg-unread-sender2", password="testpass123"
+            email="msg-unread-sender2@test.com",
+            username="msg-unread-sender2",
+            password="testpass123",
         )
         Membership.objects.create(user=sender, academy=self.academy, role="student")
         # Create a read message
@@ -248,7 +275,9 @@ class TestMessagingAccessControl(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="msg-access-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="msg-access-owner@test.com", password="testpass123"
+        )
         self.anon_client = Client()
 
     def test_unauthenticated_inbox_redirects(self):
@@ -267,7 +296,9 @@ class TestMessagingAccessControl(TestCase):
             name="Other Academy", slug="msg-other-academy-iso"
         )
         sender = User.objects.create_user(
-            email="msg-other-sender@test.com", username="msg-other-sender", password="testpass123"
+            email="msg-other-sender@test.com",
+            username="msg-other-sender",
+            password="testpass123",
         )
         Membership.objects.create(user=sender, academy=other_academy, role="owner")
         # Create an unread message in a different academy

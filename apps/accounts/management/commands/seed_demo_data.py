@@ -31,72 +31,146 @@ class Command(BaseCommand):
         self.stdout.write(f"  Academy: {academy.name}")
 
         # Create Users
-        admin_user = self._create_user("admin@harmonymusic.com", "Admin", "User", "admin123")
-        instructor1 = self._create_user("sarah@harmonymusic.com", "Sarah", "Johnson", "instructor123")
-        instructor2 = self._create_user("david@harmonymusic.com", "David", "Chen", "instructor123")
-        student1 = self._create_user("alice@example.com", "Alice", "Smith", "student123")
+        admin_user = self._create_user(
+            "admin@harmonymusic.com", "Admin", "User", "admin123"
+        )
+        instructor1 = self._create_user(
+            "sarah@harmonymusic.com", "Sarah", "Johnson", "instructor123"
+        )
+        instructor2 = self._create_user(
+            "david@harmonymusic.com", "David", "Chen", "instructor123"
+        )
+        student1 = self._create_user(
+            "alice@example.com", "Alice", "Smith", "student123"
+        )
         student2 = self._create_user("bob@example.com", "Bob", "Wilson", "student123")
-        student3 = self._create_user("carol@example.com", "Carol", "Davis", "student123")
+        student3 = self._create_user(
+            "carol@example.com", "Carol", "Davis", "student123"
+        )
 
         # Set current academy for all users
-        for user in [admin_user, instructor1, instructor2, student1, student2, student3]:
+        for user in [
+            admin_user,
+            instructor1,
+            instructor2,
+            student1,
+            student2,
+            student3,
+        ]:
             user.current_academy = academy
             user.save(update_fields=["current_academy"])
 
         # Create Memberships
         self._create_membership(admin_user, academy, "owner")
-        self._create_membership(instructor1, academy, "instructor", ["Piano", "Music Theory"])
-        self._create_membership(instructor2, academy, "instructor", ["Guitar", "Bass Guitar"])
+        self._create_membership(
+            instructor1, academy, "instructor", ["Piano", "Music Theory"]
+        )
+        self._create_membership(
+            instructor2, academy, "instructor", ["Guitar", "Bass Guitar"]
+        )
         self._create_membership(student1, academy, "student", ["Piano"], "beginner")
-        self._create_membership(student2, academy, "student", ["Guitar"], "intermediate")
-        self._create_membership(student3, academy, "student", ["Piano", "Vocals"], "beginner")
+        self._create_membership(
+            student2, academy, "student", ["Guitar"], "intermediate"
+        )
+        self._create_membership(
+            student3, academy, "student", ["Piano", "Vocals"], "beginner"
+        )
 
         # Create Courses
         piano_course = self._create_course(
-            academy, instructor1,
+            academy,
+            instructor1,
             "Piano Fundamentals",
             "Learn piano from scratch. Master hand position, reading notes, and playing your first songs.",
-            "Piano", "Classical", "beginner",
+            "Piano",
+            "Classical",
+            "beginner",
             ["Read treble and bass clef", "Play major scales", "Perform simple pieces"],
         )
 
         guitar_course = self._create_course(
-            academy, instructor2,
+            academy,
+            instructor2,
             "Guitar for Beginners",
             "Start your guitar journey. Learn chords, strumming patterns, and popular songs.",
-            "Guitar", "Rock", "beginner",
+            "Guitar",
+            "Rock",
+            "beginner",
             ["Play open chords", "Strumming patterns", "Play 5 complete songs"],
         )
 
         jazz_course = self._create_course(
-            academy, instructor1,
+            academy,
+            instructor1,
             "Jazz Piano Improvisation",
             "Explore jazz harmony, chord voicings, and improvisation techniques.",
-            "Piano", "Jazz", "intermediate",
+            "Piano",
+            "Jazz",
+            "intermediate",
             ["Jazz chord voicings", "ii-V-I progressions", "Basic improvisation"],
         )
 
         # Create Lessons for Piano Fundamentals
         lessons_data = [
-            ("Introduction to the Piano", "Learn about the piano keyboard layout, posture, and hand position.", 30),
-            ("Reading Music - Treble Clef", "Introduction to music notation and reading notes on the treble clef.", 45),
-            ("Reading Music - Bass Clef", "Reading notes on the bass clef and combining both hands.", 45),
-            ("Major Scales - C, G, D", "Learn and practice the C, G, and D major scales.", 40),
-            ("Your First Song - Twinkle Twinkle", "Learn to play Twinkle Twinkle Little Star with both hands.", 30),
-            ("Rhythm and Time Signatures", "Understanding 4/4, 3/4, and 2/4 time signatures.", 35),
-            ("Chords - Major Triads", "Learn C, F, and G major chords and chord progressions.", 45),
-            ("Playing with Expression", "Dynamics, tempo, and musical expression techniques.", 40),
+            (
+                "Introduction to the Piano",
+                "Learn about the piano keyboard layout, posture, and hand position.",
+                30,
+            ),
+            (
+                "Reading Music - Treble Clef",
+                "Introduction to music notation and reading notes on the treble clef.",
+                45,
+            ),
+            (
+                "Reading Music - Bass Clef",
+                "Reading notes on the bass clef and combining both hands.",
+                45,
+            ),
+            (
+                "Major Scales - C, G, D",
+                "Learn and practice the C, G, and D major scales.",
+                40,
+            ),
+            (
+                "Your First Song - Twinkle Twinkle",
+                "Learn to play Twinkle Twinkle Little Star with both hands.",
+                30,
+            ),
+            (
+                "Rhythm and Time Signatures",
+                "Understanding 4/4, 3/4, and 2/4 time signatures.",
+                35,
+            ),
+            (
+                "Chords - Major Triads",
+                "Learn C, F, and G major chords and chord progressions.",
+                45,
+            ),
+            (
+                "Playing with Expression",
+                "Dynamics, tempo, and musical expression techniques.",
+                40,
+            ),
         ]
         for i, (title, desc, duration) in enumerate(lessons_data, 1):
             self._create_lesson(academy, piano_course, title, desc, i, duration)
 
         # Create Lessons for Guitar course
         guitar_lessons = [
-            ("Getting Started - Parts of the Guitar", "Learn guitar anatomy, holding position, and tuning.", 25),
+            (
+                "Getting Started - Parts of the Guitar",
+                "Learn guitar anatomy, holding position, and tuning.",
+                25,
+            ),
             ("Open Chords - E, A, D", "Master your first three open chords.", 40),
             ("Open Chords - C, G, Em, Am", "Expand your chord vocabulary.", 40),
             ("Strumming Patterns", "Learn basic strumming patterns and rhythm.", 35),
-            ("Your First Song", "Put chords and strumming together to play a complete song.", 30),
+            (
+                "Your First Song",
+                "Put chords and strumming together to play a complete song.",
+                30,
+            ),
         ]
         for i, (title, desc, duration) in enumerate(guitar_lessons, 1):
             self._create_lesson(academy, guitar_course, title, desc, i, duration)
@@ -131,25 +205,34 @@ class Command(BaseCommand):
         # Create Live Sessions
         now = timezone.now()
         self._create_session(
-            academy, instructor1,
+            academy,
+            instructor1,
             "Piano Group Lesson - Scales Practice",
             piano_course,
             now + timedelta(days=1, hours=2),
-            60, "group", 10,
+            60,
+            "group",
+            10,
         )
         self._create_session(
-            academy, instructor2,
+            academy,
+            instructor2,
             "Guitar One-on-One with Bob",
             guitar_course,
             now + timedelta(days=2, hours=3),
-            45, "one_on_one", 1,
+            45,
+            "one_on_one",
+            1,
         )
         self._create_session(
-            academy, instructor1,
+            academy,
+            instructor1,
             "Jazz Masterclass - Chord Voicings",
             jazz_course,
             now + timedelta(days=3, hours=4),
-            90, "masterclass", 20,
+            90,
+            "masterclass",
+            20,
         )
 
         self.stdout.write(self.style.SUCCESS("\nDemo data seeded successfully!"))
@@ -182,7 +265,9 @@ class Command(BaseCommand):
                 user.save(update_fields=["email_verified"])
         return user
 
-    def _create_membership(self, user, academy, role, instruments=None, skill_level="professional"):
+    def _create_membership(
+        self, user, academy, role, instruments=None, skill_level="professional"
+    ):
         Membership.objects.get_or_create(
             user=user,
             academy=academy,
@@ -193,8 +278,19 @@ class Command(BaseCommand):
             },
         )
 
-    def _create_course(self, academy, instructor, title, description, instrument, genre, difficulty, outcomes):
+    def _create_course(
+        self,
+        academy,
+        instructor,
+        title,
+        description,
+        instrument,
+        genre,
+        difficulty,
+        outcomes,
+    ):
         from django.utils.text import slugify
+
         course, created = Course.objects.get_or_create(
             academy=academy,
             slug=slugify(title),
@@ -228,8 +324,20 @@ class Command(BaseCommand):
             },
         )
 
-    def _create_session(self, academy, instructor, title, course, start_time, duration, session_type, max_participants):
-        room_name = generate_room_name(academy.slug, f"{title[:10]}-{start_time.timestamp()}")
+    def _create_session(
+        self,
+        academy,
+        instructor,
+        title,
+        course,
+        start_time,
+        duration,
+        session_type,
+        max_participants,
+    ):
+        room_name = generate_room_name(
+            academy.slug, f"{title[:10]}-{start_time.timestamp()}"
+        )
         LiveSession.objects.get_or_create(
             academy=academy,
             room_name=room_name,

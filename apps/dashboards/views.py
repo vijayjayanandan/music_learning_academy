@@ -56,7 +56,7 @@ class AdminDashboardView(TenantMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Security: only owners can access admin dashboard
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             role = request.user.get_role_in(request.academy)
             if role != "owner":
                 return redirect("dashboard")
@@ -89,9 +89,13 @@ class AdminDashboardView(TenantMixin, TemplateView):
             status="scheduled",
             scheduled_start__gte=timezone.now(),
         ).select_related("instructor", "course")[:5]
-        ctx["recent_enrollments"] = Enrollment.objects.filter(
-            academy=academy,
-        ).select_related("student", "course").order_by("-enrolled_at")[:10]
+        ctx["recent_enrollments"] = (
+            Enrollment.objects.filter(
+                academy=academy,
+            )
+            .select_related("student", "course")
+            .order_by("-enrolled_at")[:10]
+        )
 
         # Priority CTA for admin dashboard
         ctx["priority_cta"] = _compute_owner_priority_cta(academy)
@@ -120,11 +124,14 @@ class AdminDashboardView(TenantMixin, TemplateView):
         # Monthly revenue
         now = timezone.now()
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        revenue_cents = Payment.objects.filter(
-            academy=academy,
-            status="completed",
-            paid_at__gte=month_start,
-        ).aggregate(total=Sum("amount_cents"))["total"] or 0
+        revenue_cents = (
+            Payment.objects.filter(
+                academy=academy,
+                status="completed",
+                paid_at__gte=month_start,
+            ).aggregate(total=Sum("amount_cents"))["total"]
+            or 0
+        )
         ctx["monthly_revenue_display"] = f"${revenue_cents / 100:,.2f}"
 
         # Active student subscriptions count
@@ -154,12 +161,14 @@ def _compute_admin_alerts(academy):
         created_at__lte=overdue_threshold,
     ).count()
     if overdue_count > 0:
-        alerts.append({
-            "title": f"{overdue_count} overdue submission(s)",
-            "priority": 1,
-            "type": "overdue",
-            "count": overdue_count,
-        })
+        alerts.append(
+            {
+                "title": f"{overdue_count} overdue submission(s)",
+                "priority": 1,
+                "type": "overdue",
+                "count": overdue_count,
+            }
+        )
 
     # 2. Sessions starting soon (priority 3) — within next hour
     soon_threshold = now + timedelta(hours=1)
@@ -170,12 +179,14 @@ def _compute_admin_alerts(academy):
         scheduled_start__lte=soon_threshold,
     ).count()
     if soon_sessions > 0:
-        alerts.append({
-            "title": f"{soon_sessions} session(s) starting soon",
-            "priority": 3,
-            "type": "session_soon",
-            "count": soon_sessions,
-        })
+        alerts.append(
+            {
+                "title": f"{soon_sessions} session(s) starting soon",
+                "priority": 3,
+                "type": "session_soon",
+                "count": soon_sessions,
+            }
+        )
 
     # 3. Cancelled sessions today (priority 4)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -187,12 +198,14 @@ def _compute_admin_alerts(academy):
         scheduled_start__lt=tomorrow_start,
     ).count()
     if cancelled_count > 0:
-        alerts.append({
-            "title": f"{cancelled_count} cancelled session(s) today",
-            "priority": 4,
-            "type": "cancelled",
-            "count": cancelled_count,
-        })
+        alerts.append(
+            {
+                "title": f"{cancelled_count} cancelled session(s) today",
+                "priority": 4,
+                "type": "cancelled",
+                "count": cancelled_count,
+            }
+        )
 
     # 4. Pending invitations (priority 5) — not accepted, not expired
     pending_invites = Invitation.objects.filter(
@@ -201,12 +214,14 @@ def _compute_admin_alerts(academy):
         expires_at__gt=now,
     ).count()
     if pending_invites > 0:
-        alerts.append({
-            "title": f"{pending_invites} pending invitation(s)",
-            "priority": 5,
-            "type": "invitation",
-            "count": pending_invites,
-        })
+        alerts.append(
+            {
+                "title": f"{pending_invites} pending invitation(s)",
+                "priority": 5,
+                "type": "invitation",
+                "count": pending_invites,
+            }
+        )
 
     # Sort by priority (lower = more urgent)
     alerts.sort(key=lambda a: a["priority"])
@@ -281,9 +296,7 @@ class OwnerAnalyticsView(TenantMixin, TemplateView):
 
         # Revenue by type display helper
         by_type = ctx["revenue_summary"].get("by_type", {})
-        ctx["by_type_display"] = {
-            k: f"${v / 100:,.2f}" for k, v in by_type.items()
-        }
+        ctx["by_type_display"] = {k: f"${v / 100:,.2f}" for k, v in by_type.items()}
 
         # Funnel metrics
         ctx["funnel"] = FunnelAnalytics.get_funnel(academy, days=days)
@@ -303,7 +316,7 @@ class InstructorDashboardView(TenantMixin, TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Security: only instructors and owners can access instructor dashboard
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             role = request.user.get_role_in(request.academy)
             if role not in ("owner", "instructor"):
                 return redirect("dashboard")
@@ -529,7 +542,9 @@ class StudentDashboardView(TenantMixin, TemplateView):
             if not lessons:
                 continue
             completed_ids = set(
-                enrollment.lesson_progress.filter(is_completed=True).values_list("lesson_id", flat=True)
+                enrollment.lesson_progress.filter(is_completed=True).values_list(
+                    "lesson_id", flat=True
+                )
             )
             first_incomplete = None
             for lesson in lessons:
@@ -543,7 +558,10 @@ class StudentDashboardView(TenantMixin, TemplateView):
                     "progress_percent": enrollment.progress_percent,
                     "lesson_url": reverse(
                         "lesson-detail",
-                        kwargs={"slug": enrollment.course.slug, "pk": first_incomplete.pk},
+                        kwargs={
+                            "slug": enrollment.course.slug,
+                            "pk": first_incomplete.pk,
+                        },
                     ),
                 }
                 break  # Use the first enrollment that has incomplete work
@@ -556,7 +574,7 @@ class AuditLogView(LoginRequiredMixin, TemplateView):
     template_name = "dashboards/audit_log.html"
 
     def dispatch(self, request, *args, **kwargs):
-        if not hasattr(request, 'academy') or not request.academy:
+        if not hasattr(request, "academy") or not request.academy:
             return redirect("dashboard")
         role = request.user.get_role_in(request.academy)
         if role != "owner":
@@ -565,7 +583,9 @@ class AuditLogView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["audit_events"] = AuditEvent.objects.filter(academy=self.request.academy).select_related("actor")[:100]
+        ctx["audit_events"] = AuditEvent.objects.filter(
+            academy=self.request.academy
+        ).select_related("actor")[:100]
         return ctx
 
 

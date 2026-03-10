@@ -60,15 +60,13 @@ class AcademyDetailView(TenantMixin, DetailView):
 
     def get_queryset(self):
         # Security: only allow viewing academies the user is a member of
-        return Academy.objects.filter(
-            memberships__user=self.request.user
-        )
+        return Academy.objects.filter(memberships__user=self.request.user)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["members"] = Membership.objects.filter(
-            academy=self.object
-        ).select_related("user")
+        ctx["members"] = Membership.objects.filter(academy=self.object).select_related(
+            "user"
+        )
         ctx["member_count"] = ctx["members"].count()
         return ctx
 
@@ -81,10 +79,11 @@ class AcademySettingsView(TenantMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Security: only owners can modify academy settings
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             role = request.user.get_role_in(request.academy)
             if role != "owner":
                 from django.http import HttpResponseForbidden
+
                 return HttpResponseForbidden("Only academy owners can modify settings.")
         return super().dispatch(request, *args, **kwargs)
 
@@ -103,10 +102,11 @@ class MemberListView(TenantMixin, DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         # Security: only owners can manage members
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             role = request.user.get_role_in(request.academy)
             if role != "owner":
                 from django.http import HttpResponseForbidden
+
                 return HttpResponseForbidden("Only academy owners can manage members.")
         return super().dispatch(request, *args, **kwargs)
 
@@ -116,9 +116,9 @@ class MemberListView(TenantMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["members"] = Membership.objects.filter(
-            academy=self.object
-        ).select_related("user")
+        ctx["members"] = Membership.objects.filter(academy=self.object).select_related(
+            "user"
+        )
         ctx["invite_form"] = InvitationForm()
         ctx["pending_invitations"] = Invitation.objects.filter(
             academy=self.object, accepted=False
@@ -134,10 +134,12 @@ class InviteMemberView(TenantMixin, View):
         role = request.user.get_role_in(academy)
         if role != "owner":
             from django.http import HttpResponseForbidden
+
             return HttpResponseForbidden("Only academy owners can invite members.")
         # Security: ensure the slug matches the user's current academy
         if academy.slug != slug:
             from django.http import Http404
+
             raise Http404("Academy not found.")
         form = InvitationForm(request.POST)
         if form.is_valid():
@@ -145,37 +147,58 @@ class InviteMemberView(TenantMixin, View):
             invite_role = form.cleaned_data["role"]
             # Seat limit check
             from apps.academies.models import check_seat_limit
+
             is_allowed, current, max_count = check_seat_limit(academy, invite_role)
             if not is_allowed:
                 error_msg = f"This academy has reached its maximum of {max_count} {invite_role}s."
                 if request.htmx:
-                    invitations = Invitation.objects.filter(academy=academy, accepted=False)
-                    return render(request, "academies/partials/_invitation_list.html", {
-                        "pending_invitations": invitations,
-                        "academy": academy,
-                        "error": error_msg,
-                    })
+                    invitations = Invitation.objects.filter(
+                        academy=academy, accepted=False
+                    )
+                    return render(
+                        request,
+                        "academies/partials/_invitation_list.html",
+                        {
+                            "pending_invitations": invitations,
+                            "academy": academy,
+                            "error": error_msg,
+                        },
+                    )
                 messages.error(request, error_msg)
                 return redirect("academy-members", slug=slug)
             # Check if already a member
             if Membership.objects.filter(academy=academy, user__email=email).exists():
                 if request.htmx:
-                    invitations = Invitation.objects.filter(academy=academy, accepted=False)
-                    return render(request, "academies/partials/_invitation_list.html", {
-                        "pending_invitations": invitations,
-                        "academy": academy,
-                        "error": "This person is already a member of this academy.",
-                    })
+                    invitations = Invitation.objects.filter(
+                        academy=academy, accepted=False
+                    )
+                    return render(
+                        request,
+                        "academies/partials/_invitation_list.html",
+                        {
+                            "pending_invitations": invitations,
+                            "academy": academy,
+                            "error": "This person is already a member of this academy.",
+                        },
+                    )
                 return redirect("academy-members", slug=slug)
             # Check for existing pending invitation
-            if Invitation.objects.filter(academy=academy, email=email, accepted=False).exists():
+            if Invitation.objects.filter(
+                academy=academy, email=email, accepted=False
+            ).exists():
                 if request.htmx:
-                    invitations = Invitation.objects.filter(academy=academy, accepted=False)
-                    return render(request, "academies/partials/_invitation_list.html", {
-                        "pending_invitations": invitations,
-                        "academy": academy,
-                        "error": "An invitation has already been sent to this email.",
-                    })
+                    invitations = Invitation.objects.filter(
+                        academy=academy, accepted=False
+                    )
+                    return render(
+                        request,
+                        "academies/partials/_invitation_list.html",
+                        {
+                            "pending_invitations": invitations,
+                            "academy": academy,
+                            "error": "An invitation has already been sent to this email.",
+                        },
+                    )
                 return redirect("academy-members", slug=slug)
             token = secrets.token_urlsafe(48)
             invitation = Invitation.objects.create(
@@ -199,14 +222,17 @@ class InviteMemberView(TenantMixin, View):
                 reverse("accept-invitation", kwargs={"token": token})
             )
             try:
-                html_message = render_to_string("emails/invitation_email.html", {
-                    "academy": academy,
-                    "invited_by": request.user,
-                    "role": invitation.role,
-                    "accept_url": accept_url,
-                    "expires_at": invitation.expires_at,
-                    "user": User.objects.filter(email=invitation.email).first(),
-                })
+                html_message = render_to_string(
+                    "emails/invitation_email.html",
+                    {
+                        "academy": academy,
+                        "invited_by": request.user,
+                        "role": invitation.role,
+                        "accept_url": accept_url,
+                        "expires_at": invitation.expires_at,
+                        "user": User.objects.filter(email=invitation.email).first(),
+                    },
+                )
                 plain_message = (
                     f"Hi,\n\n"
                     f"{request.user.get_full_name()} has invited you to join "
@@ -222,13 +248,19 @@ class InviteMemberView(TenantMixin, View):
                     html_message=html_message,
                 )
             except Exception:
-                logger.exception("Failed to send invitation email to %s", invitation.email)
+                logger.exception(
+                    "Failed to send invitation email to %s", invitation.email
+                )
             if request.htmx:
                 invitations = Invitation.objects.filter(academy=academy, accepted=False)
-                return render(request, "academies/partials/_invitation_list.html", {
-                    "pending_invitations": invitations,
-                    "academy": academy,
-                })
+                return render(
+                    request,
+                    "academies/partials/_invitation_list.html",
+                    {
+                        "pending_invitations": invitations,
+                        "academy": academy,
+                    },
+                )
         return redirect("academy-members", slug=slug)
 
 
@@ -250,10 +282,14 @@ class AcceptInvitationView(View):
         if error_template:
             return render(request, error_template)
         accept_url = f"/invitation/{token}/accept/"
-        return render(request, "academies/accept_invitation.html", {
-            "invitation": invitation,
-            "accept_url": accept_url,
-        })
+        return render(
+            request,
+            "academies/accept_invitation.html",
+            {
+                "invitation": invitation,
+                "accept_url": accept_url,
+            },
+        )
 
     def post(self, request, token):
         invitation, error_template = self._get_invitation(token)
@@ -265,10 +301,14 @@ class AcceptInvitationView(View):
 
         # Security: only the invited email can accept
         if request.user.email.lower() != invitation.email.lower():
-            return render(request, "academies/invitation_email_mismatch.html", {
-                "invitation": invitation,
-                "user_email": request.user.email,
-            })
+            return render(
+                request,
+                "academies/invitation_email_mismatch.html",
+                {
+                    "invitation": invitation,
+                    "user_email": request.user.email,
+                },
+            )
 
         Membership.objects.get_or_create(
             user=request.user,
@@ -289,12 +329,15 @@ class AcceptInvitationView(View):
         # Send welcome email
         try:
             dashboard_url = request.build_absolute_uri(reverse("dashboard"))
-            html_message = render_to_string("emails/welcome_email.html", {
-                "academy": invitation.academy,
-                "user": request.user,
-                "role": invitation.role,
-                "dashboard_url": dashboard_url,
-            })
+            html_message = render_to_string(
+                "emails/welcome_email.html",
+                {
+                    "academy": invitation.academy,
+                    "user": request.user,
+                    "role": invitation.role,
+                    "dashboard_url": dashboard_url,
+                },
+            )
             plain_message = (
                 f"Hi {request.user.first_name or 'there'},\n\n"
                 f"Welcome to {invitation.academy.name}! "
@@ -313,6 +356,7 @@ class AcceptInvitationView(View):
 
         # Notify academy owners that the invitation was accepted
         from apps.notifications.models import Notification
+
         owner_memberships = Membership.objects.filter(
             academy=invitation.academy, role="owner"
         ).select_related("user")
@@ -335,8 +379,11 @@ class ResendInvitationView(TenantMixin, View):
         role = request.user.get_role_in(academy)
         if role != "owner":
             from django.http import HttpResponseForbidden
+
             return HttpResponseForbidden("Only academy owners can manage invitations.")
-        invitation = get_object_or_404(Invitation, pk=pk, academy=academy, accepted=False)
+        invitation = get_object_or_404(
+            Invitation, pk=pk, academy=academy, accepted=False
+        )
         # Generate new token and extend expiry
         invitation.token = secrets.token_urlsafe(48)
         invitation.expires_at = timezone.now() + timezone.timedelta(days=7)
@@ -346,14 +393,17 @@ class ResendInvitationView(TenantMixin, View):
             reverse("accept-invitation", kwargs={"token": invitation.token})
         )
         try:
-            html_message = render_to_string("emails/invitation_email.html", {
-                "academy": academy,
-                "invited_by": request.user,
-                "role": invitation.role,
-                "accept_url": accept_url,
-                "expires_at": invitation.expires_at,
-                "user": User.objects.filter(email=invitation.email).first(),
-            })
+            html_message = render_to_string(
+                "emails/invitation_email.html",
+                {
+                    "academy": academy,
+                    "invited_by": request.user,
+                    "role": invitation.role,
+                    "accept_url": accept_url,
+                    "expires_at": invitation.expires_at,
+                    "user": User.objects.filter(email=invitation.email).first(),
+                },
+            )
             plain_message = (
                 f"Hi,\n\n"
                 f"{request.user.get_full_name()} has invited you to join "
@@ -369,13 +419,19 @@ class ResendInvitationView(TenantMixin, View):
                 html_message=html_message,
             )
         except Exception:
-            logger.exception("Failed to resend invitation email to %s", invitation.email)
+            logger.exception(
+                "Failed to resend invitation email to %s", invitation.email
+            )
         invitations = Invitation.objects.filter(academy=academy, accepted=False)
-        return render(request, "academies/partials/_invitation_list.html", {
-            "pending_invitations": invitations,
-            "academy": academy,
-            "success": f"Invitation resent to {invitation.email}.",
-        })
+        return render(
+            request,
+            "academies/partials/_invitation_list.html",
+            {
+                "pending_invitations": invitations,
+                "academy": academy,
+                "success": f"Invitation resent to {invitation.email}.",
+            },
+        )
 
 
 class CancelInvitationView(TenantMixin, View):
@@ -384,14 +440,21 @@ class CancelInvitationView(TenantMixin, View):
         role = request.user.get_role_in(academy)
         if role != "owner":
             from django.http import HttpResponseForbidden
+
             return HttpResponseForbidden("Only academy owners can manage invitations.")
-        invitation = get_object_or_404(Invitation, pk=pk, academy=academy, accepted=False)
+        invitation = get_object_or_404(
+            Invitation, pk=pk, academy=academy, accepted=False
+        )
         invitation.delete()
         invitations = Invitation.objects.filter(academy=academy, accepted=False)
-        return render(request, "academies/partials/_invitation_list.html", {
-            "pending_invitations": invitations,
-            "academy": academy,
-        })
+        return render(
+            request,
+            "academies/partials/_invitation_list.html",
+            {
+                "pending_invitations": invitations,
+                "academy": academy,
+            },
+        )
 
 
 class BrandedSignupView(View):
@@ -430,11 +493,15 @@ class BrandedSignupView(View):
             # Seat limit check for new members
             is_allowed, current, max_count = check_seat_limit(academy, "student")
             if not is_allowed:
-                messages.error(request, f"This academy has reached its maximum of {max_count} students.")
+                messages.error(
+                    request,
+                    f"This academy has reached its maximum of {max_count} students.",
+                )
                 return redirect("branded-signup", slug=slug)
             # Add membership
             Membership.objects.get_or_create(
-                user=request.user, academy=academy,
+                user=request.user,
+                academy=academy,
                 defaults={"role": Membership.Role.STUDENT},
             )
             request.user.current_academy = academy
@@ -459,7 +526,9 @@ class BrandedSignupView(View):
             # Seat limit check before creating user
             is_allowed, current, max_count = check_seat_limit(academy, "student")
             if not is_allowed:
-                messages.error(request, f"This academy is at capacity ({max_count} students).")
+                messages.error(
+                    request, f"This academy is at capacity ({max_count} students)."
+                )
                 return redirect("branded-signup", slug=slug)
 
             with transaction.atomic():
@@ -484,7 +553,8 @@ class BrandedSignupView(View):
                     user.save(update_fields=update_fields)
 
                     Membership.objects.create(
-                        user=user, academy=academy,
+                        user=user,
+                        academy=academy,
                         role=Membership.Role.STUDENT,
                     )
 
@@ -495,17 +565,24 @@ class BrandedSignupView(View):
                     )
                     _send_parental_consent_email(request, user, consent)
 
-                    return render(request, "accounts/parental_consent_pending.html", {
-                        "parent_email": parent_email,
-                    })
+                    return render(
+                        request,
+                        "accounts/parental_consent_pending.html",
+                        {
+                            "parent_email": parent_email,
+                        },
+                    )
 
                 Membership.objects.create(
-                    user=user, academy=academy,
+                    user=user,
+                    academy=academy,
                     role=Membership.Role.STUDENT,
                 )
                 user.current_academy = academy
                 user.save(update_fields=update_fields)
-                auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+                auth_login(
+                    request, user, backend="django.contrib.auth.backends.ModelBackend"
+                )
 
             # Notify academy owners about the new member
             self._notify_owners_new_member(request, user, academy)
@@ -539,13 +616,16 @@ class BrandedSignupView(View):
 
             # Email notification
             try:
-                html_message = render_to_string("emails/new_member_notification_email.html", {
-                    "academy": academy,
-                    "owner": m.user,
-                    "new_user_name": user_name,
-                    "new_user_email": user.email,
-                    "members_url": members_url,
-                })
+                html_message = render_to_string(
+                    "emails/new_member_notification_email.html",
+                    {
+                        "academy": academy,
+                        "owner": m.user,
+                        "new_user_name": user_name,
+                        "new_user_email": user.email,
+                        "members_url": members_url,
+                    },
+                )
                 plain_message = (
                     f"Hi {m.user.first_name or 'there'},\n\n"
                     f"{user_name} ({user.email}) has joined {academy.name} "
@@ -572,6 +652,7 @@ class RemoveMemberView(TenantMixin, View):
         role = request.user.get_role_in(academy)
         if role != "owner":
             from django.http import HttpResponseForbidden
+
             return HttpResponseForbidden("Only academy owners can remove members.")
         # Security: use the current academy, not a slug-based lookup
         membership = get_object_or_404(Membership, pk=pk, academy=academy)
@@ -591,9 +672,14 @@ class RemoveMemberView(TenantMixin, View):
             )
         if request.htmx:
             members = Membership.objects.filter(academy=academy).select_related("user")
-            return render(request, "academies/partials/_member_list.html", {
-                "members": members, "academy": academy,
-            })
+            return render(
+                request,
+                "academies/partials/_member_list.html",
+                {
+                    "members": members,
+                    "academy": academy,
+                },
+            )
         return redirect("academy-members", slug=slug)
 
 
@@ -602,10 +688,14 @@ class AnnouncementListView(TenantMixin, View):
         # Security: use the user's current academy, not an arbitrary slug
         academy = self.get_academy()
         announcements = Announcement.objects.filter(academy=academy)
-        return render(request, "academies/announcements.html", {
-            "announcements": announcements,
-            "academy": academy,
-        })
+        return render(
+            request,
+            "academies/announcements.html",
+            {
+                "announcements": announcements,
+                "academy": academy,
+            },
+        )
 
     def post(self, request, slug):
         # Security: only owners and instructors can create announcements
@@ -613,7 +703,10 @@ class AnnouncementListView(TenantMixin, View):
         role = request.user.get_role_in(academy)
         if role not in ("owner", "instructor"):
             from django.http import HttpResponseForbidden
-            return HttpResponseForbidden("Only owners and instructors can create announcements.")
+
+            return HttpResponseForbidden(
+                "Only owners and instructors can create announcements."
+            )
         Announcement.objects.create(
             academy=academy,
             author=request.user,
@@ -654,14 +747,20 @@ class SetupWizardView(LoginRequiredMixin, DetailView):
         ctx["steps"] = ["basics", "branding", "team", "course", "launch"]
         ctx["completed_steps"] = []
         step_order = ["basics", "branding", "team", "course", "launch"]
-        current_idx = step_order.index(ctx["current_step"]) if ctx["current_step"] in step_order else 0
+        current_idx = (
+            step_order.index(ctx["current_step"])
+            if ctx["current_step"] in step_order
+            else 0
+        )
         ctx["completed_steps"] = step_order[:current_idx]
         # Provide form for basics step
         if ctx["current_step"] == "basics":
             from apps.academies.forms import AcademyBasicsForm
+
             ctx["form"] = AcademyBasicsForm(instance=academy)
         elif ctx["current_step"] == "branding":
             from apps.academies.forms import AcademyBrandingForm
+
             ctx["form"] = AcademyBrandingForm(instance=academy)
         return ctx
 
@@ -700,16 +799,22 @@ class SetupWizardStepView(LoginRequiredMixin, DetailView):
         # Forms
         if step == "basics":
             from apps.academies.forms import AcademyBasicsForm
+
             ctx["form"] = AcademyBasicsForm(instance=academy)
         elif step == "branding":
             from apps.academies.forms import AcademyBrandingForm
+
             ctx["form"] = AcademyBrandingForm(instance=academy)
         elif step == "team":
             from apps.academies.forms import InvitationForm
+
             ctx["invite_form"] = InvitationForm()
-            ctx["members"] = Membership.objects.filter(academy=academy).select_related("user")
+            ctx["members"] = Membership.objects.filter(academy=academy).select_related(
+                "user"
+            )
         elif step == "course":
             from apps.courses.models import Course
+
             ctx["courses"] = Course.objects.filter(academy=academy)
         return ctx
 
@@ -727,11 +832,13 @@ class SetupWizardStepView(LoginRequiredMixin, DetailView):
 
         if step == "basics":
             from apps.academies.forms import AcademyBasicsForm
+
             form = AcademyBasicsForm(request.POST, instance=academy)
             if form.is_valid():
                 form.save()
         elif step == "branding":
             from apps.academies.forms import AcademyBrandingForm
+
             form = AcademyBrandingForm(request.POST, instance=academy)
             if form.is_valid():
                 form.save()
@@ -741,7 +848,9 @@ class SetupWizardStepView(LoginRequiredMixin, DetailView):
         academy.save(update_fields=["setup_status"])
 
         if next_step:
-            return redirect(reverse("academy-setup-step", args=[academy.slug, next_step]))
+            return redirect(
+                reverse("academy-setup-step", args=[academy.slug, next_step])
+            )
         return redirect("dashboard")
 
 
@@ -776,8 +885,10 @@ class QRCodeView(LoginRequiredMixin, DetailView):
 
     def get(self, request, *args, **kwargs):
         import io
+
         try:
             import qrcode
+
             academy = self.get_object()
             signup_url = request.build_absolute_uri(f"/join/{academy.slug}/")
             img = qrcode.make(signup_url)
@@ -791,16 +902,26 @@ class QRCodeView(LoginRequiredMixin, DetailView):
             import zlib
 
             def minimal_png():
-                sig = b'\x89PNG\r\n\x1a\n'
-                ihdr_data = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
-                ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff
-                ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
-                raw = b'\x00\x00\x00\x00'
+                sig = b"\x89PNG\r\n\x1a\n"
+                ihdr_data = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+                ihdr_crc = zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF
+                ihdr = (
+                    struct.pack(">I", 13)
+                    + b"IHDR"
+                    + ihdr_data
+                    + struct.pack(">I", ihdr_crc)
+                )
+                raw = b"\x00\x00\x00\x00"
                 idat_data = zlib.compress(raw)
-                idat_crc = zlib.crc32(b'IDAT' + idat_data) & 0xffffffff
-                idat = struct.pack('>I', len(idat_data)) + b'IDAT' + idat_data + struct.pack('>I', idat_crc)
-                iend_crc = zlib.crc32(b'IEND') & 0xffffffff
-                iend = struct.pack('>I', 0) + b'IEND' + struct.pack('>I', iend_crc)
+                idat_crc = zlib.crc32(b"IDAT" + idat_data) & 0xFFFFFFFF
+                idat = (
+                    struct.pack(">I", len(idat_data))
+                    + b"IDAT"
+                    + idat_data
+                    + struct.pack(">I", idat_crc)
+                )
+                iend_crc = zlib.crc32(b"IEND") & 0xFFFFFFFF
+                iend = struct.pack(">I", 0) + b"IEND" + struct.pack(">I", iend_crc)
                 return sig + ihdr + idat + iend
 
             return HttpResponse(minimal_png(), content_type="image/png")

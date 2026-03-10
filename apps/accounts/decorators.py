@@ -13,5 +13,7 @@ def role_required(*allowed_roles):
             if role not in allowed_roles:
                 return HttpResponseForbidden("Insufficient permissions")
             return view_func(request, *args, **kwargs)
+
         return _wrapped
+
     return decorator

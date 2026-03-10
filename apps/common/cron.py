@@ -39,6 +39,7 @@ def _import_task(dotted_path):
     """Import and return the task function from a dotted path."""
     module_path, func_name = dotted_path.rsplit(".", 1)
     import importlib
+
     module = importlib.import_module(module_path)
     return getattr(module, func_name)
 
@@ -52,7 +53,9 @@ def _check_auth(request):
 
     auth_header = request.META.get("HTTP_AUTHORIZATION", "")
     if not auth_header.startswith("Bearer "):
-        return JsonResponse({"error": "Missing or invalid Authorization header"}, status=403)
+        return JsonResponse(
+            {"error": "Missing or invalid Authorization header"}, status=403
+        )
 
     token = auth_header[7:]  # Strip "Bearer "
     if not hmac.compare_digest(token, cron_key):
@@ -82,7 +85,7 @@ def cron_run_tasks(request):
 
     task_names = body.get("tasks", [])
     if not isinstance(task_names, list) or not task_names:
-        return JsonResponse({"error": "\"tasks\" must be a non-empty list"}, status=400)
+        return JsonResponse({"error": '"tasks" must be a non-empty list'}, status=400)
 
     # Resolve "all" to all registered tasks
     if task_names == ["all"]:
@@ -92,8 +95,10 @@ def cron_run_tasks(request):
     unknown = [t for t in task_names if t not in TASK_REGISTRY]
     if unknown:
         return JsonResponse(
-            {"error": f"Unknown tasks: {', '.join(unknown)}",
-             "available": list(TASK_REGISTRY.keys())},
+            {
+                "error": f"Unknown tasks: {', '.join(unknown)}",
+                "available": list(TASK_REGISTRY.keys()),
+            },
             status=400,
         )
 
@@ -106,7 +111,11 @@ def cron_run_tasks(request):
             func = _import_task(TASK_REGISTRY[name])
             result = func()
             elapsed = round(time.monotonic() - start, 3)
-            results[name] = {"status": "ok", "result": result, "elapsed_seconds": elapsed}
+            results[name] = {
+                "status": "ok",
+                "result": result,
+                "elapsed_seconds": elapsed,
+            }
             logger.info("Cron task %s completed in %.3fs", name, elapsed)
         except Exception:
             elapsed = round(time.monotonic() - start, 3)

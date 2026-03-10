@@ -8,7 +8,13 @@ from django.utils import timezone
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
 from apps.courses.models import Course
-from apps.payments.models import Payment, PackagePurchase, SubscriptionPlan, Subscription, PackageDeal
+from apps.payments.models import (
+    Payment,
+    PackagePurchase,
+    SubscriptionPlan,
+    Subscription,
+    PackageDeal,
+)
 
 
 @pytest.mark.integration
@@ -216,9 +222,7 @@ class TestPaymentSuccessPageFallback(TestCase):
             username="paysuc-fallback-owner@test.com", password="testpass123"
         )
         self.client_b = Client()
-        self.client_b.login(
-            username="paysuc-userb@test.com", password="testpass123"
-        )
+        self.client_b.login(username="paysuc-userb@test.com", password="testpass123")
 
     def test_success_page_generic_fallback(self):
         """Unknown session_id shows generic success message with dashboard link."""

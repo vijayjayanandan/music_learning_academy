@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("scheduling", "0006_rename_jitsi_to_room_name"),
     ]

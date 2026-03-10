@@ -343,9 +343,12 @@ class TestAcademyLandingPage(TestCase):
         url = reverse("branded-signup", args=[self.academy.slug])
 
         # POST with missing required fields (no password, no accept_terms)
-        response = self.client.post(url, {
-            "email": "incomplete@test.com",
-        })
+        response = self.client.post(
+            url,
+            {
+                "email": "incomplete@test.com",
+            },
+        )
 
         # Should re-render the page (not redirect)
         assert response.status_code == 200

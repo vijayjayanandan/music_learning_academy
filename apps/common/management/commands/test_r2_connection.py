@@ -54,11 +54,15 @@ class Command(BaseCommand):
         self.stdout.write("")
 
         # Test PrivateMediaStorage (default)
-        self._test_backend("PrivateMediaStorage", PrivateMediaStorage(), test_filename, test_content)
+        self._test_backend(
+            "PrivateMediaStorage", PrivateMediaStorage(), test_filename, test_content
+        )
 
         # Test PublicMediaStorage
         pub_filename = f"_r2_test/{uuid.uuid4().hex}_pub.txt"
-        self._test_backend("PublicMediaStorage", PublicMediaStorage(), pub_filename, test_content)
+        self._test_backend(
+            "PublicMediaStorage", PublicMediaStorage(), pub_filename, test_content
+        )
 
         self.stdout.write(self.style.SUCCESS("\nAll R2 connectivity tests passed!"))
 

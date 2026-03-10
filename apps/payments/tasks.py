@@ -27,7 +27,9 @@ def send_payment_confirmation_email(payment_id):
     from apps.payments.models import Payment
 
     try:
-        payment = Payment.objects.select_related("student", "course", "subscription__plan").get(pk=payment_id)
+        payment = Payment.objects.select_related(
+            "student", "course", "subscription__plan"
+        ).get(pk=payment_id)
     except Payment.DoesNotExist:
         logger.warning("Payment %s not found for email", payment_id)
         return
@@ -42,12 +44,15 @@ def send_payment_confirmation_email(payment_id):
     elif payment.subscription:
         description = f"Plan: {payment.subscription.plan.name}"
 
-    html_message = render_to_string("emails/payment_confirmation_email.html", {
-        "user": user,
-        "payment": payment,
-        "description": description,
-        "invoice_url": f"/payments/invoice/{payment.pk}/",
-    })
+    html_message = render_to_string(
+        "emails/payment_confirmation_email.html",
+        {
+            "user": user,
+            "payment": payment,
+            "description": description,
+            "invoice_url": f"/payments/invoice/{payment.pk}/",
+        },
+    )
 
     send_mail(
         subject=f"Payment Confirmed - {payment.invoice_number}",
@@ -57,7 +62,9 @@ def send_payment_confirmation_email(payment_id):
         html_message=html_message,
         fail_silently=True,
     )
-    logger.info("Sent payment confirmation email for payment %s to %s", payment_id, user.email)
+    logger.info(
+        "Sent payment confirmation email for payment %s to %s", payment_id, user.email
+    )
 
 
 def expire_platform_trials():

@@ -35,7 +35,9 @@ class TestChatInstructor(TestCase):
         )
         cls.owner_user.current_academy = cls.academy
         cls.owner_user.save()
-        Membership.objects.create(user=cls.owner_user, academy=cls.academy, role="owner")
+        Membership.objects.create(
+            user=cls.owner_user, academy=cls.academy, role="owner"
+        )
 
         cls.instructor_user = User.objects.create_user(
             username="instructor",
@@ -210,9 +212,7 @@ class TestChatInstructor(TestCase):
         )
         self.client.force_login(self.student_user)
         url = reverse("message-thread", args=[root.pk])
-        response = self.client.post(
-            url, {"body": "New reply"}, HTTP_HX_REQUEST="true"
-        )
+        response = self.client.post(url, {"body": "New reply"}, HTTP_HX_REQUEST="true")
         assert response.status_code == 200
         content = response.content.decode()
         assert "New reply" in content
@@ -276,9 +276,7 @@ class TestChatInstructor(TestCase):
         url = reverse("course-detail", args=[self.course.slug])
         response = self.client.get(url)
         content = response.content.decode()
-        conversation_url = reverse(
-            "conversation-with", args=[self.instructor_user.pk]
-        )
+        conversation_url = reverse("conversation-with", args=[self.instructor_user.pk])
         assert conversation_url in content
         assert "Message" in content
 
@@ -289,9 +287,7 @@ class TestChatInstructor(TestCase):
         response = self.client.get(url)
         content = response.content.decode()
         assert "Message Instructor" in content
-        conversation_url = reverse(
-            "conversation-with", args=[self.instructor_user.pk]
-        )
+        conversation_url = reverse("conversation-with", args=[self.instructor_user.pk])
         assert conversation_url in content
 
     # --- Security (2 tests) ---

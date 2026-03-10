@@ -13,6 +13,7 @@ _magic_module = None
 try:
     if sys.platform != "win32":
         import magic as _magic_module
+
         _magic_available = True
 except (ImportError, OSError):
     pass
@@ -22,7 +23,9 @@ ALLOWED_FILE_TYPES = {
     # Documents
     ".pdf": ["application/pdf"],
     ".doc": ["application/msword"],
-    ".docx": ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    ".docx": [
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ],
     ".txt": ["text/plain"],
     # Images
     ".png": ["image/png"],
@@ -43,7 +46,11 @@ ALLOWED_FILE_TYPES = {
     # Music-specific
     ".mid": ["audio/midi", "audio/x-midi"],
     ".midi": ["audio/midi", "audio/x-midi"],
-    ".musicxml": ["application/vnd.recordare.musicxml+xml", "text/xml", "application/xml"],
+    ".musicxml": [
+        "application/vnd.recordare.musicxml+xml",
+        "text/xml",
+        "application/xml",
+    ],
     ".mxl": ["application/vnd.recordare.musicxml", "application/zip"],
 }
 

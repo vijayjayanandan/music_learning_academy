@@ -31,12 +31,16 @@ def _delete_file_fields(sender, instance, **kwargs):
                     file_obj.delete(save=False)
                     logger.info(
                         "Deleted file %s for %s pk=%s",
-                        file_obj.name, sender.__name__, instance.pk,
+                        file_obj.name,
+                        sender.__name__,
+                        instance.pk,
                     )
                 except Exception:
                     logger.exception(
                         "Failed to delete file %s for %s pk=%s",
-                        file_obj.name, sender.__name__, instance.pk,
+                        file_obj.name,
+                        sender.__name__,
+                        instance.pk,
                     )
 
 
@@ -57,12 +61,16 @@ def _delete_old_file_on_update(sender, instance, **kwargs):
                     old_file.delete(save=False)
                     logger.info(
                         "Deleted old file %s on update for %s pk=%s",
-                        old_file.name, sender.__name__, instance.pk,
+                        old_file.name,
+                        sender.__name__,
+                        instance.pk,
                     )
                 except Exception:
                     logger.exception(
                         "Failed to delete old file %s for %s pk=%s",
-                        old_file.name, sender.__name__, instance.pk,
+                        old_file.name,
+                        sender.__name__,
+                        instance.pk,
                     )
 
 
@@ -79,9 +87,14 @@ def connect_file_cleanup_signals():
     from apps.music_tools.models import PracticeAnalysis, RecordingArchive
 
     file_models = [
-        User, Academy, Course, LessonAttachment,
-        AssignmentSubmission, LibraryResource,
-        PracticeAnalysis, RecordingArchive,
+        User,
+        Academy,
+        Course,
+        LessonAttachment,
+        AssignmentSubmission,
+        LibraryResource,
+        PracticeAnalysis,
+        RecordingArchive,
     ]
     for model in file_models:
         post_delete.connect(_delete_file_fields, sender=model)

@@ -46,12 +46,15 @@ class Command(BaseCommand):
                     continue
 
                 join_url = f"/schedule/{session.pk}/join/"
-                html_message = render_to_string("emails/session_reminder_email.html", {
-                    "user": user,
-                    "session": session,
-                    "join_url": join_url,
-                    "time_label": time_label,
-                })
+                html_message = render_to_string(
+                    "emails/session_reminder_email.html",
+                    {
+                        "user": user,
+                        "session": session,
+                        "join_url": join_url,
+                        "time_label": time_label,
+                    },
+                )
                 plain_message = (
                     f"Your session '{session.title}' starts in {time_label} "
                     f"at {session.scheduled_start.strftime('%Y-%m-%d %H:%M %Z')}."

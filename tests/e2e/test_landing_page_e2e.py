@@ -4,6 +4,7 @@ E2E Tests: Academy Landing Page (/join/<slug>/)
 Tests the public-facing branded signup page that prospective students
 see when they visit an academy's join link. No login required.
 """
+
 import os
 import pytest
 
@@ -39,19 +40,25 @@ class TestLandingPageHero:
         assert h1.is_visible()
         # The seeded academy is "Harmony Music School"
         assert "Harmony Music School" in h1.inner_text()
-        page.screenshot(path=os.path.join(screenshot_dir, "landing_02_academy_name.png"))
+        page.screenshot(
+            path=os.path.join(screenshot_dir, "landing_02_academy_name.png")
+        )
 
     def test_03_hero_section_has_aria_label(self, e2e_server, page):
         """Hero section has an accessible aria-label."""
         _goto_landing(page, e2e_server)
         hero = page.locator("section[aria-label*='Welcome']")
-        assert hero.count() > 0, "Hero section should have aria-label containing 'Welcome'"
+        assert hero.count() > 0, (
+            "Hero section should have aria-label containing 'Welcome'"
+        )
 
     def test_04_instrument_badges_displayed(self, e2e_server, page, screenshot_dir):
         """Instrument badges render in the hero section (if academy has instruments)."""
         _goto_landing(page, e2e_server)
         badges = page.locator("section[aria-label*='Welcome'] .badge")
-        page.screenshot(path=os.path.join(screenshot_dir, "landing_04_instrument_badges.png"))
+        page.screenshot(
+            path=os.path.join(screenshot_dir, "landing_04_instrument_badges.png")
+        )
         # Seed data includes instruments; at least one badge should be visible
         if badges.count() > 0:
             assert badges.first.is_visible()
@@ -92,7 +99,9 @@ class TestLandingPageCourses:
                 card = cards.nth(i)
                 # Card title
                 title = card.locator(".card-title")
-                assert title.is_visible(), f"Course card {i} should have a visible title"
+                assert title.is_visible(), (
+                    f"Course card {i} should have a visible title"
+                )
                 # At least one badge (instrument or difficulty)
                 badges = card.locator(".badge")
                 assert badges.count() > 0, f"Course card {i} should have badges"
@@ -124,7 +133,9 @@ class TestLandingPageInstructors:
                 card = cards.nth(i)
                 name = card.locator("h3")
                 assert name.is_visible(), f"Instructor card {i} should display a name"
-                assert len(name.inner_text().strip()) > 0, f"Instructor card {i} name should not be empty"
+                assert len(name.inner_text().strip()) > 0, (
+                    f"Instructor card {i} name should not be empty"
+                )
 
 
 @pytest.mark.e2e
@@ -156,7 +167,9 @@ class TestLandingPageSignupForm:
     def test_12_signup_section_has_aria_label(self, e2e_server, page):
         """Signup section has an accessible aria-label."""
         _goto_landing(page, e2e_server)
-        signup_section = page.locator("section#signup[aria-label='Create your account']")
+        signup_section = page.locator(
+            "section#signup[aria-label='Create your account']"
+        )
         assert signup_section.count() > 0
 
     def test_13_form_has_expected_fields(self, e2e_server, page, screenshot_dir):
@@ -166,15 +179,31 @@ class TestLandingPageSignupForm:
         assert form.count() > 0, "Signup section should contain a form"
 
         # Check for key form fields from RegisterForm (slim: email, password, DOB, terms)
-        assert page.locator("section#signup input[name='email']").count() > 0, "Form should have email field"
-        assert page.locator("section#signup input[name='password1']").count() > 0, "Form should have password1 field"
-        assert page.locator("section#signup input[name='password2']").count() > 0, "Form should have password2 field"
-        assert page.locator("section#signup input[name='date_of_birth']").count() > 0, "Form should have date_of_birth field"
-        assert page.locator("section#signup input[name='accept_terms']").count() > 0, "Form should have accept_terms checkbox"
+        assert page.locator("section#signup input[name='email']").count() > 0, (
+            "Form should have email field"
+        )
+        assert page.locator("section#signup input[name='password1']").count() > 0, (
+            "Form should have password1 field"
+        )
+        assert page.locator("section#signup input[name='password2']").count() > 0, (
+            "Form should have password2 field"
+        )
+        assert page.locator("section#signup input[name='date_of_birth']").count() > 0, (
+            "Form should have date_of_birth field"
+        )
+        assert page.locator("section#signup input[name='accept_terms']").count() > 0, (
+            "Form should have accept_terms checkbox"
+        )
         # username, first_name, last_name should NOT be visible
-        assert page.locator("section#signup input[name='username']").count() == 0, "username field should not be visible"
-        assert page.locator("section#signup input[name='first_name']").count() == 0, "first_name field should not be visible"
-        assert page.locator("section#signup input[name='last_name']").count() == 0, "last_name field should not be visible"
+        assert page.locator("section#signup input[name='username']").count() == 0, (
+            "username field should not be visible"
+        )
+        assert page.locator("section#signup input[name='first_name']").count() == 0, (
+            "first_name field should not be visible"
+        )
+        assert page.locator("section#signup input[name='last_name']").count() == 0, (
+            "last_name field should not be visible"
+        )
 
         page.screenshot(path=os.path.join(screenshot_dir, "landing_13_form_fields.png"))
 
@@ -235,9 +264,13 @@ class TestLandingPageCTAScroll:
         assert bounding_box is not None, "Signup heading should be in the DOM"
         # The heading should be within the visible viewport height (720px default)
         viewport_height = page.viewport_size["height"]
-        assert bounding_box["y"] < viewport_height, "Signup heading should be scrolled into view"
+        assert bounding_box["y"] < viewport_height, (
+            "Signup heading should be scrolled into view"
+        )
 
-        page.screenshot(path=os.path.join(screenshot_dir, "landing_18_after_cta_scroll.png"))
+        page.screenshot(
+            path=os.path.join(screenshot_dir, "landing_18_after_cta_scroll.png")
+        )
 
 
 @pytest.mark.e2e

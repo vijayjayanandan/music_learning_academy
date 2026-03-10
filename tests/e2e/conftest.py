@@ -56,6 +56,7 @@ def e2e_server():
 def browser():
     """Launch Playwright browser."""
     from playwright.sync_api import sync_playwright
+
     pw = sync_playwright().start()
     browser = pw.chromium.launch(headless=True)
     yield browser
@@ -89,6 +90,7 @@ def click_sidebar(page, text):
 
 # --- Session-scoped authenticated contexts (login once per persona) ---
 
+
 def _create_auth_context(browser, server, email, password):
     """Login once, save auth state, return a reusable context factory."""
     context = browser.new_context(viewport={"width": 1280, "height": 720})
@@ -102,12 +104,16 @@ def _create_auth_context(browser, server, email, password):
 
 @pytest.fixture(scope="session")
 def owner_storage(browser, e2e_server):
-    return _create_auth_context(browser, e2e_server, "admin@harmonymusic.com", "admin123")
+    return _create_auth_context(
+        browser, e2e_server, "admin@harmonymusic.com", "admin123"
+    )
 
 
 @pytest.fixture(scope="session")
 def instructor_storage(browser, e2e_server):
-    return _create_auth_context(browser, e2e_server, "sarah@harmonymusic.com", "instructor123")
+    return _create_auth_context(
+        browser, e2e_server, "sarah@harmonymusic.com", "instructor123"
+    )
 
 
 @pytest.fixture(scope="session")
@@ -126,7 +132,9 @@ def page(browser):
 @pytest.fixture
 def owner_page(browser, owner_storage):
     """Page pre-authenticated as owner."""
-    ctx = browser.new_context(storage_state=owner_storage, viewport={"width": 1280, "height": 720})
+    ctx = browser.new_context(
+        storage_state=owner_storage, viewport={"width": 1280, "height": 720}
+    )
     page = ctx.new_page()
     yield page
     page.close()
@@ -136,7 +144,9 @@ def owner_page(browser, owner_storage):
 @pytest.fixture
 def instructor_page(browser, instructor_storage):
     """Page pre-authenticated as instructor."""
-    ctx = browser.new_context(storage_state=instructor_storage, viewport={"width": 1280, "height": 720})
+    ctx = browser.new_context(
+        storage_state=instructor_storage, viewport={"width": 1280, "height": 720}
+    )
     page = ctx.new_page()
     yield page
     page.close()
@@ -146,7 +156,9 @@ def instructor_page(browser, instructor_storage):
 @pytest.fixture
 def student_page(browser, student_storage):
     """Page pre-authenticated as student."""
-    ctx = browser.new_context(storage_state=student_storage, viewport={"width": 1280, "height": 720})
+    ctx = browser.new_context(
+        storage_state=student_storage, viewport={"width": 1280, "height": 720}
+    )
     page = ctx.new_page()
     yield page
     page.close()
@@ -157,6 +169,7 @@ def student_page(browser, student_storage):
 def screenshot_dir():
     """Return screenshot directory path."""
     import os
+
     d = os.path.join(os.path.dirname(__file__), "..", "..", "screenshots")
     os.makedirs(d, exist_ok=True)
     return d

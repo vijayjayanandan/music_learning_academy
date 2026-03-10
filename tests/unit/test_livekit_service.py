@@ -1,6 +1,5 @@
 """Tests for LiveKit service layer."""
 
-
 import pytest
 from django.test import override_settings
 
@@ -39,21 +38,34 @@ class TestGenerateRoomName:
 
 @pytest.mark.unit
 class TestGenerateAccessToken:
-    @override_settings(LIVEKIT_API_KEY="test-key", LIVEKIT_API_SECRET="test-secret-that-is-long-enough-for-jwt")
+    @override_settings(
+        LIVEKIT_API_KEY="test-key",
+        LIVEKIT_API_SECRET="test-secret-that-is-long-enough-for-jwt",
+    )
     def test_returns_jwt_string(self):
         token = generate_access_token("room-1", "user-1", "Test User")
         assert isinstance(token, str)
         assert len(token) > 0
 
-    @override_settings(LIVEKIT_API_KEY="test-key", LIVEKIT_API_SECRET="test-secret-that-is-long-enough-for-jwt")
+    @override_settings(
+        LIVEKIT_API_KEY="test-key",
+        LIVEKIT_API_SECRET="test-secret-that-is-long-enough-for-jwt",
+    )
     def test_works_for_instructor(self):
-        token = generate_access_token("room-1", "user-1", "Instructor", is_instructor=True)
+        token = generate_access_token(
+            "room-1", "user-1", "Instructor", is_instructor=True
+        )
         assert isinstance(token, str)
         assert len(token) > 0
 
-    @override_settings(LIVEKIT_API_KEY="test-key", LIVEKIT_API_SECRET="test-secret-that-is-long-enough-for-jwt")
+    @override_settings(
+        LIVEKIT_API_KEY="test-key",
+        LIVEKIT_API_SECRET="test-secret-that-is-long-enough-for-jwt",
+    )
     def test_works_for_student(self):
-        token = generate_access_token("room-1", "user-2", "Student", is_instructor=False)
+        token = generate_access_token(
+            "room-1", "user-2", "Student", is_instructor=False
+        )
         assert isinstance(token, str)
         assert len(token) > 0
 
@@ -73,16 +85,24 @@ class TestGetLivekitConfig:
         from django.utils import timezone
 
         academy = Academy.objects.create(
-            name="Test", slug="test", email="t@t.com", timezone="UTC",
+            name="Test",
+            slug="test",
+            email="t@t.com",
+            timezone="UTC",
         )
         instructor = User.objects.create_user(
-            username="inst", email="inst@test.com", password="pass",
+            username="inst",
+            email="inst@test.com",
+            password="pass",
         )
         User.objects.create_user(
-            username="stu", email="stu@test.com", password="pass",
+            username="stu",
+            email="stu@test.com",
+            password="pass",
         )
         session = LiveSession.objects.create(
-            academy=academy, title="Test",
+            academy=academy,
+            title="Test",
             instructor=instructor,
             scheduled_start=timezone.now(),
             scheduled_end=timezone.now(),
@@ -112,13 +132,19 @@ class TestGetLivekitConfig:
         from django.utils import timezone
 
         academy = Academy.objects.create(
-            name="Test2", slug="test2", email="t2@t.com", timezone="UTC",
+            name="Test2",
+            slug="test2",
+            email="t2@t.com",
+            timezone="UTC",
         )
         instructor = User.objects.create_user(
-            username="inst2", email="inst2@test.com", password="pass",
+            username="inst2",
+            email="inst2@test.com",
+            password="pass",
         )
         session = LiveSession.objects.create(
-            academy=academy, title="Test",
+            academy=academy,
+            title="Test",
             instructor=instructor,
             scheduled_start=timezone.now(),
             scheduled_end=timezone.now(),
@@ -141,16 +167,24 @@ class TestGetLivekitConfig:
         from django.utils import timezone
 
         academy = Academy.objects.create(
-            name="Test3", slug="test3", email="t3@t.com", timezone="UTC",
+            name="Test3",
+            slug="test3",
+            email="t3@t.com",
+            timezone="UTC",
         )
         instructor = User.objects.create_user(
-            username="inst3", email="inst3@test.com", password="pass",
+            username="inst3",
+            email="inst3@test.com",
+            password="pass",
         )
         student = User.objects.create_user(
-            username="stu3", email="stu3@test.com", password="pass",
+            username="stu3",
+            email="stu3@test.com",
+            password="pass",
         )
         session = LiveSession.objects.create(
-            academy=academy, title="Test",
+            academy=academy,
+            title="Test",
             instructor=instructor,
             scheduled_start=timezone.now(),
             scheduled_end=timezone.now(),

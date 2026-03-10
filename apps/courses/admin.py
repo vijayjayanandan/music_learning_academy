@@ -25,12 +25,23 @@ class LessonAttachmentInline(admin.TabularInline):
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = [
-        "title", "academy", "instructor", "instrument", "genre",
-        "difficulty_level", "is_published", "price_display_column", "created_at",
+        "title",
+        "academy",
+        "instructor",
+        "instrument",
+        "genre",
+        "difficulty_level",
+        "is_published",
+        "price_display_column",
+        "created_at",
     ]
     list_filter = [
-        "is_published", "difficulty_level", "instrument", "genre",
-        "currency", "academy",
+        "is_published",
+        "difficulty_level",
+        "instrument",
+        "genre",
+        "currency",
+        "academy",
     ]
     search_fields = ["title", "description", "instructor__email", "instrument", "genre"]
     prepopulated_fields = {"slug": ("title",)}
@@ -41,32 +52,55 @@ class CourseAdmin(admin.ModelAdmin):
     inlines = [LessonInline]
 
     fieldsets = (
-        (None, {
-            "fields": ("title", "slug", "description", "thumbnail"),
-        }),
-        ("Assignment", {
-            "fields": ("academy", "instructor"),
-        }),
-        ("Music Details", {
-            "fields": ("instrument", "genre", "difficulty_level"),
-        }),
-        ("Course Structure", {
-            "fields": (
-                "prerequisites", "learning_outcomes",
-                "estimated_duration_weeks", "max_students",
-                "prerequisite_courses",
-            ),
-        }),
-        ("Pricing", {
-            "fields": ("price_cents", "currency"),
-        }),
-        ("Publishing", {
-            "fields": ("is_published", "published_at"),
-        }),
-        ("Timestamps", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",),
-        }),
+        (
+            None,
+            {
+                "fields": ("title", "slug", "description", "thumbnail"),
+            },
+        ),
+        (
+            "Assignment",
+            {
+                "fields": ("academy", "instructor"),
+            },
+        ),
+        (
+            "Music Details",
+            {
+                "fields": ("instrument", "genre", "difficulty_level"),
+            },
+        ),
+        (
+            "Course Structure",
+            {
+                "fields": (
+                    "prerequisites",
+                    "learning_outcomes",
+                    "estimated_duration_weeks",
+                    "max_students",
+                    "prerequisite_courses",
+                ),
+            },
+        ),
+        (
+            "Pricing",
+            {
+                "fields": ("price_cents", "currency"),
+            },
+        ),
+        (
+            "Publishing",
+            {
+                "fields": ("is_published", "published_at"),
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
     @admin.display(description="Price")
@@ -77,8 +111,12 @@ class CourseAdmin(admin.ModelAdmin):
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     list_display = [
-        "title", "course", "order", "estimated_duration_minutes",
-        "is_published", "academy",
+        "title",
+        "course",
+        "order",
+        "estimated_duration_minutes",
+        "is_published",
+        "academy",
     ]
     list_filter = ["is_published", "academy", "course"]
     search_fields = ["title", "description", "course__title"]
@@ -88,27 +126,49 @@ class LessonAdmin(admin.ModelAdmin):
     inlines = [PracticeAssignmentInline, LessonAttachmentInline]
 
     fieldsets = (
-        (None, {
-            "fields": ("course", "academy", "title", "description", "order"),
-        }),
-        ("Content", {
-            "fields": ("content", "video_url", "sheet_music_url", "audio_example_url"),
-        }),
-        ("Metadata", {
-            "fields": ("topics", "estimated_duration_minutes", "is_published"),
-        }),
-        ("Timestamps", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",),
-        }),
+        (
+            None,
+            {
+                "fields": ("course", "academy", "title", "description", "order"),
+            },
+        ),
+        (
+            "Content",
+            {
+                "fields": (
+                    "content",
+                    "video_url",
+                    "sheet_music_url",
+                    "audio_example_url",
+                ),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": ("topics", "estimated_duration_minutes", "is_published"),
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
 
 @admin.register(PracticeAssignment)
 class PracticeAssignmentAdmin(admin.ModelAdmin):
     list_display = [
-        "title", "lesson", "assignment_type", "piece_title",
-        "practice_minutes_target", "due_date", "academy",
+        "title",
+        "lesson",
+        "assignment_type",
+        "piece_title",
+        "practice_minutes_target",
+        "due_date",
+        "academy",
     ]
     list_filter = ["assignment_type", "academy"]
     search_fields = ["title", "description", "piece_title", "composer", "lesson__title"]
@@ -117,22 +177,43 @@ class PracticeAssignmentAdmin(admin.ModelAdmin):
     list_select_related = ["lesson", "academy"]
 
     fieldsets = (
-        (None, {
-            "fields": ("lesson", "academy", "title", "description", "assignment_type"),
-        }),
-        ("Music Details", {
-            "fields": (
-                "piece_title", "composer", "tempo_bpm",
-                "practice_minutes_target", "due_date",
-            ),
-        }),
-        ("Resources", {
-            "fields": ("reference_audio_url", "sheet_music_url", "instructions"),
-        }),
-        ("Timestamps", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",),
-        }),
+        (
+            None,
+            {
+                "fields": (
+                    "lesson",
+                    "academy",
+                    "title",
+                    "description",
+                    "assignment_type",
+                ),
+            },
+        ),
+        (
+            "Music Details",
+            {
+                "fields": (
+                    "piece_title",
+                    "composer",
+                    "tempo_bpm",
+                    "practice_minutes_target",
+                    "due_date",
+                ),
+            },
+        ),
+        (
+            "Resources",
+            {
+                "fields": ("reference_audio_url", "sheet_music_url", "instructions"),
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
 

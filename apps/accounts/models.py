@@ -20,7 +20,10 @@ class User(AbstractUser):
     ical_feed_token = models.CharField(max_length=64, blank=True)
     stripe_customer_id = models.CharField(max_length=100, blank=True)
     parent = models.ForeignKey(
-        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="children",
     )
     current_academy = models.ForeignKey(

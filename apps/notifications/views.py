@@ -31,9 +31,13 @@ class MarkReadView(TenantMixin, View):
         notification.is_read = True
         notification.save()
         if request.htmx:
-            return render(request, "notifications/partials/_notification_item.html", {
-                "notification": notification,
-            })
+            return render(
+                request,
+                "notifications/partials/_notification_item.html",
+                {
+                    "notification": notification,
+                },
+            )
         return render(request, "notifications/list.html")
 
 
@@ -45,9 +49,13 @@ class MarkAllReadView(TenantMixin, View):
             is_read=False,
         ).update(is_read=True)
         if request.htmx:
-            return render(request, "notifications/partials/_notification_badge.html", {
-                "unread_count": 0,
-            })
+            return render(
+                request,
+                "notifications/partials/_notification_badge.html",
+                {
+                    "unread_count": 0,
+                },
+            )
         return render(request, "notifications/list.html")
 
 
@@ -58,12 +66,17 @@ class NotificationBadgePartialView(TenantMixin, View):
             academy=self.get_academy(),
             is_read=False,
         ).count()
-        return render(request, "notifications/partials/_notification_badge.html", {
-            "unread_count": unread_count,
-        })
+        return render(
+            request,
+            "notifications/partials/_notification_badge.html",
+            {
+                "unread_count": unread_count,
+            },
+        )
 
 
 # === Messaging Views ===
+
 
 class InboxView(TenantMixin, View):
     """Unified conversation list (replaces separate inbox/sent tabs)."""
@@ -86,16 +99,22 @@ class InboxView(TenantMixin, View):
                 recipient=user,
                 is_read=False,
             ).count()
-            conversations.append({
-                "root": root,
-                "other_person": other_person,
-                "last_message": last_message,
-                "unread_count": unread_count,
-            })
+            conversations.append(
+                {
+                    "root": root,
+                    "other_person": other_person,
+                    "last_message": last_message,
+                    "unread_count": unread_count,
+                }
+            )
         conversations.sort(key=lambda c: c["last_message"].created_at, reverse=True)
-        return render(request, "notifications/inbox.html", {
-            "conversations": conversations,
-        })
+        return render(
+            request,
+            "notifications/inbox.html",
+            {
+                "conversations": conversations,
+            },
+        )
 
 
 class SentRedirectView(TenantMixin, View):
@@ -108,35 +127,51 @@ class SentRedirectView(TenantMixin, View):
 class ComposeMessageView(TenantMixin, View):
     def get(self, request):
         academy = self.get_academy()
-        members = Membership.objects.filter(
-            academy=academy,
-        ).exclude(user=request.user).select_related("user")
-        return render(request, "notifications/compose.html", {
-            "members": members,
-            "reply_to": request.GET.get("reply_to"),
-            "recipient_id": request.GET.get("to"),
-        })
+        members = (
+            Membership.objects.filter(
+                academy=academy,
+            )
+            .exclude(user=request.user)
+            .select_related("user")
+        )
+        return render(
+            request,
+            "notifications/compose.html",
+            {
+                "members": members,
+                "reply_to": request.GET.get("reply_to"),
+                "recipient_id": request.GET.get("to"),
+            },
+        )
 
     def post(self, request):
         academy = self.get_academy()
         from apps.accounts.models import User
+
         recipient = get_object_or_404(User, pk=request.POST.get("recipient"))
         # Security: verify recipient is a member of the same academy
         if not Membership.objects.filter(user=recipient, academy=academy).exists():
             from django.http import HttpResponseForbidden
+
             return HttpResponseForbidden("Recipient is not a member of this academy.")
         # Security: prevent sending messages to yourself
         if recipient == request.user:
             from django.contrib import messages
+
             messages.error(request, "You cannot send a message to yourself.")
             return redirect("compose-message")
         parent_id = request.POST.get("parent")
         parent = None
         if parent_id:
             # Security: validate parent message belongs to this academy and involves the user
-            parent = Message.objects.filter(
-                pk=parent_id, academy=academy,
-            ).filter(Q(sender=request.user) | Q(recipient=request.user)).first()
+            parent = (
+                Message.objects.filter(
+                    pk=parent_id,
+                    academy=academy,
+                )
+                .filter(Q(sender=request.user) | Q(recipient=request.user))
+                .first()
+            )
         Message.objects.create(
             sender=request.user,
             recipient=recipient,
@@ -155,22 +190,32 @@ class MessageThreadView(TenantMixin, View):
         message = get_object_or_404(Message, pk=pk, academy=academy)
         # Verify user is a participant in this message
         if message.sender != request.user and message.recipient != request.user:
-            return HttpResponseForbidden("You do not have permission to view this thread.")
+            return HttpResponseForbidden(
+                "You do not have permission to view this thread."
+            )
         root = message.thread_root
         # Also verify the user is a participant in the root message
         if root.sender != request.user and root.recipient != request.user:
-            return HttpResponseForbidden("You do not have permission to view this thread.")
+            return HttpResponseForbidden(
+                "You do not have permission to view this thread."
+            )
         other_person = root.recipient if root.sender == request.user else root.sender
-        thread = Message.objects.filter(
-            Q(pk=root.pk) | Q(parent=root)
-        ).select_related("sender", "recipient").order_by("created_at")
+        thread = (
+            Message.objects.filter(Q(pk=root.pk) | Q(parent=root))
+            .select_related("sender", "recipient")
+            .order_by("created_at")
+        )
         # Mark as read
         thread.filter(recipient=request.user, is_read=False).update(is_read=True)
-        return render(request, "notifications/thread.html", {
-            "thread": thread,
-            "root_message": root,
-            "other_person": other_person,
-        })
+        return render(
+            request,
+            "notifications/thread.html",
+            {
+                "thread": thread,
+                "root_message": root,
+                "other_person": other_person,
+            },
+        )
 
     def post(self, request, pk):
         academy = self.get_academy()
@@ -190,7 +235,9 @@ class MessageThreadView(TenantMixin, View):
             parent=root,
         )
         if getattr(request, "htmx", False):
-            return render(request, "notifications/partials/_chat_bubble.html", {"msg": new_msg})
+            return render(
+                request, "notifications/partials/_chat_bubble.html", {"msg": new_msg}
+            )
         return redirect("message-thread", pk=root.pk)
 
 
@@ -237,13 +284,21 @@ class CourseChatView(TenantMixin, View):
         from .models import ChatMessage
 
         course = get_object_or_404(Course, slug=slug, academy=self.get_academy())
-        messages = ChatMessage.objects.filter(
-            academy=self.get_academy(),
-        ).select_related("sender").order_by("-created_at")[:50]
-        return render(request, "notifications/chat_room.html", {
-            "course": course,
-            "chat_messages": reversed(list(messages)),
-        })
+        messages = (
+            ChatMessage.objects.filter(
+                academy=self.get_academy(),
+            )
+            .select_related("sender")
+            .order_by("-created_at")[:50]
+        )
+        return render(
+            request,
+            "notifications/chat_room.html",
+            {
+                "course": course,
+                "chat_messages": reversed(list(messages)),
+            },
+        )
 
     def post(self, request, slug):
         from apps.courses.models import Course
@@ -258,12 +313,20 @@ class CourseChatView(TenantMixin, View):
                 message=body,
             )
         if request.htmx:
-            messages = ChatMessage.objects.filter(
-                academy=self.get_academy(),
-            ).select_related("sender").order_by("-created_at")[:50]
-            return render(request, "notifications/partials/_chat_messages.html", {
-                "chat_messages": reversed(list(messages)),
-            })
+            messages = (
+                ChatMessage.objects.filter(
+                    academy=self.get_academy(),
+                )
+                .select_related("sender")
+                .order_by("-created_at")[:50]
+            )
+            return render(
+                request,
+                "notifications/partials/_chat_messages.html",
+                {
+                    "chat_messages": reversed(list(messages)),
+                },
+            )
         return redirect("course-chat", slug=slug)
 
 
@@ -274,6 +337,10 @@ class UnreadMessageCountView(TenantMixin, View):
             academy=self.get_academy(),
             is_read=False,
         ).count()
-        return render(request, "notifications/partials/_unread_badge.html", {
-            "unread_msg_count": count,
-        })
+        return render(
+            request,
+            "notifications/partials/_unread_badge.html",
+            {
+                "unread_msg_count": count,
+            },
+        )

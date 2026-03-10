@@ -48,7 +48,9 @@ class TestInstructorDashboardEmptyState(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.client.login(username="instructor-empty-iso@test.com", password="testpass123")
+        self.client.login(
+            username="instructor-empty-iso@test.com", password="testpass123"
+        )
 
     def test_shows_empty_state_when_no_courses(self):
         response = self.client.get(reverse("instructor-dashboard"))

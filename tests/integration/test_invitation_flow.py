@@ -28,6 +28,7 @@ from apps.notifications.models import Notification
 # Happy Path Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.integration
 class TestInviteMemberHappyPath(TestCase):
     """Test that an owner can send an invitation."""
@@ -56,15 +57,20 @@ class TestInviteMemberHappyPath(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="inv-happy-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="inv-happy-owner@test.com", password="testpass123"
+        )
 
     def test_owner_can_send_invitation(self):
         """Owner sends an invitation; Invitation record is created and email sent."""
         url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
-        response = self.auth_client.post(url, {
-            "email": "newuser@example.com",
-            "role": "student",
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "email": "newuser@example.com",
+                "role": "student",
+            },
+        )
         # Should redirect back to members page (non-HTMX request)
         assert response.status_code == 302
 
@@ -83,10 +89,13 @@ class TestInviteMemberHappyPath(TestCase):
     def test_owner_can_send_instructor_invitation(self):
         """Owner can invite an instructor (not just students)."""
         url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
-        self.auth_client.post(url, {
-            "email": "prof@example.com",
-            "role": "instructor",
-        })
+        self.auth_client.post(
+            url,
+            {
+                "email": "prof@example.com",
+                "role": "instructor",
+            },
+        )
         inv = Invitation.objects.get(email="prof@example.com", academy=self.academy)
         assert inv.role == "instructor"
 
@@ -211,6 +220,7 @@ class TestAcceptInvitationHappyPath(TestCase):
 # Email Match Enforcement (DEBT-003)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.integration
 class TestEmailMatchEnforcement(TestCase):
     """Test that only the invited email can accept the invitation."""
@@ -318,6 +328,7 @@ class TestEmailMatchEnforcement(TestCase):
 # Error State Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.integration
 class TestInvitationErrorStates(TestCase):
     """Test that invalid/expired/already-accepted invitations show correct error pages."""
@@ -376,19 +387,28 @@ class TestInvitationErrorStates(TestCase):
     def setUp(self):
         self.client = Client()
         self.auth_client = Client()
-        self.auth_client.login(username="inv-error-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="inv-error-owner@test.com", password="testpass123"
+        )
 
     def test_invalid_token_shows_invalid_page(self):
         """A completely bogus token renders the invalid invitation page."""
-        url = reverse("accept-invitation", kwargs={"token": "bogus-token-that-doesnt-exist"})
+        url = reverse(
+            "accept-invitation", kwargs={"token": "bogus-token-that-doesnt-exist"}
+        )
         response = self.client.get(url)
 
         assert response.status_code == 200
-        assert b"invalid" in response.content.lower() or b"not found" in response.content.lower()
+        assert (
+            b"invalid" in response.content.lower()
+            or b"not found" in response.content.lower()
+        )
 
     def test_expired_invitation_shows_expired_page(self):
         """An expired invitation renders the expired page."""
-        url = reverse("accept-invitation", kwargs={"token": self.expired_invitation.token})
+        url = reverse(
+            "accept-invitation", kwargs={"token": self.expired_invitation.token}
+        )
         response = self.client.get(url)
 
         assert response.status_code == 200
@@ -396,7 +416,9 @@ class TestInvitationErrorStates(TestCase):
 
     def test_already_accepted_invitation_shows_accepted_page(self):
         """An already-accepted invitation renders the already_accepted page."""
-        url = reverse("accept-invitation", kwargs={"token": self.accepted_invitation.token})
+        url = reverse(
+            "accept-invitation", kwargs={"token": self.accepted_invitation.token}
+        )
         response = self.client.get(url)
 
         assert response.status_code == 200
@@ -405,16 +427,22 @@ class TestInvitationErrorStates(TestCase):
     def test_duplicate_invitation_prevented(self):
         """Sending a second invitation to the same email is blocked."""
         url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
-        response = self.auth_client.post(url, {
-            "email": self.invitation.email,
-            "role": "student",
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "email": self.invitation.email,
+                "role": "student",
+            },
+        )
 
         # Should redirect (non-HTMX) without creating a new invitation
         assert response.status_code == 302
-        assert Invitation.objects.filter(
-            email=self.invitation.email, academy=self.academy, accepted=False
-        ).count() == 1  # still just the original
+        assert (
+            Invitation.objects.filter(
+                email=self.invitation.email, academy=self.academy, accepted=False
+            ).count()
+            == 1
+        )  # still just the original
 
     def test_duplicate_invitation_prevented_htmx(self):
         """HTMX request for duplicate invitation returns partial with error."""
@@ -432,10 +460,13 @@ class TestInvitationErrorStates(TestCase):
     def test_cannot_invite_existing_member(self):
         """Cannot send invitation to someone who is already a member."""
         url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
-        response = self.auth_client.post(url, {
-            "email": self.owner.email,
-            "role": "student",
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "email": self.owner.email,
+                "role": "student",
+            },
+        )
 
         assert response.status_code == 302
         assert not Invitation.objects.filter(
@@ -460,7 +491,9 @@ class TestInvitationErrorStates(TestCase):
             password="testpass123",
         )
         self.client.force_login(user)
-        url = reverse("accept-invitation", kwargs={"token": self.expired_invitation.token})
+        url = reverse(
+            "accept-invitation", kwargs={"token": self.expired_invitation.token}
+        )
         response = self.client.post(url)
 
         assert response.status_code == 200
@@ -470,6 +503,7 @@ class TestInvitationErrorStates(TestCase):
 # ---------------------------------------------------------------------------
 # Permission Tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 class TestInvitationPermissions(TestCase):
@@ -507,7 +541,9 @@ class TestInvitationPermissions(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -521,8 +557,11 @@ class TestInvitationPermissions(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.invitation = Invitation.objects.create(
@@ -537,16 +576,21 @@ class TestInvitationPermissions(TestCase):
     def setUp(self):
         self.client = Client()
         self.auth_client = Client()
-        self.auth_client.login(username="inv-perms-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="inv-perms-owner@test.com", password="testpass123"
+        )
 
     def test_student_cannot_send_invitation(self):
         """Student gets 403 when trying to invite a member."""
         self.client.force_login(self.student)
         url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
-        response = self.client.post(url, {
-            "email": "hack@example.com",
-            "role": "student",
-        })
+        response = self.client.post(
+            url,
+            {
+                "email": "hack@example.com",
+                "role": "student",
+            },
+        )
         assert response.status_code == 403
 
         # No invitation created
@@ -556,10 +600,13 @@ class TestInvitationPermissions(TestCase):
         """Instructor gets 403 when trying to invite a member."""
         self.client.force_login(self.instructor)
         url = reverse("academy-invite", kwargs={"slug": self.academy.slug})
-        response = self.client.post(url, {
-            "email": "hack@example.com",
-            "role": "student",
-        })
+        response = self.client.post(
+            url,
+            {
+                "email": "hack@example.com",
+                "role": "student",
+            },
+        )
         assert response.status_code == 403
 
     def test_resend_invitation_works_for_owner(self):
@@ -567,10 +614,13 @@ class TestInvitationPermissions(TestCase):
         old_token = self.invitation.token
         old_expires = self.invitation.expires_at
 
-        url = reverse("resend-invitation", kwargs={
-            "slug": self.academy.slug,
-            "pk": self.invitation.pk,
-        })
+        url = reverse(
+            "resend-invitation",
+            kwargs={
+                "slug": self.academy.slug,
+                "pk": self.invitation.pk,
+            },
+        )
         response = self.auth_client.post(url)
         assert response.status_code == 200
 
@@ -585,19 +635,25 @@ class TestInvitationPermissions(TestCase):
     def test_student_cannot_resend_invitation(self):
         """Student gets 403 when trying to resend."""
         self.client.force_login(self.student)
-        url = reverse("resend-invitation", kwargs={
-            "slug": self.academy.slug,
-            "pk": self.invitation.pk,
-        })
+        url = reverse(
+            "resend-invitation",
+            kwargs={
+                "slug": self.academy.slug,
+                "pk": self.invitation.pk,
+            },
+        )
         response = self.client.post(url)
         assert response.status_code == 403
 
     def test_cancel_invitation_works_for_owner(self):
         """Owner can cancel a pending invitation, which deletes it."""
-        url = reverse("cancel-invitation", kwargs={
-            "slug": self.academy.slug,
-            "pk": self.invitation.pk,
-        })
+        url = reverse(
+            "cancel-invitation",
+            kwargs={
+                "slug": self.academy.slug,
+                "pk": self.invitation.pk,
+            },
+        )
         response = self.auth_client.post(url)
         assert response.status_code == 200
 
@@ -606,10 +662,13 @@ class TestInvitationPermissions(TestCase):
     def test_student_cannot_cancel_invitation(self):
         """Student gets 403 when trying to cancel."""
         self.client.force_login(self.student)
-        url = reverse("cancel-invitation", kwargs={
-            "slug": self.academy.slug,
-            "pk": self.invitation.pk,
-        })
+        url = reverse(
+            "cancel-invitation",
+            kwargs={
+                "slug": self.academy.slug,
+                "pk": self.invitation.pk,
+            },
+        )
         response = self.client.post(url)
         assert response.status_code == 403
 
@@ -620,6 +679,7 @@ class TestInvitationPermissions(TestCase):
 # ---------------------------------------------------------------------------
 # ?next= Flow Tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.integration
 class TestNextUrlPreservation(TestCase):
@@ -722,6 +782,7 @@ class TestNextUrlPreservation(TestCase):
 # Invitation Acceptance — Idempotency / Edge Cases
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.integration
 class TestInvitationEdgeCases(TestCase):
     """Edge cases around invitation acceptance."""
@@ -767,7 +828,9 @@ class TestInvitationEdgeCases(TestCase):
     def setUp(self):
         self.client = Client()
         self.auth_client = Client()
-        self.auth_client.login(username="inv-edge-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="inv-edge-owner@test.com", password="testpass123"
+        )
 
     def test_accept_creates_membership_with_correct_role(self):
         """Invitation role propagates to the created Membership."""
@@ -803,9 +866,12 @@ class TestInvitationEdgeCases(TestCase):
         response = self.client.post(url)
 
         assert response.status_code == 302
-        assert Membership.objects.filter(
-            user=self.invited_user, academy=self.academy
-        ).count() == 1  # no duplicate
+        assert (
+            Membership.objects.filter(
+                user=self.invited_user, academy=self.academy
+            ).count()
+            == 1
+        )  # no duplicate
 
     def test_htmx_invite_returns_partial(self):
         """HTMX invitation request returns the partial template."""

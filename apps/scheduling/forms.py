@@ -37,4 +37,5 @@ class LiveSessionForm(forms.ModelForm):
         )
         if academy:
             from apps.courses.models import Course
+
             self.fields["course"].queryset = Course.objects.filter(academy=academy)

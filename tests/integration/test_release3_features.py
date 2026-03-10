@@ -1,4 +1,5 @@
 """Tests for FEAT-023 through FEAT-032 (Release 3: Monetization)."""
+
 import pytest
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -7,8 +8,13 @@ from django.utils import timezone
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
 from apps.payments.models import (
-    SubscriptionPlan, Subscription, Payment, Coupon,
-    InstructorPayout, PackageDeal, AcademyTier,
+    SubscriptionPlan,
+    Subscription,
+    Payment,
+    Coupon,
+    InstructorPayout,
+    PackageDeal,
+    AcademyTier,
 )
 from apps.scheduling.models import InstructorAvailability
 
@@ -41,7 +47,9 @@ class TestStripePayments(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-rel3-stripe@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-rel3-stripe@test.com", password="testpass123"
+        )
 
     def test_payment_model_fields(self):
         assert hasattr(Payment, "amount_cents")
@@ -50,8 +58,10 @@ class TestStripePayments(TestCase):
 
     def test_payment_auto_invoice_number(self):
         payment = Payment.objects.create(
-            student=self.owner, academy=self.academy,
-            amount_cents=5000, payment_type="course",
+            student=self.owner,
+            academy=self.academy,
+            amount_cents=5000,
+            payment_type="course",
         )
         assert payment.invoice_number.startswith("INV-")
 
@@ -88,7 +98,9 @@ class TestSubscriptionPlans(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-rel3-subplan@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-rel3-subplan@test.com", password="testpass123"
+        )
 
     def test_subscription_plan_model(self):
         assert hasattr(SubscriptionPlan, "price_cents")
@@ -101,11 +113,15 @@ class TestSubscriptionPlans(TestCase):
 
     def test_create_subscription(self):
         plan = SubscriptionPlan.objects.create(
-            name="Monthly Plan", academy=self.academy,
-            price_cents=2999, billing_cycle="monthly",
+            name="Monthly Plan",
+            academy=self.academy,
+            price_cents=2999,
+            billing_cycle="monthly",
         )
         sub = Subscription.objects.create(
-            student=self.owner, plan=plan, academy=self.academy,
+            student=self.owner,
+            plan=plan,
+            academy=self.academy,
         )
         assert sub.is_valid is True
         assert "Monthly Plan" in str(sub)
@@ -143,18 +159,24 @@ class TestFreeTrial(TestCase):
 
     def test_plan_with_trial_days(self):
         plan = SubscriptionPlan.objects.create(
-            name="Trial Plan", academy=self.academy,
-            price_cents=1999, trial_days=7,
+            name="Trial Plan",
+            academy=self.academy,
+            price_cents=1999,
+            trial_days=7,
         )
         assert plan.trial_days == 7
 
     def test_subscription_trialing_status(self):
         plan = SubscriptionPlan.objects.create(
-            name="Trial Plan", academy=self.academy,
-            price_cents=1999, trial_days=7,
+            name="Trial Plan",
+            academy=self.academy,
+            price_cents=1999,
+            trial_days=7,
         )
         sub = Subscription.objects.create(
-            student=self.owner, plan=plan, academy=self.academy,
+            student=self.owner,
+            plan=plan,
+            academy=self.academy,
             status=Subscription.Status.TRIALING,
             trial_end=timezone.now() + timezone.timedelta(days=7),
         )
@@ -189,7 +211,9 @@ class TestCoupons(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-rel3-coupon@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-rel3-coupon@test.com", password="testpass123"
+        )
 
     def test_coupon_model(self):
         assert hasattr(Coupon, "code")
@@ -197,16 +221,20 @@ class TestCoupons(TestCase):
 
     def test_coupon_validity(self):
         coupon = Coupon.objects.create(
-            academy=self.academy, code="SAVE20",
-            discount_type="percentage", discount_value=20,
+            academy=self.academy,
+            code="SAVE20",
+            discount_type="percentage",
+            discount_value=20,
         )
         assert coupon.is_valid is True
         assert "20%" in str(coupon)
 
     def test_expired_coupon_invalid(self):
         coupon = Coupon.objects.create(
-            academy=self.academy, code="EXPIRED",
-            discount_type="percentage", discount_value=10,
+            academy=self.academy,
+            code="EXPIRED",
+            discount_type="percentage",
+            discount_value=10,
             expires_at=timezone.now() - timezone.timedelta(days=1),
         )
         assert coupon.is_valid is False
@@ -216,12 +244,15 @@ class TestCoupons(TestCase):
         assert response.status_code == 200
 
     def test_create_coupon(self):
-        response = self.auth_client.post(reverse("coupon-manage"), {
-            "code": "NEWCODE",
-            "discount_type": "percentage",
-            "discount_value": "15",
-            "max_uses": "100",
-        })
+        response = self.auth_client.post(
+            reverse("coupon-manage"),
+            {
+                "code": "NEWCODE",
+                "discount_type": "percentage",
+                "discount_value": "15",
+                "max_uses": "100",
+            },
+        )
         assert response.status_code == 302
         assert Coupon.objects.filter(academy=self.academy, code="NEWCODE").exists()
 
@@ -254,13 +285,18 @@ class TestInvoices(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-rel3-invoice@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-rel3-invoice@test.com", password="testpass123"
+        )
 
     def test_invoice_detail_view(self):
         payment = Payment.objects.create(
-            student=self.owner, academy=self.academy,
-            amount_cents=5000, payment_type="course",
-            status="completed", paid_at=timezone.now(),
+            student=self.owner,
+            academy=self.academy,
+            amount_cents=5000,
+            payment_type="course",
+            status="completed",
+            paid_at=timezone.now(),
         )
         response = self.auth_client.get(reverse("invoice-detail", args=[payment.pk]))
         assert response.status_code == 200
@@ -295,7 +331,9 @@ class TestInstructorPayouts(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-rel3-payout@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-rel3-payout@test.com", password="testpass123"
+        )
 
     def test_payout_model(self):
         assert hasattr(InstructorPayout, "amount_cents")
@@ -312,16 +350,21 @@ class TestAcademyTiers(TestCase):
 
     def test_academy_tier_model(self):
         tier = AcademyTier.objects.create(
-            name="Pro", tier_level="pro",
-            price_cents=4999, max_students=100,
-            max_instructors=10, max_courses=50,
+            name="Pro",
+            tier_level="pro",
+            price_cents=4999,
+            max_students=100,
+            max_instructors=10,
+            max_courses=50,
         )
         assert "Pro" in str(tier)
 
     def test_tiers_page_loads(self):
         AcademyTier.objects.create(
-            name="Free", tier_level="free",
-            price_cents=0, max_students=10,
+            name="Free",
+            tier_level="free",
+            price_cents=0,
+            max_students=10,
         )
         anon_client = Client()
         response = anon_client.get(reverse("academy-tiers"))
@@ -356,7 +399,9 @@ class TestAvailabilityAndBooking(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-rel3-avail@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-rel3-avail@test.com", password="testpass123"
+        )
 
     def test_availability_model(self):
         assert hasattr(InstructorAvailability, "day_of_week")
@@ -367,11 +412,14 @@ class TestAvailabilityAndBooking(TestCase):
         assert response.status_code == 200
 
     def test_create_availability(self):
-        response = self.auth_client.post(reverse("availability-manage"), {
-            "day_of_week": "1",
-            "start_time": "09:00",
-            "end_time": "17:00",
-        })
+        response = self.auth_client.post(
+            reverse("availability-manage"),
+            {
+                "day_of_week": "1",
+                "start_time": "09:00",
+                "end_time": "17:00",
+            },
+        )
         assert response.status_code == 302
         assert InstructorAvailability.objects.filter(instructor=self.owner).exists()
 
@@ -408,12 +456,16 @@ class TestPackageDeals(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-rel3-pkg@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-rel3-pkg@test.com", password="testpass123"
+        )
 
     def test_package_model(self):
         pkg = PackageDeal.objects.create(
-            name="10 Lesson Pack", academy=self.academy,
-            price_cents=15000, total_credits=10,
+            name="10 Lesson Pack",
+            academy=self.academy,
+            price_cents=15000,
+            total_credits=10,
         )
         assert pkg.total_credits == 10
 
@@ -424,8 +476,10 @@ class TestPackageDeals(TestCase):
     def test_purchase_package_redirects_or_errors(self):
         """Package purchase now goes through Stripe checkout; POST redirects to Stripe or pricing on error."""
         pkg = PackageDeal.objects.create(
-            name="5 Lesson Pack", academy=self.academy,
-            price_cents=8000, total_credits=5,
+            name="5 Lesson Pack",
+            academy=self.academy,
+            price_cents=8000,
+            total_credits=5,
         )
         response = self.auth_client.post(reverse("package-purchase", args=[pkg.pk]))
         # Redirects to Stripe checkout URL (302) or back to pricing on Stripe API error
@@ -460,7 +514,9 @@ class TestParentPortal(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-rel3-parent@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-rel3-parent@test.com", password="testpass123"
+        )
 
     def test_user_has_parent_fields(self):
         assert hasattr(User, "is_parent")
@@ -472,13 +528,17 @@ class TestParentPortal(TestCase):
 
     def test_link_child(self):
         child = User.objects.create_user(
-            email="child-rel3-parent@test.com", username="child-rel3-parent",
+            email="child-rel3-parent@test.com",
+            username="child-rel3-parent",
             password="testpass123",
         )
         Membership.objects.create(user=child, academy=self.academy, role="student")
-        response = self.auth_client.post(reverse("link-child"), {
-            "child_email": "child-rel3-parent@test.com",
-        })
+        response = self.auth_client.post(
+            reverse("link-child"),
+            {
+                "child_email": "child-rel3-parent@test.com",
+            },
+        )
         assert response.status_code == 302
         child.refresh_from_db()
         assert child.parent == self.owner

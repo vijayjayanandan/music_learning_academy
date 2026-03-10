@@ -26,6 +26,7 @@ from apps.common.storage import (
 # Storage backend tests
 # ---------------------------------------------------------------------------
 
+
 class TestPublicMediaStorage:
     def test_querystring_auth_disabled(self):
         assert PublicMediaStorage.querystring_auth is False
@@ -61,11 +62,13 @@ class TestGetStorageFunctions:
 
     def test_get_public_storage_returns_default_when_r2_not_configured(self):
         from django.core.files.storage import default_storage
+
         storage = get_public_storage()
         assert storage is default_storage
 
     def test_get_private_storage_returns_default_when_r2_not_configured(self):
         from django.core.files.storage import default_storage
+
         storage = get_private_storage()
         assert storage is default_storage
 
@@ -73,6 +76,7 @@ class TestGetStorageFunctions:
 # ---------------------------------------------------------------------------
 # Tenant-scoped upload_to tests
 # ---------------------------------------------------------------------------
+
 
 class TestUploadToPaths:
     """Verify tenant-scoped upload paths for all 9 file fields."""
@@ -152,12 +156,14 @@ class TestUploadToPaths:
 # File cleanup signal tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestFileCleanupOnDelete:
     """Test that files are deleted from storage when models are deleted."""
 
     def test_user_avatar_cleaned_up_on_delete(self):
         from apps.accounts.models import User
+
         user = User.objects.create_user(
             username="cleanup_test",
             email="cleanup@test.com",
@@ -172,22 +178,35 @@ class TestFileCleanupOnDelete:
         user.delete()
         assert not storage.exists(file_name)
 
-    def test_assignment_submission_files_cleaned_up(self, academy, instructor_user, student_user):
+    def test_assignment_submission_files_cleaned_up(
+        self, academy, instructor_user, student_user
+    ):
         from apps.courses.models import Course, Lesson, PracticeAssignment
         from apps.enrollments.models import AssignmentSubmission
 
         course = Course.objects.create(
-            academy=academy, title="Test Course", slug="test-course",
-            description="Test", instructor=instructor_user,
+            academy=academy,
+            title="Test Course",
+            slug="test-course",
+            description="Test",
+            instructor=instructor_user,
         )
         lesson = Lesson.objects.create(
-            academy=academy, course=course, title="Lesson 1", order=1,
+            academy=academy,
+            course=course,
+            title="Lesson 1",
+            order=1,
         )
         assignment = PracticeAssignment.objects.create(
-            academy=academy, lesson=lesson, title="Practice", description="Do it",
+            academy=academy,
+            lesson=lesson,
+            title="Practice",
+            description="Do it",
         )
         submission = AssignmentSubmission.objects.create(
-            academy=academy, assignment=assignment, student=student_user,
+            academy=academy,
+            assignment=assignment,
+            student=student_user,
         )
         submission.recording.save("test.mp3", ContentFile(b"fake audio"), save=True)
         file_name = submission.recording.name
@@ -199,6 +218,7 @@ class TestFileCleanupOnDelete:
 
     def test_old_file_deleted_on_field_update(self):
         from apps.accounts.models import User
+
         user = User.objects.create_user(
             username="update_test",
             email="update@test.com",
@@ -224,6 +244,7 @@ class TestFileCleanupOnDelete:
 # GDPR DataExport with files test
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestDataExportWithFiles:
     def test_export_includes_avatar_url(self, client, student_user):
@@ -233,6 +254,7 @@ class TestDataExportWithFiles:
         response = client.get("/accounts/data-export/")
         assert response.status_code == 200
         import json
+
         data = json.loads(response.content)
         assert "avatar_url" in data["account"]
         assert data["account"]["avatar_url"] is not None
@@ -240,22 +262,35 @@ class TestDataExportWithFiles:
         # Cleanup
         student_user.avatar.delete(save=False)
 
-    def test_export_includes_submission_files(self, client, student_user, academy, instructor_user):
+    def test_export_includes_submission_files(
+        self, client, student_user, academy, instructor_user
+    ):
         from apps.courses.models import Course, Lesson, PracticeAssignment
         from apps.enrollments.models import AssignmentSubmission
 
         course = Course.objects.create(
-            academy=academy, title="Test Course", slug="export-test",
-            description="Test", instructor=instructor_user,
+            academy=academy,
+            title="Test Course",
+            slug="export-test",
+            description="Test",
+            instructor=instructor_user,
         )
         lesson = Lesson.objects.create(
-            academy=academy, course=course, title="L1", order=1,
+            academy=academy,
+            course=course,
+            title="L1",
+            order=1,
         )
         assignment = PracticeAssignment.objects.create(
-            academy=academy, lesson=lesson, title="HW", description="Do it",
+            academy=academy,
+            lesson=lesson,
+            title="HW",
+            description="Do it",
         )
         sub = AssignmentSubmission.objects.create(
-            academy=academy, assignment=assignment, student=student_user,
+            academy=academy,
+            assignment=assignment,
+            student=student_user,
         )
         sub.recording.save("my_recording.mp3", ContentFile(b"audio"), save=True)
 
@@ -263,6 +298,7 @@ class TestDataExportWithFiles:
         response = client.get("/accounts/data-export/")
         assert response.status_code == 200
         import json
+
         data = json.loads(response.content)
         assert len(data["assignment_submissions"]) == 1
         assert "recording_url" in data["assignment_submissions"][0]

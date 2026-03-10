@@ -33,7 +33,9 @@ class TestAuthViews(TestCase):
     def setUp(self):
         self.client = Client()
         self.auth_client = Client()
-        self.auth_client.login(username="views-auth-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="views-auth-owner@test.com", password="testpass123"
+        )
 
     def test_login_page_loads(self):
         response = self.client.get(reverse("login"))
@@ -41,17 +43,23 @@ class TestAuthViews(TestCase):
         assert b"Sign in" in response.content
 
     def test_login_with_valid_credentials(self):
-        response = self.client.post(reverse("login"), {
-            "username": "views-auth-owner@test.com",
-            "password": "testpass123",
-        })
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": "views-auth-owner@test.com",
+                "password": "testpass123",
+            },
+        )
         assert response.status_code == 302
 
     def test_login_with_invalid_credentials(self):
-        response = self.client.post(reverse("login"), {
-            "username": "views-auth-owner@test.com",
-            "password": "wrongpassword",
-        })
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": "views-auth-owner@test.com",
+                "password": "wrongpassword",
+            },
+        )
         assert response.status_code == 200  # stays on login page
 
     def test_register_page_loads(self):
@@ -90,7 +98,9 @@ class TestDashboardViews(TestCase):
     def setUp(self):
         self.client = Client()
         self.auth_client = Client()
-        self.auth_client.login(username="views-dashboard-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="views-dashboard-owner@test.com", password="testpass123"
+        )
 
     def test_dashboard_redirect_unauthenticated(self):
         response = self.client.get(reverse("dashboard"))
@@ -134,7 +144,9 @@ class TestCourseViews(TestCase):
     def setUp(self):
         self.client = Client()
         self.auth_client = Client()
-        self.auth_client.login(username="views-course-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="views-course-owner@test.com", password="testpass123"
+        )
 
     def test_course_list_loads(self):
         response = self.auth_client.get(reverse("course-list"))
@@ -175,7 +187,9 @@ class TestScheduleViews(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="views-schedule-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="views-schedule-owner@test.com", password="testpass123"
+        )
 
     def test_schedule_list_loads(self):
         response = self.auth_client.get(reverse("schedule-list"))
@@ -212,7 +226,9 @@ class TestNotificationViews(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="views-notif-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="views-notif-owner@test.com", password="testpass123"
+        )
 
     def test_notification_list_loads(self):
         response = self.auth_client.get(reverse("notification-list"))

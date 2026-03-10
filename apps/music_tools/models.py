@@ -22,7 +22,7 @@ class EarTrainingExercise(TenantScopedModel):
     difficulty = models.PositiveIntegerField(default=1, help_text="1-5")
     questions = models.JSONField(
         default=list,
-        help_text='List of question objects with answer/options',
+        help_text="List of question objects with answer/options",
     )
     is_active = models.BooleanField(default=True)
 
@@ -37,11 +37,13 @@ class EarTrainingScore(TenantScopedModel):
     """Track student's ear training performance."""
 
     student = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE,
+        "accounts.User",
+        on_delete=models.CASCADE,
         related_name="ear_training_scores",
     )
     exercise = models.ForeignKey(
-        EarTrainingExercise, on_delete=models.CASCADE,
+        EarTrainingExercise,
+        on_delete=models.CASCADE,
         related_name="scores",
     )
     score = models.PositiveIntegerField()
@@ -71,7 +73,9 @@ class RecitalEvent(TenantScopedModel):
     description = models.TextField(blank=True)
     scheduled_start = models.DateTimeField()
     scheduled_end = models.DateTimeField()
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.UPCOMING)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.UPCOMING
+    )
     room_name = models.CharField(max_length=255, unique=True)
     recording_url = models.URLField(blank=True)
     is_public = models.BooleanField(default=False)
@@ -87,10 +91,14 @@ class RecitalPerformer(TenantScopedModel):
     """A performer in a recital."""
 
     recital = models.ForeignKey(
-        RecitalEvent, on_delete=models.CASCADE, related_name="performers",
+        RecitalEvent,
+        on_delete=models.CASCADE,
+        related_name="performers",
     )
     student = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="recital_performances",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="recital_performances",
     )
     piece_title = models.CharField(max_length=300)
     composer = models.CharField(max_length=200, blank=True)
@@ -104,7 +112,9 @@ class PracticeAnalysis(TenantScopedModel):
     """FEAT-038: AI practice feedback (metadata, actual analysis is frontend)."""
 
     student = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="practice_analyses",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="practice_analyses",
     )
     recording = models.FileField(
         upload_to=upload_to_analysis, storage=get_private_storage, blank=True, null=True
@@ -125,13 +135,20 @@ class RecordingArchive(TenantScopedModel):
     """FEAT-039: Recording archive per student."""
 
     student = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="recordings",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="recordings",
     )
     title = models.CharField(max_length=300)
-    recording = models.FileField(upload_to=upload_to_student_recordings, storage=get_private_storage)
+    recording = models.FileField(
+        upload_to=upload_to_student_recordings, storage=get_private_storage
+    )
     instrument = models.CharField(max_length=50, blank=True)
     course = models.ForeignKey(
-        "courses.Course", on_delete=models.SET_NULL, null=True, blank=True,
+        "courses.Course",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
     duration_seconds = models.PositiveIntegerField(default=0)
     notes = models.TextField(blank=True)
@@ -146,11 +163,13 @@ class RecordingArchive(TenantScopedModel):
     @property
     def is_audio(self):
         import os
+
         ext = os.path.splitext(self.recording.name)[1].lower()
         return ext in [".mp3", ".wav", ".m4a", ".ogg", ".flac"]
 
     @property
     def is_video(self):
         import os
+
         ext = os.path.splitext(self.recording.name)[1].lower()
         return ext in [".mp4", ".webm", ".mov"]

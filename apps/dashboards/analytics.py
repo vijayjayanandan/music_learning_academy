@@ -164,8 +164,13 @@ class RevenueAnalytics:
                 year -= 1
 
             month_start = now.replace(
-                year=year, month=month, day=1,
-                hour=0, minute=0, second=0, microsecond=0,
+                year=year,
+                month=month,
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
 
             # Calculate next month start
@@ -304,9 +309,7 @@ class LearningAnalytics:
         from apps.scheduling.models import LiveSession, SessionAttendance
 
         # --- Average enrollment progress ---
-        active_enrollments = Enrollment.objects.filter(
-            academy=academy, status="active"
-        )
+        active_enrollments = Enrollment.objects.filter(academy=academy, status="active")
         enrollment_count = active_enrollments.count()
 
         if enrollment_count > 0:
@@ -352,9 +355,7 @@ class LearningAnalytics:
         ).count()
 
         if total_registrations > 0:
-            attendance_rate = round(
-                (attended / total_registrations) * 100, 1
-            )
+            attendance_rate = round((attended / total_registrations) * 100, 1)
         else:
             attendance_rate = 0
 
@@ -363,9 +364,7 @@ class LearningAnalytics:
             status="absent",
         ).count()
         if total_registrations > 0:
-            no_show_rate = round(
-                (no_show_count / total_registrations) * 100, 1
-            )
+            no_show_rate = round((no_show_count / total_registrations) * 100, 1)
         else:
             no_show_rate = 0
 

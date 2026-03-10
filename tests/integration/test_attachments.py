@@ -11,7 +11,6 @@ from apps.courses.models import Course, Lesson, LessonAttachment
 
 @pytest.mark.integration
 class TestLessonAttachmentModel(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.academy = Academy.objects.create(
@@ -52,7 +51,9 @@ class TestLessonAttachmentModel(TestCase):
         )
 
     def test_create_attachment(self):
-        file = SimpleUploadedFile("test.pdf", b"fake pdf content", content_type="application/pdf")
+        file = SimpleUploadedFile(
+            "test.pdf", b"fake pdf content", content_type="application/pdf"
+        )
         attachment = LessonAttachment.objects.create(
             lesson=self.lesson,
             academy=self.lesson.academy,
@@ -94,9 +95,10 @@ class TestLessonAttachmentModel(TestCase):
 
 @pytest.mark.integration
 class TestLessonAttachmentForm(TestCase):
-
     def test_valid_form(self):
-        file = SimpleUploadedFile("test.pdf", b"content", content_type="application/pdf")
+        file = SimpleUploadedFile(
+            "test.pdf", b"content", content_type="application/pdf"
+        )
         form = LessonAttachmentForm(
             data={"title": "Test", "file_type": "sheet_music", "order": 0},
             files={"file": file},
@@ -105,7 +107,9 @@ class TestLessonAttachmentForm(TestCase):
 
     def test_file_size_validation_rejects_large_files(self):
         large_content = b"x" * (51 * 1024 * 1024)  # 51MB
-        file = SimpleUploadedFile("big.pdf", large_content, content_type="application/pdf")
+        file = SimpleUploadedFile(
+            "big.pdf", large_content, content_type="application/pdf"
+        )
         form = LessonAttachmentForm(
             data={"title": "Big File", "file_type": "other", "order": 0},
             files={"file": file},
@@ -115,14 +119,19 @@ class TestLessonAttachmentForm(TestCase):
 
     def test_form_widgets_have_css_classes(self):
         form = LessonAttachmentForm()
-        assert "input input-bordered" in form.fields["title"].widget.attrs.get("class", "")
-        assert "select select-bordered" in form.fields["file_type"].widget.attrs.get("class", "")
-        assert "file-input file-input-bordered" in form.fields["file"].widget.attrs.get("class", "")
+        assert "input input-bordered" in form.fields["title"].widget.attrs.get(
+            "class", ""
+        )
+        assert "select select-bordered" in form.fields["file_type"].widget.attrs.get(
+            "class", ""
+        )
+        assert "file-input file-input-bordered" in form.fields["file"].widget.attrs.get(
+            "class", ""
+        )
 
 
 @pytest.mark.integration
 class TestAttachmentViews(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         cls.academy = Academy.objects.create(
@@ -164,21 +173,34 @@ class TestAttachmentViews(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="owner-attach-views@test.com", password="testpass123")
+        self.auth_client.login(
+            username="owner-attach-views@test.com", password="testpass123"
+        )
 
     def test_lesson_detail_shows_attachment_section(self):
-        response = self.auth_client.get(reverse("lesson-detail", args=[self.course.slug, self.lesson.pk]))
+        response = self.auth_client.get(
+            reverse("lesson-detail", args=[self.course.slug, self.lesson.pk])
+        )
         assert response.status_code == 200
         assert b"Upload Attachment" in response.content
 
     def test_upload_attachment(self):
-        file = SimpleUploadedFile("score.pdf", b"pdf content", content_type="application/pdf")
+        file = SimpleUploadedFile(
+            "score.pdf", b"pdf content", content_type="application/pdf"
+        )
         response = self.auth_client.post(
             reverse("attachment-upload", args=[self.course.slug, self.lesson.pk]),
-            {"title": "Score PDF", "file_type": "sheet_music", "file": file, "order": 1},
+            {
+                "title": "Score PDF",
+                "file_type": "sheet_music",
+                "file": file,
+                "order": 1,
+            },
         )
         assert response.status_code == 302
-        assert LessonAttachment.objects.filter(lesson=self.lesson, title="Score PDF").exists()
+        assert LessonAttachment.objects.filter(
+            lesson=self.lesson, title="Score PDF"
+        ).exists()
 
     def test_delete_attachment(self):
         attachment = LessonAttachment.objects.create(
@@ -189,7 +211,10 @@ class TestAttachmentViews(TestCase):
             title="To Delete",
         )
         response = self.auth_client.post(
-            reverse("attachment-delete", args=[self.course.slug, self.lesson.pk, attachment.pk]),
+            reverse(
+                "attachment-delete",
+                args=[self.course.slug, self.lesson.pk, attachment.pk],
+            ),
         )
         assert response.status_code == 302
         assert not LessonAttachment.objects.filter(pk=attachment.pk).exists()
@@ -202,7 +227,9 @@ class TestAttachmentViews(TestCase):
             file_type="audio",
             title="My Audio File",
         )
-        response = self.auth_client.get(reverse("lesson-detail", args=[self.course.slug, self.lesson.pk]))
+        response = self.auth_client.get(
+            reverse("lesson-detail", args=[self.course.slug, self.lesson.pk])
+        )
         assert response.status_code == 200
         assert b"My Audio File" in response.content
         assert b"<audio" in response.content

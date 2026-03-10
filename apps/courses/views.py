@@ -22,11 +22,27 @@ def _invalidate_dashboard_cache(academy_pk):
 
 
 ALLOWED_ATTACHMENT_EXTENSIONS = {
-    '.pdf', '.doc', '.docx', '.txt',
-    '.png', '.jpg', '.jpeg', '.gif', '.svg',
-    '.mp3', '.wav', '.ogg', '.flac', '.m4a',
-    '.mp4', '.webm', '.mov',
-    '.mid', '.midi', '.musicxml', '.mxl',
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".txt",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".mp3",
+    ".wav",
+    ".ogg",
+    ".flac",
+    ".m4a",
+    ".mp4",
+    ".webm",
+    ".mov",
+    ".mid",
+    ".midi",
+    ".musicxml",
+    ".mxl",
 }
 MAX_ATTACHMENT_SIZE = 50 * 1024 * 1024  # 50MB
 
@@ -35,7 +51,9 @@ def _check_instructor_or_owner(request, academy):
     """Return HttpResponseForbidden if user is not instructor or owner, else None."""
     role = request.user.get_role_in(academy)
     if role not in ("owner", "instructor"):
-        return HttpResponseForbidden("Only instructors and owners can perform this action.")
+        return HttpResponseForbidden(
+            "Only instructors and owners can perform this action."
+        )
     return None
 
 
@@ -80,7 +98,7 @@ class CourseCreateView(TenantMixin, CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Security: only instructors and owners can create courses
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             denied = _check_instructor_or_owner(request, request.academy)
             if denied:
                 return denied
@@ -88,10 +106,13 @@ class CourseCreateView(TenantMixin, CreateView):
 
     def form_valid(self, form):
         from apps.academies.models import check_course_limit
+
         academy = self.get_academy()
         is_allowed, current, max_count = check_course_limit(academy)
         if not is_allowed:
-            form.add_error(None, f"This academy has reached its maximum of {max_count} courses.")
+            form.add_error(
+                None, f"This academy has reached its maximum of {max_count} courses."
+            )
             return self.form_invalid(form)
         course = form.save(commit=False)
         course.academy = academy
@@ -115,8 +136,11 @@ class CourseDetailView(TenantMixin, DetailView):
     slug_url_kwarg = "slug"
 
     def get_queryset(self):
-        return super().get_queryset().select_related("instructor").prefetch_related(
-            "lessons", "lessons__assignments", "lessons__attachments"
+        return (
+            super()
+            .get_queryset()
+            .select_related("instructor")
+            .prefetch_related("lessons", "lessons__assignments", "lessons__attachments")
         )
 
     def get_context_data(self, **kwargs):
@@ -139,7 +163,7 @@ class CourseEditView(TenantMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         # Security: only the course instructor or academy owner can edit
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             denied = _check_instructor_or_owner(request, request.academy)
             if denied:
                 return denied
@@ -160,9 +184,7 @@ class CourseDeleteView(TenantMixin, View):
         denied = _check_instructor_or_owner(request, self.get_academy())
         if denied:
             return denied
-        course = get_object_or_404(
-            Course, slug=slug, academy=self.get_academy()
-        )
+        course = get_object_or_404(Course, slug=slug, academy=self.get_academy())
         academy_pk = course.academy.pk
         course.delete()
         _invalidate_dashboard_cache(academy_pk)
@@ -187,9 +209,15 @@ class LessonCreateView(TenantMixin, View):
             lesson.save()
             if request.htmx:
                 lessons = course.lessons.all()
-                return render(request, "courses/partials/_lesson_list.html", {
-                    "lessons": lessons, "course": course, "lesson_form": LessonForm(),
-                })
+                return render(
+                    request,
+                    "courses/partials/_lesson_list.html",
+                    {
+                        "lessons": lessons,
+                        "course": course,
+                        "lesson_form": LessonForm(),
+                    },
+                )
         return redirect("course-detail", slug=slug)
 
 
@@ -221,8 +249,14 @@ class LessonDetailView(TenantMixin, DetailView):
                 break
         if current_index is not None:
             ctx["lesson_number"] = current_index + 1
-            ctx["prev_lesson"] = all_lessons[current_index - 1] if current_index > 0 else None
-            ctx["next_lesson"] = all_lessons[current_index + 1] if current_index < total_lessons - 1 else None
+            ctx["prev_lesson"] = (
+                all_lessons[current_index - 1] if current_index > 0 else None
+            )
+            ctx["next_lesson"] = (
+                all_lessons[current_index + 1]
+                if current_index < total_lessons - 1
+                else None
+            )
         else:
             ctx["lesson_number"] = 1
             ctx["prev_lesson"] = None
@@ -234,7 +268,7 @@ class LessonDetailView(TenantMixin, DetailView):
 class LessonEditView(TenantMixin, View):
     def dispatch(self, request, *args, **kwargs):
         # Security: only instructors and owners can edit lessons
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             denied = _check_instructor_or_owner(request, request.academy)
             if denied:
                 return denied
@@ -244,12 +278,24 @@ class LessonEditView(TenantMixin, View):
         lesson = get_object_or_404(Lesson, pk=pk, academy=self.get_academy())
         form = LessonForm(instance=lesson)
         if request.htmx:
-            return render(request, "courses/partials/_lesson_edit_form.html", {
-                "form": form, "lesson": lesson, "course": lesson.course,
-            })
-        return render(request, "courses/lesson_edit.html", {
-            "form": form, "lesson": lesson, "course": lesson.course,
-        })
+            return render(
+                request,
+                "courses/partials/_lesson_edit_form.html",
+                {
+                    "form": form,
+                    "lesson": lesson,
+                    "course": lesson.course,
+                },
+            )
+        return render(
+            request,
+            "courses/lesson_edit.html",
+            {
+                "form": form,
+                "lesson": lesson,
+                "course": lesson.course,
+            },
+        )
 
     def post(self, request, slug, pk):
         lesson = get_object_or_404(Lesson, pk=pk, academy=self.get_academy())
@@ -257,13 +303,24 @@ class LessonEditView(TenantMixin, View):
         if form.is_valid():
             form.save()
             if request.htmx:
-                return render(request, "courses/partials/_lesson_row.html", {
-                    "lesson": lesson, "course": lesson.course,
-                })
+                return render(
+                    request,
+                    "courses/partials/_lesson_row.html",
+                    {
+                        "lesson": lesson,
+                        "course": lesson.course,
+                    },
+                )
             return redirect("lesson-detail", slug=slug, pk=pk)
-        return render(request, "courses/lesson_edit.html", {
-            "form": form, "lesson": lesson, "course": lesson.course,
-        })
+        return render(
+            request,
+            "courses/lesson_edit.html",
+            {
+                "form": form,
+                "lesson": lesson,
+                "course": lesson.course,
+            },
+        )
 
 
 class LessonDeleteView(TenantMixin, View):
@@ -277,9 +334,15 @@ class LessonDeleteView(TenantMixin, View):
         lesson.delete()
         if request.htmx:
             lessons = course.lessons.all()
-            return render(request, "courses/partials/_lesson_list.html", {
-                "lessons": lessons, "course": course, "lesson_form": LessonForm(),
-            })
+            return render(
+                request,
+                "courses/partials/_lesson_list.html",
+                {
+                    "lessons": lessons,
+                    "course": course,
+                    "lesson_form": LessonForm(),
+                },
+            )
         return redirect("course-detail", slug=slug)
 
 
@@ -303,6 +366,7 @@ class AttachmentUploadView(TenantMixin, View):
                     )
                 except DjangoValidationError as e:
                     from django.contrib import messages
+
                     messages.error(request, e.message)
                     return redirect("lesson-detail", slug=slug, pk=pk)
             attachment = form.save(commit=False)
@@ -310,19 +374,23 @@ class AttachmentUploadView(TenantMixin, View):
             attachment.academy = self.get_academy()
             attachment.save()
             if request.htmx:
-                return render(request, "courses/partials/_attachment_list.html", {
-                    "attachments": lesson.attachments.all(),
-                    "lesson": lesson,
-                    "course": lesson.course,
-                    "is_instructor": True,
-                    "attachment_form": LessonAttachmentForm(),
-                })
+                return render(
+                    request,
+                    "courses/partials/_attachment_list.html",
+                    {
+                        "attachments": lesson.attachments.all(),
+                        "lesson": lesson,
+                        "course": lesson.course,
+                        "is_instructor": True,
+                        "attachment_form": LessonAttachmentForm(),
+                    },
+                )
         return redirect("lesson-detail", slug=slug, pk=pk)
 
 
 class AssignmentEditView(TenantMixin, View):
     def dispatch(self, request, *args, **kwargs):
-        if hasattr(request, 'academy') and request.academy:
+        if hasattr(request, "academy") and request.academy:
             denied = _check_instructor_or_owner(request, request.academy)
             if denied:
                 return denied
@@ -333,12 +401,16 @@ class AssignmentEditView(TenantMixin, View):
             PracticeAssignment, pk=pk, academy=self.get_academy()
         )
         form = PracticeAssignmentForm(instance=assignment)
-        return render(request, "courses/assignment_edit.html", {
-            "form": form,
-            "assignment": assignment,
-            "lesson": assignment.lesson,
-            "course": assignment.lesson.course,
-        })
+        return render(
+            request,
+            "courses/assignment_edit.html",
+            {
+                "form": form,
+                "assignment": assignment,
+                "lesson": assignment.lesson,
+                "course": assignment.lesson.course,
+            },
+        )
 
     def post(self, request, slug, lesson_pk, pk):
         assignment = get_object_or_404(
@@ -348,12 +420,16 @@ class AssignmentEditView(TenantMixin, View):
         if form.is_valid():
             form.save()
             return redirect("lesson-detail", slug=slug, pk=lesson_pk)
-        return render(request, "courses/assignment_edit.html", {
-            "form": form,
-            "assignment": assignment,
-            "lesson": assignment.lesson,
-            "course": assignment.lesson.course,
-        })
+        return render(
+            request,
+            "courses/assignment_edit.html",
+            {
+                "form": form,
+                "assignment": assignment,
+                "lesson": assignment.lesson,
+                "course": assignment.lesson.course,
+            },
+        )
 
 
 class AssignmentDeleteView(TenantMixin, View):
@@ -366,6 +442,7 @@ class AssignmentDeleteView(TenantMixin, View):
         )
         assignment.delete()
         return redirect("lesson-detail", slug=slug, pk=lesson_pk)
+
 
 class AttachmentDeleteView(TenantMixin, View):
     def post(self, request, slug, pk, attachment_pk):
@@ -380,11 +457,15 @@ class AttachmentDeleteView(TenantMixin, View):
         attachment.file.delete()
         attachment.delete()
         if request.htmx:
-            return render(request, "courses/partials/_attachment_list.html", {
-                "attachments": lesson.attachments.all(),
-                "lesson": lesson,
-                "course": lesson.course,
-                "is_instructor": True,
-                "attachment_form": LessonAttachmentForm(),
-            })
+            return render(
+                request,
+                "courses/partials/_attachment_list.html",
+                {
+                    "attachments": lesson.attachments.all(),
+                    "lesson": lesson,
+                    "course": lesson.course,
+                    "is_instructor": True,
+                    "attachment_form": LessonAttachmentForm(),
+                },
+            )
         return redirect("lesson-detail", slug=slug, pk=pk)

@@ -44,6 +44,7 @@ BILLING_CYCLE_TO_STRIPE_INTERVAL = {
 # Customer management
 # ---------------------------------------------------------------------------
 
+
 def get_or_create_stripe_customer(user: User) -> str:
     """
     Return the Stripe Customer ID for the given user, creating one if it
@@ -72,6 +73,7 @@ def get_or_create_stripe_customer(user: User) -> str:
 # ---------------------------------------------------------------------------
 # Checkout session builders
 # ---------------------------------------------------------------------------
+
 
 def _build_stripe_coupon(coupon: Coupon) -> str:
     """
@@ -171,13 +173,16 @@ def create_checkout_session_for_plan(
         session = stripe.checkout.Session.create(**session_params)
         logger.info(
             "Created Stripe checkout session %s for plan %s (user %s)",
-            session.id, plan.pk, user.pk,
+            session.id,
+            plan.pk,
+            user.pk,
         )
         return session
     except stripe.error.StripeError:
         logger.exception(
             "Failed to create checkout session for plan %s (user %s)",
-            plan.pk, user.pk,
+            plan.pk,
+            user.pk,
         )
         raise
 
@@ -232,13 +237,16 @@ def create_checkout_session_for_course(
         session = stripe.checkout.Session.create(**session_params)
         logger.info(
             "Created Stripe checkout session %s for course '%s' (user %s)",
-            session.id, course.slug, user.pk,
+            session.id,
+            course.slug,
+            user.pk,
         )
         return session
     except stripe.error.StripeError:
         logger.exception(
             "Failed to create checkout session for course '%s' (user %s)",
-            course.slug, user.pk,
+            course.slug,
+            user.pk,
         )
         raise
 
@@ -275,7 +283,8 @@ def create_checkout_session_for_package(
                     "currency": package.currency.lower(),
                     "product_data": {
                         "name": package.name,
-                        "description": package.description or f"{package.name} ({package.total_credits} credits)",
+                        "description": package.description
+                        or f"{package.name} ({package.total_credits} credits)",
                     },
                     "unit_amount": package.price_cents,
                 },
@@ -288,13 +297,16 @@ def create_checkout_session_for_package(
         session = stripe.checkout.Session.create(**session_params)
         logger.info(
             "Created Stripe checkout session %s for package %s (user %s)",
-            session.id, package.pk, user.pk,
+            session.id,
+            package.pk,
+            user.pk,
         )
         return session
     except stripe.error.StripeError:
         logger.exception(
             "Failed to create checkout session for package %s (user %s)",
-            package.pk, user.pk,
+            package.pk,
+            user.pk,
         )
         raise
 
@@ -303,12 +315,14 @@ def create_checkout_session_for_package(
 # Webhook event handlers
 # ---------------------------------------------------------------------------
 
+
 def _timestamp_to_datetime(ts: int | None) -> datetime | None:
     """Convert a Unix timestamp from Stripe to a timezone-aware datetime."""
     if ts is None:
         return None
     return timezone.make_aware(
-        datetime.utcfromtimestamp(ts), timezone=timezone.utc,
+        datetime.utcfromtimestamp(ts),
+        timezone=timezone.utc,
     )
 
 
@@ -332,26 +346,36 @@ def handle_checkout_completed(session: stripe.checkout.Session) -> None:
         logger.error(
             "Checkout session %s missing required metadata (payment_type=%s, "
             "academy_id=%s, user_id=%s)",
-            session.id, payment_type, academy_id, user_id,
+            session.id,
+            payment_type,
+            academy_id,
+            user_id,
         )
         return
 
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        logger.error("User %s from checkout session %s does not exist", user_id, session.id)
+        logger.error(
+            "User %s from checkout session %s does not exist", user_id, session.id
+        )
         return
 
     from apps.academies.models import Academy
+
     try:
         academy = Academy.objects.get(pk=academy_id)
     except Academy.DoesNotExist:
-        logger.error("Academy %s from checkout session %s does not exist", academy_id, session.id)
+        logger.error(
+            "Academy %s from checkout session %s does not exist", academy_id, session.id
+        )
         return
 
     # Idempotency: skip if we already processed this checkout session
     if Payment.objects.filter(stripe_checkout_session_id=session.id).exists():
-        logger.info("Checkout session %s already processed — skipping (idempotent)", session.id)
+        logger.info(
+            "Checkout session %s already processed — skipping (idempotent)", session.id
+        )
         return
 
     if payment_type == "subscription":
@@ -361,7 +385,9 @@ def handle_checkout_completed(session: stripe.checkout.Session) -> None:
     elif payment_type == "package":
         _handle_package_checkout(session, metadata, user, academy)
     else:
-        logger.warning("Unknown payment_type '%s' in checkout session %s", payment_type, session.id)
+        logger.warning(
+            "Unknown payment_type '%s' in checkout session %s", payment_type, session.id
+        )
 
 
 def _handle_subscription_checkout(
@@ -379,7 +405,9 @@ def _handle_subscription_checkout(
     try:
         plan = SubscriptionPlan.objects.get(pk=plan_id, academy=academy)
     except SubscriptionPlan.DoesNotExist:
-        logger.error("SubscriptionPlan %s not found for academy %s", plan_id, academy.pk)
+        logger.error(
+            "SubscriptionPlan %s not found for academy %s", plan_id, academy.pk
+        )
         return
 
     stripe_subscription_id = session.get("subscription", "")
@@ -410,8 +438,12 @@ def _handle_subscription_checkout(
             "unpaid": Subscription.Status.PAST_DUE,
         }
         status = status_map.get(stripe_status, Subscription.Status.ACTIVE)
-        current_period_start = _timestamp_to_datetime(stripe_sub.get("current_period_start"))
-        current_period_end = _timestamp_to_datetime(stripe_sub.get("current_period_end"))
+        current_period_start = _timestamp_to_datetime(
+            stripe_sub.get("current_period_start")
+        )
+        current_period_end = _timestamp_to_datetime(
+            stripe_sub.get("current_period_end")
+        )
         trial_end = _timestamp_to_datetime(stripe_sub.get("trial_end"))
 
     subscription = Subscription.objects.create(
@@ -447,13 +479,18 @@ def _handle_subscription_checkout(
     # Send payment confirmation email
     try:
         from apps.payments.tasks import send_payment_confirmation_email
+
         send_payment_confirmation_email(payment.pk)
     except Exception:
-        logger.warning("Could not send payment confirmation email for payment %s", payment.pk)
+        logger.warning(
+            "Could not send payment confirmation email for payment %s", payment.pk
+        )
 
     logger.info(
         "Created subscription %s and payment for user %s, plan %s",
-        subscription.pk, user.pk, plan.pk,
+        subscription.pk,
+        user.pk,
+        plan.pk,
     )
 
 
@@ -508,13 +545,18 @@ def _handle_course_checkout(
 
     try:
         from apps.payments.tasks import send_payment_confirmation_email
+
         send_payment_confirmation_email(payment.pk)
     except Exception:
-        logger.warning("Could not send payment confirmation email for payment %s", payment.pk)
+        logger.warning(
+            "Could not send payment confirmation email for payment %s", payment.pk
+        )
 
     logger.info(
         "Created payment %s and enrollment for user %s, course '%s'",
-        payment.pk, user.pk, course.slug,
+        payment.pk,
+        user.pk,
+        course.slug,
     )
 
 
@@ -561,7 +603,9 @@ def _handle_package_checkout(
 
     logger.info(
         "Created payment %s and package purchase for user %s, package %s",
-        payment.pk, user.pk, package.pk,
+        payment.pk,
+        user.pk,
+        package.pk,
     )
 
 
@@ -575,12 +619,17 @@ def _increment_coupon_usage(metadata: dict, academy) -> None:
         coupon.times_used += 1
         coupon.save(update_fields=["times_used"])
     except Coupon.DoesNotExist:
-        logger.warning("Coupon '%s' referenced in metadata not found for academy %s", coupon_code, academy.pk)
+        logger.warning(
+            "Coupon '%s' referenced in metadata not found for academy %s",
+            coupon_code,
+            academy.pk,
+        )
 
 
 # ---------------------------------------------------------------------------
 # Subscription lifecycle handlers
 # ---------------------------------------------------------------------------
+
 
 def handle_subscription_updated(stripe_subscription: stripe.Subscription) -> None:
     """
@@ -613,7 +662,8 @@ def handle_subscription_updated(stripe_subscription: stripe.Subscription) -> Non
     if new_status is None:
         logger.warning(
             "Unmapped Stripe subscription status '%s' for subscription %s",
-            stripe_status, subscription.pk,
+            stripe_status,
+            subscription.pk,
         )
         return
 
@@ -644,7 +694,9 @@ def handle_subscription_updated(stripe_subscription: stripe.Subscription) -> Non
 
     logger.info(
         "Updated subscription %s (stripe=%s) to status '%s'",
-        subscription.pk, stripe_sub_id, new_status,
+        subscription.pk,
+        stripe_sub_id,
+        new_status,
     )
 
 
@@ -672,13 +724,15 @@ def handle_subscription_deleted(stripe_subscription: stripe.Subscription) -> Non
 
     logger.info(
         "Marked subscription %s (stripe=%s) as cancelled",
-        subscription.pk, stripe_sub_id,
+        subscription.pk,
+        stripe_sub_id,
     )
 
 
 # ---------------------------------------------------------------------------
 # Subscription cancellation
 # ---------------------------------------------------------------------------
+
 
 def cancel_stripe_subscription(subscription: Subscription) -> None:
     """
@@ -721,6 +775,7 @@ def cancel_stripe_subscription(subscription: Subscription) -> None:
 # Webhook event construction / verification
 # ---------------------------------------------------------------------------
 
+
 def construct_webhook_event(
     payload: bytes,
     sig_header: str,
@@ -751,6 +806,7 @@ def construct_webhook_event(
 # Invoice payment failure → grace period
 # ---------------------------------------------------------------------------
 
+
 def handle_invoice_payment_failed(event_data: dict) -> None:
     """
     Handle invoice.payment_failed — triggers grace period for platform
@@ -771,10 +827,13 @@ def handle_invoice_payment_failed(event_data: dict) -> None:
         )
         platform_sub.status = PlatformSubscription.Status.GRACE
         platform_sub.grace_period_ends_at = timezone.now() + timedelta(days=7)
-        platform_sub.save(update_fields=["status", "grace_period_ends_at", "updated_at"])
+        platform_sub.save(
+            update_fields=["status", "grace_period_ends_at", "updated_at"]
+        )
         logger.info(
             "Platform subscription %s moved to grace period (ends %s)",
-            platform_sub.pk, platform_sub.grace_period_ends_at,
+            platform_sub.pk,
+            platform_sub.grace_period_ends_at,
         )
         return
     except PlatformSubscription.DoesNotExist:

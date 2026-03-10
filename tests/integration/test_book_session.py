@@ -21,7 +21,11 @@ from django.utils import timezone
 
 from apps.academies.models import Academy
 from apps.accounts.models import User, Membership
-from apps.scheduling.models import LiveSession, SessionAttendance, InstructorAvailability
+from apps.scheduling.models import (
+    LiveSession,
+    SessionAttendance,
+    InstructorAvailability,
+)
 from apps.scheduling.jitsi import generate_room_name
 
 
@@ -60,7 +64,9 @@ class TestBookSessionWizard(TestCase):
         cls.owner_user.current_academy = cls.academy
         cls.owner_user.save()
         Membership.objects.create(
-            user=cls.owner_user, academy=cls.academy, role="owner",
+            user=cls.owner_user,
+            academy=cls.academy,
+            role="owner",
         )
 
         cls.instructor_user = User.objects.create_user(
@@ -73,7 +79,9 @@ class TestBookSessionWizard(TestCase):
         cls.instructor_user.current_academy = cls.academy
         cls.instructor_user.save()
         Membership.objects.create(
-            user=cls.instructor_user, academy=cls.academy, role="instructor",
+            user=cls.instructor_user,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano", "Vocals"],
             bio="Professional piano instructor with 10 years of experience.",
         )
@@ -88,8 +96,11 @@ class TestBookSessionWizard(TestCase):
         cls.student_user.current_academy = cls.academy
         cls.student_user.save()
         Membership.objects.create(
-            user=cls.student_user, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student_user,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         # Instructor availability: Monday 10:00-11:00
@@ -122,7 +133,9 @@ class TestBookSessionWizard(TestCase):
         cls.instructor2.current_academy = cls.academy2
         cls.instructor2.save()
         Membership.objects.create(
-            user=cls.instructor2, academy=cls.academy2, role="instructor",
+            user=cls.instructor2,
+            academy=cls.academy2,
+            role="instructor",
             instruments=["Violin"],
         )
         cls.slot2 = InstructorAvailability.objects.create(
@@ -139,7 +152,8 @@ class TestBookSessionWizard(TestCase):
 
     def _login_student(self):
         self.client.login(
-            username="booksess-student@test.com", password="testpass123",
+            username="booksess-student@test.com",
+            password="testpass123",
         )
 
     def _next_monday(self):
@@ -207,7 +221,8 @@ class TestBookSessionWizard(TestCase):
         assert session is not None
         assert session.session_type == "one_on_one"
         assert SessionAttendance.objects.filter(
-            session=session, student=self.student_user,
+            session=session,
+            student=self.student_user,
         ).exists()
         assert response.url == reverse("session-detail", args=[session.pk])
 
@@ -342,10 +357,13 @@ class TestBookSessionWizard(TestCase):
         lonely_student.current_academy = empty_academy
         lonely_student.save()
         Membership.objects.create(
-            user=lonely_student, academy=empty_academy, role="student",
+            user=lonely_student,
+            academy=empty_academy,
+            role="student",
         )
         self.client.login(
-            username="booksess-lonely@test.com", password="testpass123",
+            username="booksess-lonely@test.com",
+            password="testpass123",
         )
         response = self.client.get(reverse("book-session"))
         content = response.content.decode()
@@ -367,7 +385,9 @@ class TestBookSessionWizard(TestCase):
         no_slots_instructor.current_academy = self.academy
         no_slots_instructor.save()
         Membership.objects.create(
-            user=no_slots_instructor, academy=self.academy, role="instructor",
+            user=no_slots_instructor,
+            academy=self.academy,
+            role="instructor",
         )
         url = reverse("book-session-slots") + f"?instructor={no_slots_instructor.pk}"
         response = self.client.get(url)

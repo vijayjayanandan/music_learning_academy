@@ -17,7 +17,7 @@ def notify_enrollment_created(sender, instance, created, **kwargs):
         send_mail(
             subject=f"New enrollment: {instance.student.get_full_name()} in {instance.course.title}",
             message=f"{instance.student.get_full_name() or instance.student.email} has enrolled in "
-                    f"your course '{instance.course.title}'.",
+            f"your course '{instance.course.title}'.",
             from_email=None,
             recipient_list=[instructor.email],
             fail_silently=True,
@@ -26,11 +26,14 @@ def notify_enrollment_created(sender, instance, created, **kwargs):
     # Send enrollment confirmation to student
     student = instance.student
     if student.wants_email("enrollment_confirmation"):
-        html_message = render_to_string("emails/enrollment_confirmation_email.html", {
-            "user": student,
-            "course": instance.course,
-            "course_url": f"/courses/{instance.course.slug}/",
-        })
+        html_message = render_to_string(
+            "emails/enrollment_confirmation_email.html",
+            {
+                "user": student,
+                "course": instance.course,
+                "course_url": f"/courses/{instance.course.slug}/",
+            },
+        )
         send_mail(
             subject=f"Welcome to {instance.course.title}!",
             message=f"You've been enrolled in {instance.course.title}.",
@@ -50,7 +53,7 @@ def notify_submission(sender, instance, created, **kwargs):
             send_mail(
                 subject=f"New submission: {instance.student.get_full_name()} - {instance.assignment.title}",
                 message=f"{instance.student.get_full_name() or instance.student.email} submitted "
-                        f"'{instance.assignment.title}'.",
+                f"'{instance.assignment.title}'.",
                 from_email=None,
                 recipient_list=[instructor.email],
                 fail_silently=True,
@@ -62,7 +65,7 @@ def notify_submission(sender, instance, created, **kwargs):
             send_mail(
                 subject=f"Assignment graded: {instance.assignment.title}",
                 message=f"Your submission for '{instance.assignment.title}' has been reviewed. "
-                        f"Grade: {instance.grade or 'See feedback'}.",
+                f"Grade: {instance.grade or 'See feedback'}.",
                 from_email=None,
                 recipient_list=[student.email],
                 fail_silently=True,

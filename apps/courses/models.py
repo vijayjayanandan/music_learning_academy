@@ -26,7 +26,9 @@ class Course(TenantScopedModel):
     )
 
     instrument = models.CharField(max_length=50, help_text="e.g. Piano, Guitar, Vocals")
-    genre = models.CharField(max_length=50, blank=True, help_text="e.g. Classical, Jazz")
+    genre = models.CharField(
+        max_length=50, blank=True, help_text="e.g. Classical, Jazz"
+    )
     difficulty_level = models.CharField(
         max_length=20,
         choices=DifficultyLevel.choices,
@@ -38,7 +40,10 @@ class Course(TenantScopedModel):
     estimated_duration_weeks = models.PositiveIntegerField(default=8)
 
     thumbnail = models.ImageField(
-        upload_to=upload_to_course_thumbnails, storage=get_public_storage, blank=True, null=True
+        upload_to=upload_to_course_thumbnails,
+        storage=get_public_storage,
+        blank=True,
+        null=True,
     )
 
     price_cents = models.PositiveIntegerField(
@@ -101,7 +106,10 @@ class Lesson(TenantScopedModel):
     description = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0)
 
-    content = models.TextField(blank=True, help_text="Lesson content in HTML (edited via TinyMCE rich text editor)")
+    content = models.TextField(
+        blank=True,
+        help_text="Lesson content in HTML (edited via TinyMCE rich text editor)",
+    )
     video_url = models.URLField(blank=True, help_text="Link to pre-recorded video")
 
     sheet_music_url = models.URLField(blank=True)
@@ -134,7 +142,9 @@ class PracticeAssignment(TenantScopedModel):
         PERFORMANCE = "performance", "Performance Recording"
         TECHNIQUE = "technique", "Technique Drill"
 
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="assignments")
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="assignments"
+    )
     title = models.CharField(max_length=300)
     description = models.TextField()
     assignment_type = models.CharField(
@@ -169,7 +179,9 @@ class LessonAttachment(TenantScopedModel):
     lesson = models.ForeignKey(
         Lesson, on_delete=models.CASCADE, related_name="attachments"
     )
-    file = models.FileField(upload_to=upload_to_lesson_attachments, storage=get_private_storage)
+    file = models.FileField(
+        upload_to=upload_to_lesson_attachments, storage=get_private_storage
+    )
     file_type = models.CharField(
         max_length=20,
         choices=FileType.choices,
@@ -201,4 +213,5 @@ class LessonAttachment(TenantScopedModel):
     @property
     def file_extension(self):
         import os
+
         return os.path.splitext(self.file.name)[1].lower()

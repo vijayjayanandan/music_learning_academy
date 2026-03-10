@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("payments", "0001_initial"),
         ("academies", "0002_announcement"),

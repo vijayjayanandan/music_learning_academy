@@ -22,23 +22,29 @@ class TestTermsAcceptance(TestCase):
         return (today.replace(year=today.year - 20)).isoformat()
 
     def test_register_without_accepting_terms_fails(self):
-        resp = self.client.post(reverse("register"), {
-            "email": "test@example.com",
-            "date_of_birth": self._adult_dob(),
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-        })
+        resp = self.client.post(
+            reverse("register"),
+            {
+                "email": "test@example.com",
+                "date_of_birth": self._adult_dob(),
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+            },
+        )
         assert resp.status_code == 200
         assert User.objects.filter(email="test@example.com").count() == 0
 
     def test_register_with_terms_accepted_succeeds(self):
-        resp = self.client.post(reverse("register"), {
-            "email": "test2@example.com",
-            "date_of_birth": self._adult_dob(),
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-            "accept_terms": "on",
-        })
+        resp = self.client.post(
+            reverse("register"),
+            {
+                "email": "test2@example.com",
+                "date_of_birth": self._adult_dob(),
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+                "accept_terms": "on",
+            },
+        )
         assert resp.status_code == 302
         user = User.objects.get(email="test2@example.com")
         assert user.terms_accepted_at is not None
@@ -53,26 +59,34 @@ class TestTermsAcceptance(TestCase):
 
     def test_branded_signup_requires_terms(self):
         from tests.factories import AcademyFactory
+
         academy = AcademyFactory()
-        resp = self.client.post(reverse("branded-signup", kwargs={"slug": academy.slug}), {
-            "email": "branded@example.com",
-            "date_of_birth": self._adult_dob(),
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-        })
+        resp = self.client.post(
+            reverse("branded-signup", kwargs={"slug": academy.slug}),
+            {
+                "email": "branded@example.com",
+                "date_of_birth": self._adult_dob(),
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+            },
+        )
         assert resp.status_code == 200
         assert User.objects.filter(email="branded@example.com").count() == 0
 
     def test_branded_signup_with_terms_stores_timestamp(self):
         from tests.factories import AcademyFactory
+
         academy = AcademyFactory()
-        resp = self.client.post(reverse("branded-signup", kwargs={"slug": academy.slug}), {
-            "email": "branded2@example.com",
-            "date_of_birth": self._adult_dob(),
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-            "accept_terms": "on",
-        })
+        resp = self.client.post(
+            reverse("branded-signup", kwargs={"slug": academy.slug}),
+            {
+                "email": "branded2@example.com",
+                "date_of_birth": self._adult_dob(),
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+                "accept_terms": "on",
+            },
+        )
         assert resp.status_code == 302
         user = User.objects.get(email="branded2@example.com")
         assert user.terms_accepted_at is not None
@@ -96,26 +110,32 @@ class TestCOPPAAgeGate(TestCase):
 
     def test_under_13_without_parent_email_fails(self):
         """Under-13 registration without parent email is rejected."""
-        resp = self.client.post(reverse("register"), {
-            "email": "kid@example.com",
-            "date_of_birth": self._child_dob(),
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-            "accept_terms": "on",
-        })
+        resp = self.client.post(
+            reverse("register"),
+            {
+                "email": "kid@example.com",
+                "date_of_birth": self._child_dob(),
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+                "accept_terms": "on",
+            },
+        )
         assert resp.status_code == 200  # form re-rendered with error
         assert User.objects.filter(email="kid@example.com").count() == 0
 
     def test_under_13_with_parent_email_creates_inactive_account(self):
         """Under-13 with parent email creates account but marks it inactive."""
-        resp = self.client.post(reverse("register"), {
-            "email": "kid2@example.com",
-            "date_of_birth": self._child_dob(),
-            "parent_email": "parent@example.com",
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-            "accept_terms": "on",
-        })
+        resp = self.client.post(
+            reverse("register"),
+            {
+                "email": "kid2@example.com",
+                "date_of_birth": self._child_dob(),
+                "parent_email": "parent@example.com",
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+                "accept_terms": "on",
+            },
+        )
         assert resp.status_code == 200  # renders pending page (not redirect)
         assert "parent@example.com" in resp.content.decode()
         user = User.objects.get(email="kid2@example.com")
@@ -126,40 +146,50 @@ class TestCOPPAAgeGate(TestCase):
     def test_under_13_sends_parental_consent_email(self):
         """Parental consent email is sent to parent."""
         from django.core import mail
-        self.client.post(reverse("register"), {
-            "email": "kid3@example.com",
-            "date_of_birth": self._child_dob(),
-            "parent_email": "parent3@example.com",
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-            "accept_terms": "on",
-        })
+
+        self.client.post(
+            reverse("register"),
+            {
+                "email": "kid3@example.com",
+                "date_of_birth": self._child_dob(),
+                "parent_email": "parent3@example.com",
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+                "accept_terms": "on",
+            },
+        )
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ["parent3@example.com"]
         assert "consent" in mail.outbox[0].subject.lower()
 
     def test_parent_email_same_as_child_email_rejected(self):
         """Parent email cannot be the same as the child's email."""
-        resp = self.client.post(reverse("register"), {
-            "email": "same@example.com",
-            "date_of_birth": self._child_dob(),
-            "parent_email": "same@example.com",
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-            "accept_terms": "on",
-        })
+        resp = self.client.post(
+            reverse("register"),
+            {
+                "email": "same@example.com",
+                "date_of_birth": self._child_dob(),
+                "parent_email": "same@example.com",
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+                "accept_terms": "on",
+            },
+        )
         assert resp.status_code == 200
         assert User.objects.filter(email="same@example.com").count() == 0
 
     def test_adult_registration_does_not_require_parent_email(self):
         """Adult users register normally without parent email."""
-        resp = self.client.post(reverse("register"), {
-            "email": "adult@example.com",
-            "date_of_birth": self._adult_dob(),
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-            "accept_terms": "on",
-        })
+        resp = self.client.post(
+            reverse("register"),
+            {
+                "email": "adult@example.com",
+                "date_of_birth": self._adult_dob(),
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+                "accept_terms": "on",
+            },
+        )
         assert resp.status_code == 302
         user = User.objects.get(email="adult@example.com")
         assert user.is_active is True
@@ -167,12 +197,15 @@ class TestCOPPAAgeGate(TestCase):
 
     def test_dob_required_for_registration(self):
         """Date of birth is required."""
-        resp = self.client.post(reverse("register"), {
-            "email": "nodob@example.com",
-            "password1": "SecurePass123!",
-            "password2": "SecurePass123!",
-            "accept_terms": "on",
-        })
+        resp = self.client.post(
+            reverse("register"),
+            {
+                "email": "nodob@example.com",
+                "password1": "SecurePass123!",
+                "password2": "SecurePass123!",
+                "accept_terms": "on",
+            },
+        )
         assert resp.status_code == 200
         assert User.objects.filter(email="nodob@example.com").count() == 0
 
@@ -205,7 +238,9 @@ class TestParentalConsentApproval(TestCase):
 
     def test_valid_consent_token_approves_account(self):
         child, consent = self._create_child_with_consent()
-        resp = self.client.get(reverse("approve-parental-consent", kwargs={"token": consent.token}))
+        resp = self.client.get(
+            reverse("approve-parental-consent", kwargs={"token": consent.token})
+        )
         assert resp.status_code == 200
         assert "Approved" in resp.content.decode()
 
@@ -221,7 +256,9 @@ class TestParentalConsentApproval(TestCase):
         consent.expires_at = tz.now() - timedelta(hours=1)
         consent.save()
 
-        resp = self.client.get(reverse("approve-parental-consent", kwargs={"token": consent.token}))
+        resp = self.client.get(
+            reverse("approve-parental-consent", kwargs={"token": consent.token})
+        )
         assert resp.status_code == 200
         assert "Expired" in resp.content.decode()
 
@@ -229,7 +266,9 @@ class TestParentalConsentApproval(TestCase):
         assert child.is_active is False
 
     def test_invalid_token_shows_error(self):
-        resp = self.client.get(reverse("approve-parental-consent", kwargs={"token": "invalid-token-123"}))
+        resp = self.client.get(
+            reverse("approve-parental-consent", kwargs={"token": "invalid-token-123"})
+        )
         assert resp.status_code == 200
         assert "Invalid" in resp.content.decode()
 
@@ -241,7 +280,9 @@ class TestParentalConsentApproval(TestCase):
         child.parental_consent_given = True
         child.save()
 
-        resp = self.client.get(reverse("approve-parental-consent", kwargs={"token": consent.token}))
+        resp = self.client.get(
+            reverse("approve-parental-consent", kwargs={"token": consent.token})
+        )
         assert resp.status_code == 200
         assert "Already Approved" in resp.content.decode()
 
@@ -293,16 +334,21 @@ class TestRecordingConsentNotice(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="comp-recording-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="comp-recording-owner@test.com", password="testpass123"
+        )
 
     def test_video_room_has_recording_notice(self):
         """Video room template includes recording consent banner."""
         from tests.factories import LiveSessionFactory
+
         session = LiveSessionFactory(academy=self.academy)
         resp = self.auth_client.get(reverse("session-join", kwargs={"pk": session.pk}))
         if resp.status_code == 200:
             content = resp.content.decode()
-            assert "recording-consent-banner" in content or "Recording notice" in content
+            assert (
+                "recording-consent-banner" in content or "Recording notice" in content
+            )
 
 
 @pytest.mark.integration
@@ -334,7 +380,9 @@ class TestLegalPages(TestCase):
     def setUp(self):
         self.client = Client()
         self.auth_client = Client()
-        self.auth_client.login(username="comp-legal-owner@test.com", password="testpass123")
+        self.auth_client.login(
+            username="comp-legal-owner@test.com", password="testpass123"
+        )
 
     def test_privacy_policy_has_subprocessors(self):
         resp = self.client.get(reverse("privacy"))

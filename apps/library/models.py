@@ -17,16 +17,21 @@ class LibraryResource(TenantScopedModel):
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True)
     resource_type = models.CharField(
-        max_length=30, choices=ResourceType.choices, default=ResourceType.OTHER,
+        max_length=30,
+        choices=ResourceType.choices,
+        default=ResourceType.OTHER,
     )
     file = models.FileField(upload_to=upload_to_library, storage=get_private_storage)
     uploaded_by = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="library_uploads",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="library_uploads",
     )
     instrument = models.CharField(max_length=50, blank=True)
     genre = models.CharField(max_length=50, blank=True)
     difficulty_level = models.CharField(
-        max_length=20, blank=True,
+        max_length=20,
+        blank=True,
         choices=[
             ("beginner", "Beginner"),
             ("intermediate", "Intermediate"),
@@ -45,4 +50,5 @@ class LibraryResource(TenantScopedModel):
     @property
     def file_extension(self):
         import os
+
         return os.path.splitext(self.file.name)[1].lower()

@@ -1,6 +1,10 @@
 from django.db import models
 from apps.common.models import TenantScopedModel
-from apps.common.storage import get_private_storage, upload_to_recordings, upload_to_submissions
+from apps.common.storage import (
+    get_private_storage,
+    upload_to_recordings,
+    upload_to_submissions,
+)
 
 
 class Enrollment(TenantScopedModel):
@@ -16,7 +20,9 @@ class Enrollment(TenantScopedModel):
     course = models.ForeignKey(
         "courses.Course", on_delete=models.CASCADE, related_name="enrollments"
     )
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.ACTIVE
+    )
     enrolled_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
@@ -76,10 +82,16 @@ class AssignmentSubmission(TenantScopedModel):
     text_response = models.TextField(blank=True)
     recording_url = models.URLField(blank=True)
     recording = models.FileField(
-        upload_to=upload_to_recordings, storage=get_private_storage, blank=True, null=True
+        upload_to=upload_to_recordings,
+        storage=get_private_storage,
+        blank=True,
+        null=True,
     )
     file_upload = models.FileField(
-        upload_to=upload_to_submissions, storage=get_private_storage, blank=True, null=True
+        upload_to=upload_to_submissions,
+        storage=get_private_storage,
+        blank=True,
+        null=True,
     )
     practice_time_minutes = models.PositiveIntegerField(default=0)
 
@@ -88,7 +100,11 @@ class AssignmentSubmission(TenantScopedModel):
     )
     instructor_feedback = models.TextField(blank=True)
     grade = models.CharField(max_length=20, blank=True)
-    rubric_scores = models.JSONField(default=dict, blank=True, help_text="e.g. {\"tone\": 8, \"rhythm\": 7, \"technique\": 9, \"expression\": 8}")
+    rubric_scores = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='e.g. {"tone": 8, "rhythm": 7, "technique": 9, "expression": 8}',
+    )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     reviewed_by = models.ForeignKey(
         "accounts.User",
@@ -106,6 +122,7 @@ class AssignmentSubmission(TenantScopedModel):
         if not self.recording:
             return False
         import os
+
         ext = os.path.splitext(self.recording.name)[1].lower()
         return ext in [".mp3", ".wav", ".m4a", ".ogg", ".flac"]
 
@@ -114,6 +131,7 @@ class AssignmentSubmission(TenantScopedModel):
         if not self.recording:
             return False
         import os
+
         ext = os.path.splitext(self.recording.name)[1].lower()
         return ext in [".mp4", ".webm", ".mov"]
 

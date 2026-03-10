@@ -58,9 +58,14 @@ class AcademyBrandingForm(forms.ModelForm):
 
 
 class InvitationForm(forms.Form):
-    email = forms.EmailField(widget=forms.EmailInput(
-        attrs={"class": "input input-bordered w-full", "placeholder": "email@example.com"}
-    ))
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "class": "input input-bordered w-full",
+                "placeholder": "email@example.com",
+            }
+        )
+    )
     role = forms.ChoiceField(
         choices=[("instructor", "Instructor"), ("student", "Student")],
         widget=forms.Select(attrs={"class": "select select-bordered w-full"}),

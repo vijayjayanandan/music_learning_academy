@@ -57,7 +57,9 @@ class TestTenantIsolation(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -71,14 +73,21 @@ class TestTenantIsolation(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.course_a = Course.objects.create(
-            academy=cls.academy, title="Course A", slug="course-a-iso",
-            instructor=cls.instructor, instrument="Piano",
-            difficulty_level="beginner", is_published=True,
+            academy=cls.academy,
+            title="Course A",
+            slug="course-a-iso",
+            instructor=cls.instructor,
+            instrument="Piano",
+            difficulty_level="beginner",
+            is_published=True,
         )
 
         # --- Academy B ---
@@ -101,9 +110,13 @@ class TestTenantIsolation(TestCase):
         Membership.objects.create(user=cls.user_b, academy=cls.academy_b, role="owner")
 
         cls.course_b = Course.objects.create(
-            academy=cls.academy_b, title="Course B", slug="course-b-iso",
-            instructor=cls.user_b, instrument="Guitar",
-            difficulty_level="beginner", is_published=True,
+            academy=cls.academy_b,
+            title="Course B",
+            slug="course-b-iso",
+            instructor=cls.user_b,
+            instrument="Guitar",
+            difficulty_level="beginner",
+            is_published=True,
         )
 
     def setUp(self):
@@ -132,10 +145,14 @@ class TestTenantIsolation(TestCase):
 
     def test_enrollment_list_only_own_academy(self):
         Enrollment.objects.create(
-            student=self.student, course=self.course_a, academy=self.course_a.academy,
+            student=self.student,
+            course=self.course_a,
+            academy=self.course_a.academy,
         )
         Enrollment.objects.create(
-            student=self.owner, course=self.course_b, academy=self.course_b.academy,
+            student=self.owner,
+            course=self.course_b,
+            academy=self.course_b.academy,
         )
         response = self.auth_client.get(reverse("enrollment-list"))
         academy_ids = {e.academy_id for e in response.context["enrollments"]}
@@ -158,18 +175,25 @@ class TestTenantIsolation(TestCase):
     def test_schedule_isolated_by_academy(self):
         from django.utils import timezone as tz
         from datetime import timedelta
+
         now = tz.now()
         LiveSession.objects.create(
-            academy=self.academy, title="Session A", instructor=self.instructor,
+            academy=self.academy,
+            title="Session A",
+            instructor=self.instructor,
             scheduled_start=now + timedelta(hours=1),
             scheduled_end=now + timedelta(hours=2),
-            session_type="one_on_one", room_name="room-a-iso",
+            session_type="one_on_one",
+            room_name="room-a-iso",
         )
         LiveSession.objects.create(
-            academy=self.academy_b, title="Session B", instructor=self.user_b,
+            academy=self.academy_b,
+            title="Session B",
+            instructor=self.user_b,
             scheduled_start=now + timedelta(hours=1),
             scheduled_end=now + timedelta(hours=2),
-            session_type="one_on_one", room_name="room-b-iso",
+            session_type="one_on_one",
+            room_name="room-b-iso",
         )
         response = self.auth_client.get(reverse("schedule-list"))
         self.assertEqual(response.status_code, 200)
@@ -179,26 +203,40 @@ class TestTenantIsolation(TestCase):
 
     def test_practice_logs_isolated(self):
         from datetime import date
+
         PracticeLog.objects.create(
-            academy=self.academy, student=self.student, date=date.today(),
-            duration_minutes=30, instrument="Piano",
+            academy=self.academy,
+            student=self.student,
+            date=date.today(),
+            duration_minutes=30,
+            instrument="Piano",
         )
         PracticeLog.objects.create(
-            academy=self.academy_b, student=self.user_b, date=date.today(),
-            duration_minutes=45, instrument="Guitar",
+            academy=self.academy_b,
+            student=self.user_b,
+            date=date.today(),
+            duration_minutes=45,
+            instrument="Guitar",
         )
         self.assertEqual(PracticeLog.objects.filter(academy=self.academy).count(), 1)
         self.assertEqual(PracticeLog.objects.filter(academy=self.academy_b).count(), 1)
-        self.assertEqual(PracticeLog.objects.filter(academy=self.academy).first().student, self.student)
+        self.assertEqual(
+            PracticeLog.objects.filter(academy=self.academy).first().student,
+            self.student,
+        )
 
     def test_notification_isolation(self):
         Notification.objects.create(
-            academy=self.academy, recipient=self.owner,
-            notification_type="system", title="For A",
+            academy=self.academy,
+            recipient=self.owner,
+            notification_type="system",
+            title="For A",
         )
         Notification.objects.create(
-            academy=self.academy_b, recipient=self.user_b,
-            notification_type="system", title="For B",
+            academy=self.academy_b,
+            recipient=self.user_b,
+            notification_type="system",
+            title="For B",
         )
         notifs_a = Notification.objects.filter(academy=self.academy)
         notifs_b = Notification.objects.filter(academy=self.academy_b)
@@ -208,11 +246,15 @@ class TestTenantIsolation(TestCase):
 
     def test_lesson_detail_blocked_cross_academy(self):
         lesson = Lesson.objects.create(
-            academy=self.course_a.academy, course=self.course_a,
-            title="Lesson 1", order=1,
+            academy=self.course_a.academy,
+            course=self.course_a,
+            title="Lesson 1",
+            order=1,
         )
         response = self.client_b.get(
-            reverse("lesson-detail", kwargs={"slug": self.course_a.slug, "pk": lesson.pk}),
+            reverse(
+                "lesson-detail", kwargs={"slug": self.course_a.slug, "pk": lesson.pk}
+            ),
         )
         self.assertEqual(response.status_code, 404)
 

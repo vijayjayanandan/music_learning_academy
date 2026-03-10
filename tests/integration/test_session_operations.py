@@ -57,7 +57,9 @@ class TestRecordingStatusChoices(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -110,7 +112,9 @@ class TestCapacityValidation(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
         cls.student = User.objects.create_user(
@@ -123,8 +127,11 @@ class TestCapacityValidation(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
@@ -160,11 +167,15 @@ class TestCapacityValidation(TestCase):
         # Register first student
         student2 = self._create_student("student2-cap-iso", "student2-cap-iso@test.com")
         SessionAttendance.objects.create(
-            session=session, student=student2, academy=self.academy,
+            session=session,
+            student=student2,
+            academy=self.academy,
         )
 
         # Try to register second student (self.student)
-        self.client.login(username="student-capacity-iso@test.com", password="testpass123")
+        self.client.login(
+            username="student-capacity-iso@test.com", password="testpass123"
+        )
         url = reverse("session-register", args=[session.pk])
         response = self.client.post(url)
 
@@ -180,13 +191,19 @@ class TestCapacityValidation(TestCase):
         session = self._create_session(max_participants=2, room_suffix=998)
 
         # Register first student
-        student2 = self._create_student("student2b-cap-iso", "student2b-cap-iso@test.com")
+        student2 = self._create_student(
+            "student2b-cap-iso", "student2b-cap-iso@test.com"
+        )
         SessionAttendance.objects.create(
-            session=session, student=student2, academy=self.academy,
+            session=session,
+            student=student2,
+            academy=self.academy,
         )
 
         # Register second student (should succeed)
-        self.client.login(username="student-capacity-iso@test.com", password="testpass123")
+        self.client.login(
+            username="student-capacity-iso@test.com", password="testpass123"
+        )
         url = reverse("session-register", args=[session.pk])
         response = self.client.post(url)
 
@@ -201,11 +218,17 @@ class TestCapacityValidation(TestCase):
 
         # Register 3 extra students
         for i in range(3):
-            s = self._create_student(f"unlim-cap-iso-{i}", f"unlim-cap-iso-{i}@test.com")
-            SessionAttendance.objects.create(session=session, student=s, academy=self.academy)
+            s = self._create_student(
+                f"unlim-cap-iso-{i}", f"unlim-cap-iso-{i}@test.com"
+            )
+            SessionAttendance.objects.create(
+                session=session, student=s, academy=self.academy
+            )
 
         # 4th student (self.student) should still be able to register
-        self.client.login(username="student-capacity-iso@test.com", password="testpass123")
+        self.client.login(
+            username="student-capacity-iso@test.com", password="testpass123"
+        )
         url = reverse("session-register", args=[session.pk])
         response = self.client.post(url)
 
@@ -223,7 +246,9 @@ class TestCapacityValidation(TestCase):
         session = self._create_session(max_participants=1, room_suffix=996)
 
         # Register self.student
-        self.client.login(username="student-capacity-iso@test.com", password="testpass123")
+        self.client.login(
+            username="student-capacity-iso@test.com", password="testpass123"
+        )
         url = reverse("session-register", args=[session.pk])
         response = self.client.post(url)
 
@@ -375,7 +400,9 @@ class TestRecordingStatusViews(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -421,6 +448,7 @@ class TestRecordingStatusViews(TestCase):
 
         # Set the egress cache key so stop recording finds it
         from django.core.cache import cache
+
         cache.set(f"egress_{session.pk}", "test-egress-id", timeout=7200)
 
         self.client.login(
@@ -436,7 +464,9 @@ class TestRecordingStatusViews(TestCase):
     @patch("apps.scheduling.views.async_to_sync")
     def test_start_recording_sets_failed_on_error(self, mock_async_to_sync):
         """StartRecordingView should set recording_status to 'failed' on exception."""
-        mock_async_to_sync.return_value = lambda *a, **kw: (_ for _ in ()).throw(Exception("LiveKit error"))
+        mock_async_to_sync.return_value = lambda *a, **kw: (_ for _ in ()).throw(
+            Exception("LiveKit error")
+        )
         session = self._create_session(room_suffix=503)
 
         self.client.login(

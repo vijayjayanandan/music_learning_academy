@@ -16,12 +16,18 @@ class SubscriptionPlan(TenantScopedModel):
     price_cents = models.PositiveIntegerField(help_text="Price in cents")
     currency = models.CharField(max_length=3, default="USD")
     billing_cycle = models.CharField(
-        max_length=20, choices=BillingCycle.choices, default=BillingCycle.MONTHLY,
+        max_length=20,
+        choices=BillingCycle.choices,
+        default=BillingCycle.MONTHLY,
     )
     is_active = models.BooleanField(default=True)
-    trial_days = models.PositiveIntegerField(default=0, help_text="Free trial period in days")
+    trial_days = models.PositiveIntegerField(
+        default=0, help_text="Free trial period in days"
+    )
     stripe_price_id = models.CharField(max_length=100, blank=True)
-    features = models.JSONField(default=list, help_text='e.g. ["All courses", "Live sessions"]')
+    features = models.JSONField(
+        default=list, help_text='e.g. ["All courses", "Live sessions"]'
+    )
 
     class Meta:
         ordering = ["price_cents"]
@@ -45,12 +51,18 @@ class Subscription(TenantScopedModel):
         EXPIRED = "expired", "Expired"
 
     student = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="subscriptions",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="subscriptions",
     )
     plan = models.ForeignKey(
-        SubscriptionPlan, on_delete=models.PROTECT, related_name="subscriptions",
+        SubscriptionPlan,
+        on_delete=models.PROTECT,
+        related_name="subscriptions",
     )
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.ACTIVE
+    )
     stripe_subscription_id = models.CharField(max_length=100, blank=True, db_index=True)
     current_period_start = models.DateTimeField(null=True, blank=True)
     current_period_end = models.DateTimeField(null=True, blank=True)
@@ -86,21 +98,35 @@ class Payment(TenantScopedModel):
         PACKAGE = "package", "Package Deal"
 
     student = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="payments",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="payments",
     )
     amount_cents = models.PositiveIntegerField()
     currency = models.CharField(max_length=3, default="USD")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING
+    )
     payment_type = models.CharField(max_length=20, choices=PaymentType.choices)
-    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, db_index=True)
-    stripe_checkout_session_id = models.CharField(max_length=100, blank=True, db_index=True)
+    stripe_payment_intent_id = models.CharField(
+        max_length=100, blank=True, db_index=True
+    )
+    stripe_checkout_session_id = models.CharField(
+        max_length=100, blank=True, db_index=True
+    )
 
     course = models.ForeignKey(
-        "courses.Course", on_delete=models.SET_NULL, null=True, blank=True,
+        "courses.Course",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="payments",
     )
     subscription = models.ForeignKey(
-        Subscription, on_delete=models.SET_NULL, null=True, blank=True,
+        Subscription,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="payments",
     )
     description = models.TextField(blank=True)
@@ -143,7 +169,9 @@ class Coupon(TenantScopedModel):
     expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     applicable_courses = models.ManyToManyField(
-        "courses.Course", blank=True, related_name="coupons",
+        "courses.Course",
+        blank=True,
+        related_name="coupons",
     )
 
     class Meta:
@@ -158,6 +186,7 @@ class Coupon(TenantScopedModel):
     @property
     def is_valid(self):
         from django.utils import timezone
+
         if not self.is_active:
             return False
         if self.max_uses > 0 and self.times_used >= self.max_uses:
@@ -177,11 +206,15 @@ class InstructorPayout(TenantScopedModel):
         FAILED = "failed", "Failed"
 
     instructor = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="payouts",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="payouts",
     )
     amount_cents = models.PositiveIntegerField()
     currency = models.CharField(max_length=3, default="USD")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING
+    )
     period_start = models.DateField()
     period_end = models.DateField()
     stripe_transfer_id = models.CharField(max_length=100, blank=True)
@@ -202,9 +235,13 @@ class PackageDeal(TenantScopedModel):
     description = models.TextField(blank=True)
     price_cents = models.PositiveIntegerField()
     currency = models.CharField(max_length=3, default="USD")
-    total_credits = models.PositiveIntegerField(help_text="Total number of sessions/lessons")
+    total_credits = models.PositiveIntegerField(
+        help_text="Total number of sessions/lessons"
+    )
     is_active = models.BooleanField(default=True)
-    courses = models.ManyToManyField("courses.Course", blank=True, related_name="packages")
+    courses = models.ManyToManyField(
+        "courses.Course", blank=True, related_name="packages"
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -227,14 +264,21 @@ class PackagePurchase(TenantScopedModel):
     """Tracks a student's purchased package and remaining credits."""
 
     student = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="package_purchases",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="package_purchases",
     )
     package = models.ForeignKey(
-        PackageDeal, on_delete=models.PROTECT, related_name="purchases",
+        PackageDeal,
+        on_delete=models.PROTECT,
+        related_name="purchases",
     )
     credits_remaining = models.PositiveIntegerField()
     payment = models.ForeignKey(
-        Payment, on_delete=models.SET_NULL, null=True, blank=True,
+        Payment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
 
     class Meta:
@@ -280,7 +324,9 @@ class FinancialAccount(TenantScopedModel):
 
     stripe_account_id = models.CharField(max_length=100, blank=True, db_index=True)
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.NOT_STARTED,
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NOT_STARTED,
     )
     payouts_enabled = models.BooleanField(default=False)
     charges_enabled = models.BooleanField(default=False)
@@ -304,20 +350,29 @@ class Refund(TenantScopedModel):
         DENIED = "denied", "Denied"
 
     payment = models.ForeignKey(
-        Payment, on_delete=models.CASCADE, related_name="refunds",
+        Payment,
+        on_delete=models.CASCADE,
+        related_name="refunds",
     )
     requested_by = models.ForeignKey(
-        "accounts.User", on_delete=models.CASCADE, related_name="refund_requests",
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="refund_requests",
     )
     amount_cents = models.PositiveIntegerField(help_text="Refund amount in cents")
     reason = models.TextField()
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.REQUESTED,
+        max_length=20,
+        choices=Status.choices,
+        default=Status.REQUESTED,
     )
     stripe_refund_id = models.CharField(max_length=100, blank=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     processed_by = models.ForeignKey(
-        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True,
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="refunds_processed",
     )
     denial_reason = models.TextField(blank=True)
@@ -345,14 +400,19 @@ class PlatformSubscription(TimeStampedModel):
         EXPIRED = "expired", "Expired"
 
     academy = models.OneToOneField(
-        "academies.Academy", on_delete=models.CASCADE,
+        "academies.Academy",
+        on_delete=models.CASCADE,
         related_name="platform_subscription",
     )
     tier = models.ForeignKey(
-        AcademyTier, on_delete=models.PROTECT, related_name="subscriptions",
+        AcademyTier,
+        on_delete=models.PROTECT,
+        related_name="subscriptions",
     )
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.TRIAL,
+        max_length=20,
+        choices=Status.choices,
+        default=Status.TRIAL,
     )
     stripe_subscription_id = models.CharField(max_length=100, blank=True, db_index=True)
     trial_started_at = models.DateTimeField(null=True, blank=True)
@@ -384,5 +444,6 @@ class PlatformSubscription(TimeStampedModel):
         if not self.is_in_trial or not self.trial_ends_at:
             return None
         from django.utils import timezone
+
         delta = self.trial_ends_at - timezone.now()
         return max(0, delta.days)

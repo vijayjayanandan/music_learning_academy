@@ -8,7 +8,11 @@ from django.utils import timezone
 
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
-from apps.scheduling.models import LiveSession, SessionAttendance, InstructorAvailability
+from apps.scheduling.models import (
+    LiveSession,
+    SessionAttendance,
+    InstructorAvailability,
+)
 
 
 def _reschedule_data(hours_from_now=48):
@@ -52,7 +56,9 @@ class TestRescheduleWorkflow(TestCase):
         )
         cls.owner_user.current_academy = cls.academy
         cls.owner_user.save()
-        Membership.objects.create(user=cls.owner_user, academy=cls.academy, role="owner")
+        Membership.objects.create(
+            user=cls.owner_user, academy=cls.academy, role="owner"
+        )
 
         cls.instructor_user = User.objects.create_user(
             username="instructor-resched-workflow",
@@ -64,7 +70,9 @@ class TestRescheduleWorkflow(TestCase):
         cls.instructor_user.current_academy = cls.academy
         cls.instructor_user.save()
         Membership.objects.create(
-            user=cls.instructor_user, academy=cls.academy, role="instructor",
+            user=cls.instructor_user,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -78,8 +86,11 @@ class TestRescheduleWorkflow(TestCase):
         cls.student_user.current_academy = cls.academy
         cls.student_user.save()
         Membership.objects.create(
-            user=cls.student_user, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student_user,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         start = timezone.now() + timedelta(days=2)
@@ -134,7 +145,9 @@ class TestRescheduleWorkflow(TestCase):
         assert self.live_session.status == LiveSession.SessionStatus.RESCHEDULED
 
         # New session should exist and link back
-        new_session = LiveSession.objects.filter(rescheduled_from=self.live_session).first()
+        new_session = LiveSession.objects.filter(
+            rescheduled_from=self.live_session
+        ).first()
         assert new_session is not None
         assert new_session.title == self.live_session.title
         assert new_session.instructor == self.live_session.instructor
@@ -151,7 +164,9 @@ class TestRescheduleWorkflow(TestCase):
         data = _reschedule_data()
         self.instructor_client.post(url, data)
 
-        new_session = LiveSession.objects.filter(rescheduled_from=self.live_session).first()
+        new_session = LiveSession.objects.filter(
+            rescheduled_from=self.live_session
+        ).first()
         assert new_session is not None
 
         # Student should be registered on the new session
@@ -270,7 +285,9 @@ class TestRescheduleWorkflow(TestCase):
         assert b"This session was rescheduled" in response.content
 
         # View new session detail — should show "rescheduled from" banner
-        new_session = LiveSession.objects.filter(rescheduled_from=self.live_session).first()
+        new_session = LiveSession.objects.filter(
+            rescheduled_from=self.live_session
+        ).first()
         new_detail_url = reverse("session-detail", args=[new_session.pk])
         response = self.instructor_client.get(new_detail_url)
         assert response.status_code == 200
@@ -292,7 +309,9 @@ class TestRescheduleWorkflow(TestCase):
             status=LiveSession.SessionStatus.SCHEDULED,
         )
         SessionAttendance.objects.create(
-            session=group_session, student=self.student_user, academy=self.academy,
+            session=group_session,
+            student=self.student_user,
+            academy=self.academy,
         )
         url = reverse("session-reschedule", args=[group_session.pk])
         response = self.student_client.get(url)
@@ -302,6 +321,7 @@ class TestRescheduleWorkflow(TestCase):
 def _next_weekday(day_of_week):
     """Return the next date matching the given Python weekday (Mon=0)."""
     import datetime
+
     today = datetime.date.today()
     days_ahead = day_of_week - today.weekday()
     if days_ahead <= 0:
@@ -334,7 +354,9 @@ class TestStudentReschedule(TestCase):
         cls.instructor_user.current_academy = cls.academy
         cls.instructor_user.save()
         Membership.objects.create(
-            user=cls.instructor_user, academy=cls.academy, role="instructor",
+            user=cls.instructor_user,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Guitar"],
         )
 
@@ -348,7 +370,9 @@ class TestStudentReschedule(TestCase):
         cls.student_user.current_academy = cls.academy
         cls.student_user.save()
         Membership.objects.create(
-            user=cls.student_user, academy=cls.academy, role="student",
+            user=cls.student_user,
+            academy=cls.academy,
+            role="student",
         )
 
         # Instructor availability: e.g., Wednesday 14:00-15:00
@@ -376,7 +400,9 @@ class TestStudentReschedule(TestCase):
             status=LiveSession.SessionStatus.SCHEDULED,
         )
         SessionAttendance.objects.create(
-            session=cls.session, student=cls.student_user, academy=cls.academy,
+            session=cls.session,
+            student=cls.student_user,
+            academy=cls.academy,
         )
 
     def setUp(self):
@@ -468,10 +494,14 @@ class TestStudentReschedule(TestCase):
         other_student.current_academy = self.academy
         other_student.save()
         Membership.objects.create(
-            user=other_student, academy=self.academy, role="student",
+            user=other_student,
+            academy=self.academy,
+            role="student",
         )
         other_client = Client()
-        other_client.login(username="other-stu-resched@test.com", password="testpass123")
+        other_client.login(
+            username="other-stu-resched@test.com", password="testpass123"
+        )
 
         url = reverse("session-reschedule", args=[self.session.pk])
         response = other_client.get(url)

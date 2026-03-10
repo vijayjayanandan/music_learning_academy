@@ -116,6 +116,7 @@ class TestAuditEventModel(TestCase):
         # Ensure a different created_at timestamp (same-millisecond timestamps
         # cause undefined ordering on PostgreSQL).
         import time
+
         time.sleep(0.01)
         e2 = AuditEvent.objects.create(
             academy=self.academy,
@@ -364,9 +365,7 @@ class TestAuditLoggingIntegration(TestCase):
             user=self.student_user, academy=self.academy
         )
         self.auth_client.post(
-            reverse(
-                "academy-remove-member", args=[self.academy.slug, membership.pk]
-            ),
+            reverse("academy-remove-member", args=[self.academy.slug, membership.pk]),
         )
         events = AuditEvent.objects.filter(
             academy=self.academy,
@@ -486,9 +485,7 @@ class TestMembershipStatusEnum(TestCase):
             user=self.student_user, academy=self.academy
         )
         self.auth_client.post(
-            reverse(
-                "academy-remove-member", args=[self.academy.slug, membership.pk]
-            ),
+            reverse("academy-remove-member", args=[self.academy.slug, membership.pk]),
         )
         membership.refresh_from_db()
         assert membership.membership_status == "removed"
@@ -577,9 +574,7 @@ class TestAuditLogView(TestCase):
 
     def test_non_owner_redirected(self):
         client = Client()
-        client.login(
-            username="student-auditlogview@test.com", password="testpass123"
-        )
+        client.login(username="student-auditlogview@test.com", password="testpass123")
         response = client.get(reverse("audit-log"))
         assert response.status_code == 302
 

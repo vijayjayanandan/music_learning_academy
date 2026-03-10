@@ -17,13 +17,15 @@ from apps.academies.models import Academy
 from apps.courses.models import Course
 from apps.enrollments.models import Enrollment
 from apps.payments.models import (
-    Payment, PackageDeal,
+    Payment,
+    PackageDeal,
 )
 
 
 # =========================================================================
 # Task 1: Payment gating on EnrollView
 # =========================================================================
+
 
 @pytest.mark.integration
 class TestEnrollmentPaymentGating(TestCase):
@@ -50,7 +52,9 @@ class TestEnrollmentPaymentGating(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -64,8 +68,11 @@ class TestEnrollmentPaymentGating(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.free_course = Course.objects.create(
@@ -118,6 +125,7 @@ class TestEnrollmentPaymentGating(TestCase):
 # Task 2: Price display on course cards
 # =========================================================================
 
+
 @pytest.mark.integration
 class TestCoursePriceDisplay(TestCase):
     """Course cards and detail pages show correct price."""
@@ -143,7 +151,9 @@ class TestCoursePriceDisplay(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -157,8 +167,11 @@ class TestCoursePriceDisplay(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.free_course = Course.objects.create(
@@ -216,6 +229,7 @@ class TestCoursePriceDisplay(TestCase):
 # Task 3: Buy/Enroll button logic
 # =========================================================================
 
+
 @pytest.mark.integration
 class TestCourseDetailButtons(TestCase):
     """Course detail page shows correct button based on state."""
@@ -241,7 +255,9 @@ class TestCourseDetailButtons(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -255,8 +271,11 @@ class TestCourseDetailButtons(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.free_course = Course.objects.create(
@@ -307,7 +326,9 @@ class TestCourseDetailButtons(TestCase):
     def test_enrolled_student_sees_continue(self):
         """Enrolled student sees Continue Learning button."""
         Enrollment.objects.create(
-            student=self.student, course=self.free_course, academy=self.academy,
+            student=self.student,
+            course=self.free_course,
+            academy=self.academy,
         )
         response = self.student_client.get(
             reverse("course-detail", args=[self.free_course.slug])
@@ -319,6 +340,7 @@ class TestCourseDetailButtons(TestCase):
 # =========================================================================
 # Task 4: Package price display
 # =========================================================================
+
 
 @pytest.mark.integration
 class TestPackagePriceDisplay(TestCase):
@@ -355,7 +377,9 @@ class TestPackagePriceDisplay(TestCase):
     def test_package_price_display_property(self):
         """PackageDeal.price_display returns formatted string."""
         pkg = PackageDeal.objects.create(
-            academy=self.academy, name="10 Sessions", price_cents=9999,
+            academy=self.academy,
+            name="10 Sessions",
+            price_cents=9999,
             total_credits=10,
         )
         assert pkg.price_display == "$99.99"
@@ -363,7 +387,9 @@ class TestPackagePriceDisplay(TestCase):
     def test_package_price_per_credit(self):
         """PackageDeal.price_per_credit_display calculates correctly."""
         pkg = PackageDeal.objects.create(
-            academy=self.academy, name="10 Sessions", price_cents=10000,
+            academy=self.academy,
+            name="10 Sessions",
+            price_cents=10000,
             total_credits=10,
         )
         assert pkg.price_per_credit_display == "$10.00"
@@ -371,8 +397,11 @@ class TestPackagePriceDisplay(TestCase):
     def test_pricing_page_shows_correct_package_price(self):
         """Pricing page displays dollar amount, not True/False."""
         PackageDeal.objects.create(
-            academy=self.academy, name="10 Lesson Pack", price_cents=9999,
-            total_credits=10, is_active=True,
+            academy=self.academy,
+            name="10 Lesson Pack",
+            price_cents=9999,
+            total_credits=10,
+            is_active=True,
         )
         response = self.auth_client.get(reverse("pricing"))
         content = response.content.decode()
@@ -385,6 +414,7 @@ class TestPackagePriceDisplay(TestCase):
 # =========================================================================
 # Task 6: Sidebar navigation
 # =========================================================================
+
 
 @pytest.mark.integration
 class TestSidebarPaymentLinks(TestCase):
@@ -422,8 +452,11 @@ class TestSidebarPaymentLinks(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
@@ -460,6 +493,7 @@ class TestSidebarPaymentLinks(TestCase):
 # Task 7: Webhook idempotency
 # =========================================================================
 
+
 @pytest.mark.integration
 class TestWebhookIdempotency(TestCase):
     """Duplicate webhook calls don't create duplicate records."""
@@ -485,14 +519,19 @@ class TestWebhookIdempotency(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
         self.client = Client()
 
-    def _make_session(self, session_id, metadata, amount=2999, payment_intent="pi_test"):
+    def _make_session(
+        self, session_id, metadata, amount=2999, payment_intent="pi_test"
+    ):
         """Create a mock Stripe session object that supports both .id and .get()."""
         session = MagicMock()
         session.id = session_id
@@ -509,9 +548,14 @@ class TestWebhookIdempotency(TestCase):
         from apps.payments.stripe_service import handle_checkout_completed
 
         Course.objects.create(
-            academy=self.academy, title="Test Course", slug="pay-webhook-test-course",
-            instructor=self.student, instrument="Piano",
-            difficulty_level="beginner", price_cents=2999, is_published=True,
+            academy=self.academy,
+            title="Test Course",
+            slug="pay-webhook-test-course",
+            instructor=self.student,
+            instrument="Piano",
+            difficulty_level="beginner",
+            price_cents=2999,
+            is_published=True,
         )
 
         metadata = {
@@ -524,20 +568,35 @@ class TestWebhookIdempotency(TestCase):
 
         # First call - creates records
         handle_checkout_completed(session)
-        assert Payment.objects.filter(stripe_checkout_session_id="cs_test_idempotent_123").count() == 1
+        assert (
+            Payment.objects.filter(
+                stripe_checkout_session_id="cs_test_idempotent_123"
+            ).count()
+            == 1
+        )
 
         # Second call - idempotent, no duplicate
         handle_checkout_completed(session)
-        assert Payment.objects.filter(stripe_checkout_session_id="cs_test_idempotent_123").count() == 1
+        assert (
+            Payment.objects.filter(
+                stripe_checkout_session_id="cs_test_idempotent_123"
+            ).count()
+            == 1
+        )
 
     def test_different_sessions_create_separate_payments(self):
         """Different session IDs each create their own records."""
         from apps.payments.stripe_service import handle_checkout_completed
 
         Course.objects.create(
-            academy=self.academy, title="Test Course 2", slug="pay-webhook-test-course-2",
-            instructor=self.student, instrument="Piano",
-            difficulty_level="beginner", price_cents=2999, is_published=True,
+            academy=self.academy,
+            title="Test Course 2",
+            slug="pay-webhook-test-course-2",
+            instructor=self.student,
+            instrument="Piano",
+            difficulty_level="beginner",
+            price_cents=2999,
+            is_published=True,
         )
 
         for i in range(2):
@@ -552,6 +611,9 @@ class TestWebhookIdempotency(TestCase):
             )
             handle_checkout_completed(session)
 
-        assert Payment.objects.filter(
-            stripe_checkout_session_id__startswith="cs_test_different_"
-        ).count() == 2
+        assert (
+            Payment.objects.filter(
+                stripe_checkout_session_id__startswith="cs_test_different_"
+            ).count()
+            == 2
+        )

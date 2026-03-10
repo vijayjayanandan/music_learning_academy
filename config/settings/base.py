@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
     from django.core.exceptions import ImproperlyConfigured
+
     raise ImproperlyConfigured("DJANGO_SECRET_KEY environment variable is required.")
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
@@ -32,7 +33,9 @@ if SENDGRID_API_KEY:
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Music Academy <noreply@musicacademy.app>")
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL", "Music Academy <noreply@musicacademy.app>"
+)
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 INSTALLED_APPS = [
@@ -114,7 +117,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -163,15 +168,15 @@ TINYMCE_DEFAULT_CONFIG = {
     "height": 300,
     "menubar": False,
     "plugins": "advlist autolink lists link image charmap preview anchor "
-               "searchreplace visualblocks fullscreen "
-               "insertdatetime media table help wordcount",
+    "searchreplace visualblocks fullscreen "
+    "insertdatetime media table help wordcount",
     "toolbar": "bold italic underline strikethrough | blocks | "
-               "bullist numlist | link image media | blockquote | "
-               "undo redo | removeformat",
+    "bullist numlist | link image media | blockquote | "
+    "undo redo | removeformat",
     "valid_elements": "p[class|style],a[href|target|rel|title],strong/b,em/i,u,"
-                      "h1,h2,h3,h4,h5,h6,blockquote,ul,ol,li,br,hr,img[src|alt|width|height],"
-                      "table,thead,tbody,tr,th[colspan|rowspan],td[colspan|rowspan],"
-                      "span[class|style],sub,sup,pre,div[class|style],abbr[title]",
+    "h1,h2,h3,h4,h5,h6,blockquote,ul,ol,li,br,hr,img[src|alt|width|height],"
+    "table,thead,tbody,tr,th[colspan|rowspan],td[colspan|rowspan],"
+    "span[class|style],sub,sup,pre,div[class|style],abbr[title]",
     "content_css": "default",
     "branding": False,
     "promotion": False,

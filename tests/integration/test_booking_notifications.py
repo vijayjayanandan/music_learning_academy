@@ -22,7 +22,11 @@ from freezegun import freeze_time
 from apps.academies.models import Academy
 from apps.accounts.models import User, Membership
 from apps.notifications.models import Notification
-from apps.scheduling.models import LiveSession, SessionAttendance, InstructorAvailability
+from apps.scheduling.models import (
+    LiveSession,
+    SessionAttendance,
+    InstructorAvailability,
+)
 
 
 def _next_weekday(day_of_week):
@@ -71,7 +75,9 @@ class TestBookingNotifications(TestCase):
         cls.instructor_user.current_academy = cls.academy
         cls.instructor_user.save()
         Membership.objects.create(
-            user=cls.instructor_user, academy=cls.academy, role="instructor",
+            user=cls.instructor_user,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -85,8 +91,11 @@ class TestBookingNotifications(TestCase):
         cls.student_user.current_academy = cls.academy
         cls.student_user.save()
         Membership.objects.create(
-            user=cls.student_user, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student_user,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         # Instructor availability: Monday 10:00-11:00
@@ -187,7 +196,9 @@ class TestRescheduleNotifications(TestCase):
         )
         cls.owner_user.current_academy = cls.academy
         cls.owner_user.save()
-        Membership.objects.create(user=cls.owner_user, academy=cls.academy, role="owner")
+        Membership.objects.create(
+            user=cls.owner_user, academy=cls.academy, role="owner"
+        )
 
         cls.instructor_user = User.objects.create_user(
             username="rn-instructor",
@@ -199,7 +210,9 @@ class TestRescheduleNotifications(TestCase):
         cls.instructor_user.current_academy = cls.academy
         cls.instructor_user.save()
         Membership.objects.create(
-            user=cls.instructor_user, academy=cls.academy, role="instructor",
+            user=cls.instructor_user,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -213,7 +226,9 @@ class TestRescheduleNotifications(TestCase):
         cls.student_user.current_academy = cls.academy
         cls.student_user.save()
         Membership.objects.create(
-            user=cls.student_user, academy=cls.academy, role="student",
+            user=cls.student_user,
+            academy=cls.academy,
+            role="student",
         )
 
         cls.student2_user = User.objects.create_user(
@@ -226,7 +241,9 @@ class TestRescheduleNotifications(TestCase):
         cls.student2_user.current_academy = cls.academy
         cls.student2_user.save()
         Membership.objects.create(
-            user=cls.student2_user, academy=cls.academy, role="student",
+            user=cls.student2_user,
+            academy=cls.academy,
+            role="student",
         )
 
         # Instructor availability for student reschedule
@@ -256,10 +273,14 @@ class TestRescheduleNotifications(TestCase):
         )
         # Register both students
         SessionAttendance.objects.create(
-            session=self.session, student=self.student_user, academy=self.academy,
+            session=self.session,
+            student=self.student_user,
+            academy=self.academy,
         )
         SessionAttendance.objects.create(
-            session=self.session, student=self.student2_user, academy=self.academy,
+            session=self.session,
+            student=self.student2_user,
+            academy=self.academy,
         )
         # Clear notifications
         Notification.objects.filter(academy=self.academy).delete()
@@ -378,7 +399,9 @@ class TestRescheduleLimit(TestCase):
         )
         cls.owner_user.current_academy = cls.academy
         cls.owner_user.save()
-        Membership.objects.create(user=cls.owner_user, academy=cls.academy, role="owner")
+        Membership.objects.create(
+            user=cls.owner_user, academy=cls.academy, role="owner"
+        )
 
         cls.instructor_user = User.objects.create_user(
             username="rl-instructor",
@@ -390,7 +413,9 @@ class TestRescheduleLimit(TestCase):
         cls.instructor_user.current_academy = cls.academy
         cls.instructor_user.save()
         Membership.objects.create(
-            user=cls.instructor_user, academy=cls.academy, role="instructor",
+            user=cls.instructor_user,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Guitar"],
         )
 
@@ -404,7 +429,9 @@ class TestRescheduleLimit(TestCase):
         cls.student_user.current_academy = cls.academy
         cls.student_user.save()
         Membership.objects.create(
-            user=cls.student_user, academy=cls.academy, role="student",
+            user=cls.student_user,
+            academy=cls.academy,
+            role="student",
         )
 
         # Instructor availability: Wednesday 14:00-15:00
@@ -427,9 +454,7 @@ class TestRescheduleLimit(TestCase):
             username="rl-instructor@test.com", password="testpass123"
         )
         self.owner_client = Client()
-        self.owner_client.login(
-            username="rl-owner@test.com", password="testpass123"
-        )
+        self.owner_client.login(username="rl-owner@test.com", password="testpass123")
         # Clean up sessions and reset academy features
         LiveSession.objects.filter(academy=self.academy).delete()
         Academy.objects.filter(pk=self.academy.pk).update(features={})
@@ -450,7 +475,9 @@ class TestRescheduleLimit(TestCase):
             status=LiveSession.SessionStatus.SCHEDULED,
         )
         SessionAttendance.objects.create(
-            session=session, student=self.student_user, academy=self.academy,
+            session=session,
+            student=self.student_user,
+            academy=self.academy,
         )
         return session
 
@@ -531,7 +558,9 @@ class TestRescheduleLimit(TestCase):
         )
         # Attendance is on the new session (transferred during reschedule)
         SessionAttendance.objects.create(
-            session=rescheduled_session, student=self.student_user, academy=self.academy,
+            session=rescheduled_session,
+            student=self.student_user,
+            academy=self.academy,
         )
         # Manually backdate the created_at to last month
         LiveSession.objects.filter(pk=rescheduled_session.pk).update(

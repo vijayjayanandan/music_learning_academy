@@ -48,6 +48,7 @@ class RequestIDMiddleware:
 
     def __call__(self, request):
         import logging
+
         request_id = request.META.get("HTTP_X_REQUEST_ID", str(uuid.uuid4()))
         request.request_id = request_id
         # Make request_id available in log records via a filter

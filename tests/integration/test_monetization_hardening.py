@@ -73,8 +73,11 @@ class TestRefundRequest(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.completed_payment = Payment.objects.create(
@@ -162,7 +165,8 @@ class TestRefundRequest(TestCase):
     def test_other_student_cannot_request_refund(self):
         """Another student should not see someone else's payment."""
         other_student = User.objects.create_user(
-            username="other-refundreq", email="other-refundreq@test.com",
+            username="other-refundreq",
+            email="other-refundreq@test.com",
             password="testpass123",
         )
         other_student.current_academy = self.academy
@@ -218,8 +222,11 @@ class TestRefundList(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.completed_payment = Payment.objects.create(
@@ -310,8 +317,11 @@ class TestRefundAction(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.completed_payment = Payment.objects.create(
@@ -359,7 +369,9 @@ class TestRefundAction(TestCase):
     def test_owner_can_deny_refund(self):
         """Owner denying with reason should set status to denied."""
         url = reverse("refund-action", args=[self.pending_refund.pk, "deny"])
-        response = self.auth_client.post(url, {"denial_reason": "Outside refund window"})
+        response = self.auth_client.post(
+            url, {"denial_reason": "Outside refund window"}
+        )
         assert response.status_code == 302
         self.pending_refund.refresh_from_db()
         assert self.pending_refund.status == "denied"
@@ -435,8 +447,11 @@ class TestRefundDetail(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.completed_payment = Payment.objects.create(
@@ -481,7 +496,8 @@ class TestRefundDetail(TestCase):
     def test_other_student_cannot_view_refund(self):
         """Another student should get 404 for someone else's refund."""
         other = User.objects.create_user(
-            username="other-mon-refunddet", email="other-mon-refunddet@test.com",
+            username="other-mon-refunddet",
+            email="other-mon-refunddet@test.com",
             password="testpass123",
         )
         other.current_academy = self.academy
@@ -549,9 +565,11 @@ class TestGracePeriod(TestCase):
             stripe_subscription_id="sub_test_grace_123",
         )
 
-        handle_invoice_payment_failed({
-            "subscription": "sub_test_grace_123",
-        })
+        handle_invoice_payment_failed(
+            {
+                "subscription": "sub_test_grace_123",
+            }
+        )
 
         platform_sub.refresh_from_db()
         assert platform_sub.status == "grace"
@@ -679,7 +697,9 @@ class TestPayoutDetail(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Piano"],
         )
 
@@ -693,8 +713,11 @@ class TestPayoutDetail(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.payout = InstructorPayout.objects.create(
@@ -729,9 +752,7 @@ class TestPayoutDetail(TestCase):
     def test_instructor_can_view_own_payout(self):
         """Instructor should see their own payout detail."""
         client = Client()
-        client.login(
-            username="instructor-mon-payout@test.com", password="testpass123"
-        )
+        client.login(username="instructor-mon-payout@test.com", password="testpass123")
         url = reverse("payout-detail", args=[self.payout.pk])
         response = client.get(url)
         assert response.status_code == 200

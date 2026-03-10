@@ -8,7 +8,10 @@ class Academy(TimeStampedModel):
     slug = models.SlugField(max_length=200, unique=True, db_index=True)
     description = models.TextField(blank=True)
     logo = models.ImageField(
-        upload_to=upload_to_academy_logos, storage=get_public_storage, blank=True, null=True
+        upload_to=upload_to_academy_logos,
+        storage=get_public_storage,
+        blank=True,
+        null=True,
     )
 
     website = models.URLField(blank=True)
@@ -31,8 +34,12 @@ class Academy(TimeStampedModel):
     )
 
     # Branding
-    primary_color = models.CharField(max_length=7, default="#6366f1", help_text="Hex color code")
-    welcome_message = models.TextField(blank=True, help_text="Shown on branded signup page")
+    primary_color = models.CharField(
+        max_length=7, default="#6366f1", help_text="Hex color code"
+    )
+    welcome_message = models.TextField(
+        blank=True, help_text="Shown on branded signup page"
+    )
 
     # Feature toggles — allows each academy to enable/disable features
     features = models.JSONField(
@@ -152,7 +159,9 @@ def check_seat_limit(academy, role):
             academy=academy, role="student", is_active=True
         ).count()
     elif role == "instructor":
-        max_count = academy.tier.max_instructors if academy.tier else academy.max_instructors
+        max_count = (
+            academy.tier.max_instructors if academy.tier else academy.max_instructors
+        )
         current = Membership.objects.filter(
             academy=academy, role="instructor", is_active=True
         ).count()

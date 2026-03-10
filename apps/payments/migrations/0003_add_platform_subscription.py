@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("academies", "0004_r2_storage_backends"),
         ("payments", "0002_alter_payment_stripe_checkout_session_id_and_more"),

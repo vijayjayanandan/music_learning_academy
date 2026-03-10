@@ -9,7 +9,6 @@ def academy_context(request):
             context["user_academies"] = request.user.get_academies()
             # Feature flags for template-level feature toggling
             context["academy_features"] = {
-                key: academy.has_feature(key)
-                for key in academy.DEFAULT_FEATURES
+                key: academy.has_feature(key) for key in academy.DEFAULT_FEATURES
             }
     return context

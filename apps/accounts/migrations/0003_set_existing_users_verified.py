@@ -4,14 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("accounts", "0002_add_email_verified"),
     ]
 
     operations = [
         migrations.RunPython(
-            lambda apps, schema_editor: apps.get_model("accounts", "User").objects.all().update(email_verified=True),
+            lambda apps, schema_editor: (
+                apps.get_model("accounts", "User")
+                .objects.all()
+                .update(email_verified=True)
+            ),
             migrations.RunPython.noop,
         ),
     ]

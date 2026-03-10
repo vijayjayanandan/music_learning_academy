@@ -1,4 +1,5 @@
 """Tests for FEAT-005 through FEAT-012 (Release 1 remainder)."""
+
 import pytest
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -31,7 +32,9 @@ class TestCalendarView(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="calendar-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="calendar-owner-iso@test.com", password="testpass123"
+        )
 
     def test_schedule_list_renders_calendar(self):
         response = self.auth_client.get(reverse("schedule-list"))
@@ -68,7 +71,9 @@ class TestTimezoneSupport(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="timezone-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="timezone-owner-iso@test.com", password="testpass123"
+        )
         # Re-fetch owner to get a clean instance for each test
         self.owner = User.objects.get(pk=self.__class__.owner.pk)
 
@@ -161,7 +166,9 @@ class TestInAppMessaging(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="messaging-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="messaging-owner-iso@test.com", password="testpass123"
+        )
 
     def test_inbox_loads(self):
         response = self.auth_client.get(reverse("message-inbox"))
@@ -184,13 +191,18 @@ class TestInAppMessaging(TestCase):
             username="msg-recipient-rel1-iso",
             password="testpass123",
         )
-        Membership.objects.create(user=recipient, academy=self.__class__.academy, role="student")
+        Membership.objects.create(
+            user=recipient, academy=self.__class__.academy, role="student"
+        )
 
-        response = self.auth_client.post(reverse("message-compose"), {
-            "recipient": recipient.pk,
-            "subject": "Test Message",
-            "body": "Hello!",
-        })
+        response = self.auth_client.post(
+            reverse("message-compose"),
+            {
+                "recipient": recipient.pk,
+                "subject": "Test Message",
+                "body": "Hello!",
+            },
+        )
         assert response.status_code == 302
         assert Message.objects.filter(
             sender=self.__class__.owner, recipient=recipient
@@ -377,7 +389,9 @@ class TestMobileResponsive(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="mobile-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="mobile-owner-iso@test.com", password="testpass123"
+        )
 
     def test_base_template_has_viewport_meta(self):
         response = self.auth_client.get(reverse("admin-dashboard"))

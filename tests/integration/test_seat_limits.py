@@ -68,9 +68,7 @@ class TestCheckSeatLimitHelper(TestCase):
         """Academy at instructor capacity returns not allowed."""
         self.academy.max_instructors = 1
         self.academy.save()
-        user = UserFactory(
-            username="chkseat-inst0", email="chkseat-inst0@test.com"
-        )
+        user = UserFactory(username="chkseat-inst0", email="chkseat-inst0@test.com")
         MembershipFactory(user=user, academy=self.academy, role="instructor")
         is_allowed, current, max_count = check_seat_limit(self.academy, "instructor")
         assert is_allowed is False
@@ -201,10 +199,13 @@ class TestInviteMemberViewSeatLimit(TestCase):
         self.academy.max_students = 10
         self.academy.save()
         url = reverse("academy-invite", args=[self.academy.slug])
-        response = self.auth_client.post(url, {
-            "email": "newstudent-invite@example.com",
-            "role": "student",
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "email": "newstudent-invite@example.com",
+                "role": "student",
+            },
+        )
         assert response.status_code == 302  # redirect to members page
 
     def test_invite_blocked_at_student_limit(self):
@@ -212,15 +213,16 @@ class TestInviteMemberViewSeatLimit(TestCase):
         self.academy.max_students = 1
         self.academy.save()
         # Fill the one student seat
-        student = UserFactory(
-            username="invite-s1", email="invite-s1@test.com"
-        )
+        student = UserFactory(username="invite-s1", email="invite-s1@test.com")
         MembershipFactory(user=student, academy=self.academy, role="student")
         url = reverse("academy-invite", args=[self.academy.slug])
-        response = self.auth_client.post(url, {
-            "email": "invite-another@example.com",
-            "role": "student",
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "email": "invite-another@example.com",
+                "role": "student",
+            },
+        )
         # Should redirect back to members with error
         assert response.status_code == 302
 
@@ -228,15 +230,16 @@ class TestInviteMemberViewSeatLimit(TestCase):
         """Invitation is blocked when instructor seat limit is reached."""
         self.academy.max_instructors = 1
         self.academy.save()
-        instructor = UserFactory(
-            username="invite-i1", email="invite-i1@test.com"
-        )
+        instructor = UserFactory(username="invite-i1", email="invite-i1@test.com")
         MembershipFactory(user=instructor, academy=self.academy, role="instructor")
         url = reverse("academy-invite", args=[self.academy.slug])
-        response = self.auth_client.post(url, {
-            "email": "invite-newinstructor@example.com",
-            "role": "instructor",
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "email": "invite-newinstructor@example.com",
+                "role": "instructor",
+            },
+        )
         assert response.status_code == 302
 
     def test_invite_htmx_returns_error_at_limit(self):
@@ -294,13 +297,16 @@ class TestBrandedSignupSeatLimit(TestCase):
             max_students=10,
         )
         url = reverse("branded-signup", args=[academy.slug])
-        response = self.client.post(url, {
-            "email": "branded-newuser@example.com",
-            "password1": "securePass123!",
-            "password2": "securePass123!",
-            "date_of_birth": "2000-01-01",
-            "accept_terms": "on",
-        })
+        response = self.client.post(
+            url,
+            {
+                "email": "branded-newuser@example.com",
+                "password1": "securePass123!",
+                "password2": "securePass123!",
+                "date_of_birth": "2000-01-01",
+                "accept_terms": "on",
+            },
+        )
         # Successful signup redirects to dashboard
         assert response.status_code == 302
 
@@ -322,13 +328,16 @@ class TestBrandedSignupSeatLimit(TestCase):
         )
         MembershipFactory(user=student, academy=academy, role="student")
         url = reverse("branded-signup", args=[academy.slug])
-        response = self.client.post(url, {
-            "email": "branded-blocked@example.com",
-            "password1": "securePass123!",
-            "password2": "securePass123!",
-            "date_of_birth": "2000-01-01",
-            "accept_terms": "on",
-        })
+        response = self.client.post(
+            url,
+            {
+                "email": "branded-blocked@example.com",
+                "password1": "securePass123!",
+                "password2": "securePass123!",
+                "date_of_birth": "2000-01-01",
+                "accept_terms": "on",
+            },
+        )
         # Should redirect back to branded signup
         assert response.status_code == 302
         assert academy.slug in response.url
@@ -417,8 +426,11 @@ class TestCourseCreateViewCourseLimit(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):
@@ -434,14 +446,17 @@ class TestCourseCreateViewCourseLimit(TestCase):
     def test_course_create_allowed_under_limit(self):
         """Happy path: course creation succeeds when under the limit."""
         url = reverse("course-create")
-        response = self.auth_client.post(url, {
-            "title": "New Course Seat Test",
-            "description": "A test course",
-            "instrument": "Piano",
-            "difficulty_level": "beginner",
-            "estimated_duration_weeks": 8,
-            "max_students": 30,
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "title": "New Course Seat Test",
+                "description": "A test course",
+                "instrument": "Piano",
+                "difficulty_level": "beginner",
+                "estimated_duration_weeks": 8,
+                "max_students": 30,
+            },
+        )
         assert response.status_code == 302
         assert Course.objects.filter(
             academy=self.academy, title="New Course Seat Test"
@@ -461,14 +476,17 @@ class TestCourseCreateViewCourseLimit(TestCase):
         # Create one course to fill the limit
         CourseFactory(academy=self.academy, instructor=self.owner)
         url = reverse("course-create")
-        response = self.auth_client.post(url, {
-            "title": "Over Limit Course Seat Test",
-            "description": "Should not be created",
-            "instrument": "Guitar",
-            "difficulty_level": "beginner",
-            "estimated_duration_weeks": 4,
-            "max_students": 20,
-        })
+        response = self.auth_client.post(
+            url,
+            {
+                "title": "Over Limit Course Seat Test",
+                "description": "Should not be created",
+                "instrument": "Guitar",
+                "difficulty_level": "beginner",
+                "estimated_duration_weeks": 4,
+                "max_students": 20,
+            },
+        )
         # form_invalid renders the form page with 200
         assert response.status_code == 200
         assert not Course.objects.filter(title="Over Limit Course Seat Test").exists()
@@ -476,10 +494,13 @@ class TestCourseCreateViewCourseLimit(TestCase):
     def test_student_cannot_create_course(self):
         """Permission boundary: students cannot create courses."""
         url = reverse("course-create")
-        response = self.student_client.post(url, {
-            "title": "Student Course Seat Test",
-            "description": "Should be forbidden",
-            "instrument": "Piano",
-            "difficulty_level": "beginner",
-        })
+        response = self.student_client.post(
+            url,
+            {
+                "title": "Student Course Seat Test",
+                "description": "Should be forbidden",
+                "instrument": "Piano",
+                "difficulty_level": "beginner",
+            },
+        )
         assert response.status_code == 403

@@ -5,8 +5,12 @@ from .models import Notification, Message, ChatMessage
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = [
-        "title", "recipient", "academy", "notification_type",
-        "is_read", "created_at",
+        "title",
+        "recipient",
+        "academy",
+        "notification_type",
+        "is_read",
+        "created_at",
     ]
     list_filter = ["notification_type", "is_read", "academy"]
     search_fields = ["title", "message", "recipient__email"]
@@ -31,12 +35,20 @@ class NotificationAdmin(admin.ModelAdmin):
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = [
-        "subject", "sender", "recipient", "academy",
-        "is_read", "has_parent", "created_at",
+        "subject",
+        "sender",
+        "recipient",
+        "academy",
+        "is_read",
+        "has_parent",
+        "created_at",
     ]
     list_filter = ["is_read", "academy"]
     search_fields = [
-        "subject", "body", "sender__email", "recipient__email",
+        "subject",
+        "body",
+        "sender__email",
+        "recipient__email",
     ]
     readonly_fields = ["created_at", "updated_at"]
     autocomplete_fields = ["sender", "recipient", "academy", "parent"]

@@ -252,8 +252,11 @@ class TestRefundModel(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.payment = Payment.objects.create(
@@ -386,6 +389,7 @@ class TestExpirePlatformTrials(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import expire_platform_trials
+
         count = expire_platform_trials()
         assert count == 1
 
@@ -398,6 +402,7 @@ class TestExpirePlatformTrials(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import expire_platform_trials
+
         count = expire_platform_trials()
         assert count == 0
 
@@ -412,6 +417,7 @@ class TestExpirePlatformTrials(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import expire_platform_trials
+
         count = expire_platform_trials()
         assert count == 0
 
@@ -424,6 +430,7 @@ class TestExpirePlatformTrials(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import expire_platform_trials
+
         count = expire_platform_trials()
         assert count == 0
 
@@ -480,6 +487,7 @@ class TestTrialReminderEmails(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import send_trial_reminder_emails
+
         count = send_trial_reminder_emails()
         assert count >= 1
         assert len(mail.outbox) >= 1
@@ -494,6 +502,7 @@ class TestTrialReminderEmails(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import send_trial_reminder_emails
+
         count = send_trial_reminder_emails()
         # Should not send 7d reminder again, but may send 3d
         for email in mail.outbox:
@@ -507,6 +516,7 @@ class TestTrialReminderEmails(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import send_trial_reminder_emails
+
         count = send_trial_reminder_emails()
         assert count >= 1
 
@@ -518,6 +528,7 @@ class TestTrialReminderEmails(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import send_trial_reminder_emails
+
         count = send_trial_reminder_emails()
         assert count == 0
 
@@ -527,6 +538,7 @@ class TestTrialReminderEmails(TestCase):
         self.platform_sub.save()
 
         from apps.payments.tasks import send_trial_reminder_emails
+
         count = send_trial_reminder_emails()
         assert count == 0
 
@@ -572,8 +584,11 @@ class TestOwnerDashboardFinancial(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
         cls.free_tier = AcademyTier.objects.create(
@@ -683,8 +698,11 @@ class TestOwnerDashboardNoSubscription(TestCase):
         cls.student.current_academy = cls.academy
         cls.student.save()
         Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student",
-            instruments=["Piano"], skill_level="beginner",
+            user=cls.student,
+            academy=cls.academy,
+            role="student",
+            instruments=["Piano"],
+            skill_level="beginner",
         )
 
     def setUp(self):

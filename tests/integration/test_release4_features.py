@@ -1,4 +1,5 @@
 """Tests for FEAT-033 through FEAT-042 (Release 4: Music-Specific)."""
+
 import pytest
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -8,8 +9,11 @@ from datetime import timedelta
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
 from apps.music_tools.models import (
-    EarTrainingExercise, EarTrainingScore, RecitalEvent,
-    PracticeAnalysis, RecordingArchive,
+    EarTrainingExercise,
+    EarTrainingScore,
+    RecitalEvent,
+    PracticeAnalysis,
+    RecordingArchive,
 )
 from apps.library.models import LibraryResource
 from apps.scheduling.models import LiveSession
@@ -43,7 +47,9 @@ class TestMetronome(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="metronome-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="metronome-owner-iso@test.com", password="testpass123"
+        )
 
     def test_metronome_page_loads(self):
         response = self.auth_client.get(reverse("metronome"))
@@ -80,7 +86,9 @@ class TestTuner(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="tuner-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="tuner-owner-iso@test.com", password="testpass123"
+        )
 
     def test_tuner_page_loads(self):
         response = self.auth_client.get(reverse("tuner"))
@@ -117,7 +125,9 @@ class TestNotationRenderer(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="notation-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="notation-owner-iso@test.com", password="testpass123"
+        )
 
     def test_notation_page_loads(self):
         response = self.auth_client.get(reverse("notation-renderer"))
@@ -153,7 +163,9 @@ class TestEarTraining(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="eartraining-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="eartraining-owner-iso@test.com", password="testpass123"
+        )
 
     def test_ear_training_model(self):
         assert hasattr(EarTrainingExercise, "exercise_type")
@@ -170,10 +182,16 @@ class TestEarTraining(TestCase):
             academy=self.academy,
             difficulty=2,
             questions=[
-                {"question": "What interval is this?", "options": ["3rd", "5th", "octave"], "answer": "5th"},
+                {
+                    "question": "What interval is this?",
+                    "options": ["3rd", "5th", "octave"],
+                    "answer": "5th",
+                },
             ],
         )
-        response = self.auth_client.get(reverse("ear-training-play", args=[exercise.pk]))
+        response = self.auth_client.get(
+            reverse("ear-training-play", args=[exercise.pk])
+        )
         assert response.status_code == 200
         assert b"Intervals Quiz" in response.content
 
@@ -184,11 +202,14 @@ class TestEarTraining(TestCase):
             academy=self.academy,
             questions=[],
         )
-        response = self.auth_client.post(reverse("ear-training-play", args=[exercise.pk]), {
-            "score": "8",
-            "total_questions": "10",
-            "time_taken": "120",
-        })
+        response = self.auth_client.post(
+            reverse("ear-training-play", args=[exercise.pk]),
+            {
+                "score": "8",
+                "total_questions": "10",
+                "time_taken": "120",
+            },
+        )
         assert response.status_code == 302
         score = EarTrainingScore.objects.get(student=self.owner, exercise=exercise)
         assert score.score == 8
@@ -223,7 +244,9 @@ class TestVirtualRecitals(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="recital-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="recital-owner-iso@test.com", password="testpass123"
+        )
 
     def test_recital_model(self):
         assert hasattr(RecitalEvent, "room_name")
@@ -278,7 +301,9 @@ class TestAIFeedback(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="aifeedback-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="aifeedback-owner-iso@test.com", password="testpass123"
+        )
 
     def test_practice_analysis_model(self):
         assert hasattr(PracticeAnalysis, "analysis_result")
@@ -317,7 +342,9 @@ class TestRecordingArchive(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="recording-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="recording-owner-iso@test.com", password="testpass123"
+        )
 
     def test_recording_archive_model(self):
         assert hasattr(RecordingArchive, "title")
@@ -357,7 +384,9 @@ class TestCalendarSync(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="calendar-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="calendar-owner-iso@test.com", password="testpass123"
+        )
         self.anon_client = Client()
 
     def test_user_has_ical_fields(self):
@@ -404,13 +433,17 @@ class TestZoomMeetAlternative(TestCase):
         cls.instructor.current_academy = cls.academy
         cls.instructor.save()
         Membership.objects.create(
-            user=cls.instructor, academy=cls.academy, role="instructor",
+            user=cls.instructor,
+            academy=cls.academy,
+            role="instructor",
             instruments=["Guitar"],
         )
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="zoom-instructor-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="zoom-instructor-iso@test.com", password="testpass123"
+        )
 
     def test_livesession_has_video_platform(self):
         assert hasattr(LiveSession, "video_platform")
@@ -470,7 +503,9 @@ class TestContentLibrary(TestCase):
 
     def setUp(self):
         self.auth_client = Client()
-        self.auth_client.login(username="library-owner-iso@test.com", password="testpass123")
+        self.auth_client.login(
+            username="library-owner-iso@test.com", password="testpass123"
+        )
 
     def test_library_resource_model(self):
         assert hasattr(LibraryResource, "resource_type")

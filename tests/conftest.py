@@ -43,7 +43,9 @@ def instructor_user(db, academy):
     user.current_academy = academy
     user.save()
     Membership.objects.create(
-        user=user, academy=academy, role="instructor",
+        user=user,
+        academy=academy,
+        role="instructor",
         instruments=["Piano"],
     )
     return user
@@ -61,8 +63,11 @@ def student_user(db, academy):
     user.current_academy = academy
     user.save()
     Membership.objects.create(
-        user=user, academy=academy, role="student",
-        instruments=["Piano"], skill_level="beginner",
+        user=user,
+        academy=academy,
+        role="student",
+        instruments=["Piano"],
+        skill_level="beginner",
     )
     return user
 

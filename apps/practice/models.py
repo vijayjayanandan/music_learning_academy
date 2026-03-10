@@ -12,8 +12,11 @@ class PracticeLog(TenantScopedModel):
     pieces_worked_on = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     course = models.ForeignKey(
-        "courses.Course", on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="practice_logs"
+        "courses.Course",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="practice_logs",
     )
 
     class Meta:

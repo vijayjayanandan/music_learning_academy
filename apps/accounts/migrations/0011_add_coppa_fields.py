@@ -7,7 +7,6 @@ import secrets
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("accounts", "0010_add_terms_accepted_at"),
     ]

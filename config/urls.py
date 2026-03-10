@@ -35,22 +35,41 @@ urlpatterns = [
     path("library/", include("apps.library.urls")),
     path("tinymce/", include("tinymce.urls")),
     # Invitation acceptance (top-level for clean URLs)
-    path("invitation/<str:token>/accept/", AcceptInvitationView.as_view(), name="accept-invitation"),
+    path(
+        "invitation/<str:token>/accept/",
+        AcceptInvitationView.as_view(),
+        name="accept-invitation",
+    ),
     path("join/<slug:slug>/", BrandedSignupView.as_view(), name="branded-signup"),
     # Legal pages
-    path("terms/", TemplateView.as_view(template_name="legal/terms.html"), name="terms"),
-    path("privacy/", TemplateView.as_view(template_name="legal/privacy.html"), name="privacy"),
-    path("cookies/", TemplateView.as_view(template_name="legal/cookies.html"), name="cookie-policy"),
+    path(
+        "terms/", TemplateView.as_view(template_name="legal/terms.html"), name="terms"
+    ),
+    path(
+        "privacy/",
+        TemplateView.as_view(template_name="legal/privacy.html"),
+        name="privacy",
+    ),
+    path(
+        "cookies/",
+        TemplateView.as_view(template_name="legal/cookies.html"),
+        name="cookie-policy",
+    ),
     # SEO
     path("robots.txt", robots_txt, name="robots-txt"),
     # Favicon
-    path("favicon.ico", serve, {"document_root": settings.STATICFILES_DIRS[0], "path": "favicon.ico"}),
+    path(
+        "favicon.ico",
+        serve,
+        {"document_root": settings.STATICFILES_DIRS[0], "path": "favicon.ico"},
+    ),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     try:
         import debug_toolbar
+
         urlpatterns = [
             path("__debug__/", include(debug_toolbar.urls)),
         ] + urlpatterns
