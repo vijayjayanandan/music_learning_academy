@@ -88,8 +88,8 @@
 ### G-012: Invitation Email Logic Duplicated
 **Problem:** `InviteMemberView` and `ResendInvitationView` both contain nearly identical email-sending code.
 **Why:** Resend was added as a quick fix without extracting a shared helper.
-**Fix:** Extract to `send_invitation_email(invitation)` helper. Not yet done — tracked as DEBT-001.
-**Found:** 2026-03-06 | **Ref:** DEBT-001
+**Fix:** Extracted to `_send_invitation_email(invitation, request)` helper in `apps/academies/views.py`. Both views now call this shared function.
+**Found:** 2026-03-06 | **Resolved:** 2026-03-10 | **Ref:** DEBT-001
 
 ---
 

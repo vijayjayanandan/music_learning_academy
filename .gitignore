@@ -35,6 +35,7 @@ static/css/output.css
 # OS
 .DS_Store
 Thumbs.db
+nul
 
 # Clarity / other tools
 .clarity/

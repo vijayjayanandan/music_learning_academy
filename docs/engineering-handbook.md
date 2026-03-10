@@ -195,7 +195,7 @@ Rules:
 - Email templates go in `templates/emails/`
 - Always include `academy.name` in subject for context
 - Check `user.wants_email(notification_type)` before sending non-critical emails
-- DEBT-001: Invitation email logic is duplicated — extract to a shared helper when touching this area
+- Invitation email uses `_send_invitation_email(invitation, request)` helper in `apps/academies/views.py` (DEBT-001 resolved)
 
 ## Cache Patterns
 

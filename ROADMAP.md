@@ -9,11 +9,14 @@ The platform works end-to-end for demos. We're now in the **activation hardening
 
 > "If invited users can't join, nothing else matters."
 
-### Now (This Sprint)
+### Now (This Sprint) — COMPLETE
 - [x] Fix invitation → registration → acceptance flow end-to-end
-- [ ] Write tests for invitation flow (email match, error states, happy path)
+- [x] Write tests for invitation flow (email match, error states, happy path) — 32 tests
 - [x] Fix empty dashboard states (instructor first course, student no enrollments)
-- [ ] Fix social login `?next=` through OAuth redirect
+- [x] Fix social login `?next=` through OAuth redirect (BUG-012)
+- [x] Remove Celery → synchronous tasks + external cron endpoint
+- [x] Fix all 809 tests passing, CI green (lint + Python 3.10/3.11)
+- [x] Resolve all open P1/P2 bugs and tech debt
 
 ### Next (Sprint +1)
 - [ ] Onboarding wizard for new instructors (create first course flow)

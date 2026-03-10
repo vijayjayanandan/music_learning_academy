@@ -23,6 +23,45 @@ from .models import Academy, Announcement
 logger = logging.getLogger(__name__)
 
 
+def _send_invitation_email(invitation, request):
+    """Send (or resend) an invitation email.
+
+    Extracted from InviteMemberView and ResendInvitationView to eliminate
+    duplication (DEBT-001).
+    """
+    accept_url = request.build_absolute_uri(
+        reverse("accept-invitation", kwargs={"token": invitation.token})
+    )
+    try:
+        html_message = render_to_string(
+            "emails/invitation_email.html",
+            {
+                "academy": invitation.academy,
+                "invited_by": request.user,
+                "role": invitation.role,
+                "accept_url": accept_url,
+                "expires_at": invitation.expires_at,
+                "user": User.objects.filter(email=invitation.email).first(),
+            },
+        )
+        plain_message = (
+            f"Hi,\n\n"
+            f"{request.user.get_full_name()} has invited you to join "
+            f"{invitation.academy.name} as a {invitation.role} on Music Learning Academy.\n\n"
+            f"Accept the invitation here: {accept_url}\n\n"
+            f"This invitation expires on {invitation.expires_at.strftime('%B %d, %Y')}."
+        )
+        send_mail(
+            f"You've been invited to {invitation.academy.name} — Music Learning Academy",
+            plain_message,
+            None,  # uses DEFAULT_FROM_EMAIL
+            [invitation.email],
+            html_message=html_message,
+        )
+    except Exception:
+        logger.exception("Failed to send invitation email to %s", invitation.email)
+
+
 class AcademyCreateView(LoginRequiredMixin, CreateView):
     model = Academy
     form_class = AcademyForm
@@ -218,39 +257,7 @@ class InviteMemberView(TenantMixin, View):
                 request=request,
             )
             # Send invitation email
-            accept_url = request.build_absolute_uri(
-                reverse("accept-invitation", kwargs={"token": token})
-            )
-            try:
-                html_message = render_to_string(
-                    "emails/invitation_email.html",
-                    {
-                        "academy": academy,
-                        "invited_by": request.user,
-                        "role": invitation.role,
-                        "accept_url": accept_url,
-                        "expires_at": invitation.expires_at,
-                        "user": User.objects.filter(email=invitation.email).first(),
-                    },
-                )
-                plain_message = (
-                    f"Hi,\n\n"
-                    f"{request.user.get_full_name()} has invited you to join "
-                    f"{academy.name} as a {invitation.role} on Music Learning Academy.\n\n"
-                    f"Accept the invitation here: {accept_url}\n\n"
-                    f"This invitation expires on {invitation.expires_at.strftime('%B %d, %Y')}."
-                )
-                send_mail(
-                    f"You've been invited to {academy.name} — Music Learning Academy",
-                    plain_message,
-                    None,  # uses DEFAULT_FROM_EMAIL
-                    [invitation.email],
-                    html_message=html_message,
-                )
-            except Exception:
-                logger.exception(
-                    "Failed to send invitation email to %s", invitation.email
-                )
+            _send_invitation_email(invitation, request)
             if request.htmx:
                 invitations = Invitation.objects.filter(academy=academy, accepted=False)
                 return render(
@@ -389,39 +396,7 @@ class ResendInvitationView(TenantMixin, View):
         invitation.expires_at = timezone.now() + timezone.timedelta(days=7)
         invitation.save(update_fields=["token", "expires_at"])
         # Send email
-        accept_url = request.build_absolute_uri(
-            reverse("accept-invitation", kwargs={"token": invitation.token})
-        )
-        try:
-            html_message = render_to_string(
-                "emails/invitation_email.html",
-                {
-                    "academy": academy,
-                    "invited_by": request.user,
-                    "role": invitation.role,
-                    "accept_url": accept_url,
-                    "expires_at": invitation.expires_at,
-                    "user": User.objects.filter(email=invitation.email).first(),
-                },
-            )
-            plain_message = (
-                f"Hi,\n\n"
-                f"{request.user.get_full_name()} has invited you to join "
-                f"{academy.name} as a {invitation.role} on Music Learning Academy.\n\n"
-                f"Accept the invitation here: {accept_url}\n\n"
-                f"This invitation expires on {invitation.expires_at.strftime('%B %d, %Y')}."
-            )
-            send_mail(
-                f"You've been invited to {academy.name} — Music Learning Academy",
-                plain_message,
-                None,
-                [invitation.email],
-                html_message=html_message,
-            )
-        except Exception:
-            logger.exception(
-                "Failed to resend invitation email to %s", invitation.email
-            )
+        _send_invitation_email(invitation, request)
         invitations = Invitation.objects.filter(academy=academy, accepted=False)
         return render(
             request,

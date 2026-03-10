@@ -30,24 +30,24 @@ _None currently._
 
 | ID | Summary | Found | Component |
 |----|---------|-------|-----------|
-| BUG-011 | Lesson content may show raw Markdown in some cases (TinyMCE stores HTML, but markdown help_text is misleading) | 2026-03-03 | `courses/lesson_detail.html` |
+| ~~BUG-011~~ | ~~Lesson content may show raw Markdown in some cases (TinyMCE stores HTML, but markdown help_text is misleading)~~ — **Resolved 2026-03-10** | 2026-03-03 | `courses/lesson_detail.html` |
 | ~~BUG-012~~ | ~~Social login `?next=` not preserved through full OAuth redirect flow~~ — **Resolved 2026-03-06** | 2026-03-06 | `_social_buttons.html`, allauth |
 
 ### P2 — Medium
 
 | ID | Summary | Found | Component |
 |----|---------|-------|-----------|
-| BUG-013 | No email sent to owner when new user registers via branded signup link | 2026-03-06 | `academies/views.py:BrandedSignupView` |
-| DEBT-001 | Invitation email sending logic duplicated between `InviteMemberView` and `ResendInvitationView` | 2026-03-06 | `academies/views.py` |
-| DEBT-002 | No test coverage for invitation email sending, resend, cancel flows | 2026-03-06 | `tests/` |
-| DEBT-003 | No test coverage for email match enforcement on invitation acceptance | 2026-03-06 | `tests/` |
+| ~~BUG-013~~ | ~~No email sent to owner when new user registers via branded signup link~~ — **Resolved 2026-03-10** | 2026-03-06 | `academies/views.py:BrandedSignupView` |
+| ~~DEBT-001~~ | ~~Invitation email sending logic duplicated between `InviteMemberView` and `ResendInvitationView`~~ — **Resolved 2026-03-10** | 2026-03-06 | `academies/views.py` |
+| ~~DEBT-002~~ | ~~No test coverage for invitation email sending, resend, cancel flows~~ — **Resolved 2026-03-10** | 2026-03-06 | `tests/` |
+| ~~DEBT-003~~ | ~~No test coverage for email match enforcement on invitation acceptance~~ — **Resolved 2026-03-10** | 2026-03-06 | `tests/` |
 
 ### P3 — Low
 
 | ID | Summary | Found | Component |
 |----|---------|-------|-----------|
-| BUG-016 | `nul` file in repo root (Windows artifact) | 2026-03-06 | Root |
-| DEBT-004 | `Email_Test.py` test file in repo root (should be in `tests/` or deleted) | 2026-03-06 | Root |
+| ~~BUG-016~~ | ~~`nul` file in repo root (Windows artifact)~~ — **Resolved 2026-03-10** | 2026-03-06 | Root |
+| ~~DEBT-004~~ | ~~`Email_Test.py` test file in repo root (should be in `tests/` or deleted)~~ — **Resolved 2026-03-10** | 2026-03-06 | Root |
 
 ---
 
@@ -70,3 +70,10 @@ _None currently._
 | BUG-012 | Social login `?next=` not preserved through full OAuth redirect flow | 2026-03-06 | Added `next_url` fallback in `_social_buttons.html`; `AcceptInvitationView` passes `accept_url` context |
 | BUG-014 | Empty state on instructor dashboard — no guidance for first course creation | 2026-03-06 | Prominent getting-started card with steps + CTA when no courses exist |
 | BUG-015 | Empty state on student dashboard — no guidance when not enrolled in any course | 2026-03-06 | Prominent getting-started card with steps + CTA when no enrollments exist |
+| BUG-011 | Lesson content help_text said "Markdown" but TinyMCE stores HTML; content could render as raw text | 2026-03-10 | Updated help_text to reference HTML/TinyMCE, template uses `\|sanitize_html` filter, migration 0008, 3 tests in `test_rich_text.py` |
+| BUG-013 | No email sent to owner on branded signup | 2026-03-10 | `_notify_owners_new_member()` sends email + in-app notification; test in `test_release1_features.py` |
+| DEBT-001 | Invitation email logic duplicated | 2026-03-10 | Extracted `_send_invitation_email()` helper in `academies/views.py` |
+| DEBT-002 | No test coverage for invitation email flows | 2026-03-10 | 32 tests in `test_invitation_flow.py` cover send, resend, accept, permissions |
+| DEBT-003 | No test coverage for email match enforcement | 2026-03-10 | Tests in `test_invitation_flow.py` cover email mismatch error page |
+| BUG-016 | `nul` file in repo root | 2026-03-10 | Added `nul` to `.gitignore` |
+| DEBT-004 | `Email_Test.py` in repo root | 2026-03-10 | File already deleted in prior cleanup |

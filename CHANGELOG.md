@@ -3,7 +3,7 @@
 All notable changes to Music Learning Academy are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.0.0] - 2026-03-10 — First Production Release
 
 ### Changed
 - **Remove Celery, go synchronous + external cron** — all tasks now run synchronously (email ~200-500ms, DB updates ~10ms). Scheduled tasks handled by external cron service (cron-job.org) via secured `POST /cron/` endpoint with Bearer token auth. Eliminates $7-12/month worker process on Render.
@@ -67,6 +67,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - 404 error on stale invitation tokens (now shows friendly error page)
 - Members page not showing resend/cancel buttons (inline HTML vs partial mismatch)
 - SendGrid DMARC alignment failure (switched to `noreply@mailer.onemusicapp.com`)
+
+### Improved
+- Deduplicated invitation email logic into shared `_send_invitation_email()` helper (DEBT-001)
+- CI pipeline: SQLite for tests, ruff lint + format checks, system deps for pycairo/libmagic
+- 809 tests passing, 82% code coverage across Python 3.10 and 3.11
 
 ### Security
 - Email match enforcement on invitation acceptance

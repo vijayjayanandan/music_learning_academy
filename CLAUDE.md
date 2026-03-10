@@ -358,7 +358,7 @@ music_learning_academy/
 ### courses (`apps/courses/`)
 **Models:** Course, Lesson, PracticeAssignment
 - Course: title, slug, instructor, instrument, genre, difficulty_level, learning_outcomes (JSON)
-- Lesson: content (Markdown), video_url, sheet_music_url, audio_example_url, topics (JSON), order
+- Lesson: content (HTML/TinyMCE), video_url, sheet_music_url, audio_example_url, topics (JSON), order
 - PracticeAssignment: 6 types (practice/theory/ear_training/composition/performance/technique)
 - `views.py` — CRUD for courses + inline HTMX CRUD for lessons
 
