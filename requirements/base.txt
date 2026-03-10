@@ -22,6 +22,7 @@ python-json-logger>=2.0
 Markdown>=3.5
 django-allauth>=0.61
 PyJWT[crypto]>=2.8
+livekit-api>=0.7
 psycopg2-binary>=2.9
 dj-database-url>=2.1
 gunicorn>=21.2
