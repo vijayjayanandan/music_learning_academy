@@ -35,9 +35,7 @@ class TestEnrollmentSuccessMessages(TestCase):
         )
         cls.student.current_academy = cls.academy
         cls.student.save()
-        Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student"
-        )
+        Membership.objects.create(user=cls.student, academy=cls.academy, role="student")
 
         cls.instructor = User.objects.create_user(
             username="feedback-instructor",
@@ -84,9 +82,7 @@ class TestEnrollmentSuccessMessages(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.client.login(
-            username="feedback-student@test.com", password="testpass123"
-        )
+        self.client.login(username="feedback-student@test.com", password="testpass123")
 
     def test_enroll_with_lessons_shows_start_message(self):
         """Happy path: enrolling in a course with lessons shows 'Start with your first lesson' message."""

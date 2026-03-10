@@ -88,7 +88,9 @@ def _send_trial_reminder(sub, days, subject_suffix):
     from django.core.mail import send_mail
     from django.template.loader import render_to_string
 
-    trial_end_date = sub.trial_ends_at.strftime("%B %d, %Y") if sub.trial_ends_at else "N/A"
+    trial_end_date = (
+        sub.trial_ends_at.strftime("%B %d, %Y") if sub.trial_ends_at else "N/A"
+    )
     html_message = render_to_string(
         "emails/trial_reminder_email.html",
         {

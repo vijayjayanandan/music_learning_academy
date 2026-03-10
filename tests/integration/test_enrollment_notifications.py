@@ -43,9 +43,7 @@ class TestInstructorEnrollmentNotification(TestCase):
         )
         cls.student.current_academy = cls.academy
         cls.student.save()
-        Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student"
-        )
+        Membership.objects.create(user=cls.student, academy=cls.academy, role="student")
 
         cls.course = Course.objects.create(
             title="Piano Fundamentals",
@@ -69,9 +67,7 @@ class TestInstructorEnrollmentNotification(TestCase):
         )
 
         # Instructor gets an email (student also gets one, so at least 1 for instructor)
-        instructor_emails = [
-            m for m in mail.outbox if self.instructor.email in m.to
-        ]
+        instructor_emails = [m for m in mail.outbox if self.instructor.email in m.to]
         assert len(instructor_emails) == 1
 
         email = instructor_emails[0]
@@ -182,9 +178,7 @@ class TestInstructorEnrollmentNotification(TestCase):
         )
         student2.current_academy = self.academy
         student2.save()
-        Membership.objects.create(
-            user=student2, academy=self.academy, role="student"
-        )
+        Membership.objects.create(user=student2, academy=self.academy, role="student")
 
         course3 = Course.objects.create(
             title="Drums 101",
@@ -211,9 +205,7 @@ class TestInstructorEnrollmentNotification(TestCase):
             academy=self.academy,
         )
 
-        instructor_emails = [
-            m for m in mail.outbox if self.instructor.email in m.to
-        ]
+        instructor_emails = [m for m in mail.outbox if self.instructor.email in m.to]
         assert len(instructor_emails) == 1
 
         html_content = instructor_emails[0].alternatives[0][0]

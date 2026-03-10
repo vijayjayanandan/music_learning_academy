@@ -49,9 +49,7 @@ class TestAssignmentSubmittedEmail(TestCase):
         )
         cls.student.current_academy = cls.academy
         cls.student.save()
-        Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student"
-        )
+        Membership.objects.create(user=cls.student, academy=cls.academy, role="student")
 
         cls.course = Course.objects.create(
             academy=cls.academy,
@@ -91,9 +89,7 @@ class TestAssignmentSubmittedEmail(TestCase):
         )
 
         # Filter for the submission email (not the enrollment confirmation)
-        submission_emails = [
-            m for m in mail.outbox if "New submission" in m.subject
-        ]
+        submission_emails = [m for m in mail.outbox if "New submission" in m.subject]
         assert len(submission_emails) == 1
 
         msg = submission_emails[0]
@@ -125,9 +121,7 @@ class TestAssignmentSubmittedEmail(TestCase):
             text_response="Another submission.",
         )
 
-        submission_emails = [
-            m for m in mail.outbox if "New submission" in m.subject
-        ]
+        submission_emails = [m for m in mail.outbox if "New submission" in m.subject]
         assert len(submission_emails) == 0
 
         # Restore preference
@@ -170,9 +164,7 @@ class TestAssignmentGradedEmail(TestCase):
         )
         cls.student.current_academy = cls.academy
         cls.student.save()
-        Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student"
-        )
+        Membership.objects.create(user=cls.student, academy=cls.academy, role="student")
 
         cls.course = Course.objects.create(
             academy=cls.academy,
@@ -220,9 +212,7 @@ class TestAssignmentGradedEmail(TestCase):
         submission.instructor_feedback = "Excellent work!"
         submission.save()
 
-        graded_emails = [
-            m for m in mail.outbox if "Assignment graded" in m.subject
-        ]
+        graded_emails = [m for m in mail.outbox if "Assignment graded" in m.subject]
         assert len(graded_emails) == 1
 
         msg = graded_emails[0]
@@ -259,9 +249,7 @@ class TestAssignmentGradedEmail(TestCase):
         submission.instructor_feedback = "Good job!"
         submission.save()
 
-        graded_emails = [
-            m for m in mail.outbox if "Assignment graded" in m.subject
-        ]
+        graded_emails = [m for m in mail.outbox if "Assignment graded" in m.subject]
         assert len(graded_emails) == 1
 
         html_body = graded_emails[0].alternatives[0][0]
@@ -310,9 +298,7 @@ class TestTrialReminderEmail(TestCase):
         count = send_trial_reminder_emails()
         assert count >= 1
 
-        trial_emails = [
-            m for m in mail.outbox if "days left in trial" in m.subject
-        ]
+        trial_emails = [m for m in mail.outbox if "days left in trial" in m.subject]
         assert len(trial_emails) >= 1
 
         msg = trial_emails[0]

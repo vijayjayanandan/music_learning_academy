@@ -295,9 +295,7 @@ class TestMarkCompleteFromLessonView(TestCase):
         )
         cls.student.current_academy = cls.academy
         cls.student.save()
-        Membership.objects.create(
-            user=cls.student, academy=cls.academy, role="student"
-        )
+        Membership.objects.create(user=cls.student, academy=cls.academy, role="student")
 
         cls.course = Course.objects.create(
             academy=cls.academy,
