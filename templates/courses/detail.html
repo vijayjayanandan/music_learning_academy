@@ -80,6 +80,26 @@
             </div>
             {% endif %}
 
+            <!-- Add First Lesson CTA (shown only when zero lessons and user is instructor/owner) -->
+            {% if is_instructor and lessons|length == 0 %}
+            <div class="card bg-primary/10 border border-primary/20 shadow-lg">
+                <div class="card-body">
+                    <div class="flex items-center gap-4">
+                        <div class="text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-10 w-10">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">Add Your First Lesson</h3>
+                            <p class="text-base-content/70">Your course is ready. Add lessons to start building your curriculum.</p>
+                        </div>
+                        <a href="#lesson-add-form" class="btn btn-primary" onclick="document.getElementById('lesson-title-input').focus();">Add Lesson</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Lessons -->
             <div class="card bg-base-100 shadow">
                 <div class="card-body">
@@ -93,14 +113,14 @@
                         {% include "courses/partials/_lesson_list.html" %}
                     </div>
                     {% if is_instructor %}
-                    <div class="divider">Add Lesson</div>
+                    <div class="divider" id="lesson-add-form">Add Lesson</div>
                     <form method="post" action="{% url 'lesson-create' object.slug %}"
                           hx-post="{% url 'lesson-create' object.slug %}"
                           hx-target="#lesson-list" hx-swap="innerHTML"
                           hx-indicator="#add-lesson-loading">
                         {% csrf_token %}
                         <div class="form-control mb-2">
-                            <input type="text" name="title" class="input input-bordered w-full" placeholder="Lesson title" required />
+                            <input type="text" name="title" id="lesson-title-input" class="input input-bordered w-full" placeholder="Lesson title" required />
                         </div>
                         <div class="form-control mb-2">
                             <input type="number" name="order" class="input input-bordered w-full" placeholder="Order (1, 2, 3...)" />

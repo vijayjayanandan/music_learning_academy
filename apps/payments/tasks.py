@@ -83,10 +83,34 @@ def expire_platform_trials():
     return count
 
 
+def _send_trial_reminder(sub, days, subject_suffix):
+    """Send a single trial reminder email with HTML template."""
+    from django.core.mail import send_mail
+    from django.template.loader import render_to_string
+
+    trial_end_date = sub.trial_ends_at.strftime("%B %d, %Y") if sub.trial_ends_at else "N/A"
+    html_message = render_to_string(
+        "emails/trial_reminder_email.html",
+        {
+            "academy_name": sub.academy.name,
+            "days": days,
+            "trial_end_date": trial_end_date,
+            "upgrade_url": f"/academy/{sub.academy.slug}/settings/",
+        },
+    )
+    send_mail(
+        subject=f"{sub.academy.name} - {subject_suffix}",
+        message=f"Your trial for {sub.academy.name} expires in {days} day(s).",
+        from_email=None,
+        recipient_list=[sub.academy.email],
+        html_message=html_message,
+        fail_silently=True,
+    )
+
+
 def send_trial_reminder_emails():
     """Send trial expiry reminder emails at 7d, 3d, and 1d before trial ends."""
     from apps.payments.models import PlatformSubscription
-    from django.core.mail import send_mail
     from datetime import timedelta as td
 
     now = timezone.now()
@@ -98,15 +122,9 @@ def send_trial_reminder_emails():
         trial_ends_at__gt=now,
         trial_ends_at__lte=now + td(days=7),
         trial_reminder_7d_sent=False,
-    )
+    ).select_related("academy")
     for sub in subs_7d:
-        send_mail(
-            subject=f"{sub.academy.name} - 7 days left in trial",
-            message="Your trial expires in 7 days.",
-            from_email=None,
-            recipient_list=[sub.academy.email],
-            fail_silently=True,
-        )
+        _send_trial_reminder(sub, 7, "7 days left in trial")
         sub.trial_reminder_7d_sent = True
         sub.save(update_fields=["trial_reminder_7d_sent"])
         count += 1
@@ -117,15 +135,9 @@ def send_trial_reminder_emails():
         trial_ends_at__gt=now,
         trial_ends_at__lte=now + td(days=3),
         trial_reminder_3d_sent=False,
-    )
+    ).select_related("academy")
     for sub in subs_3d:
-        send_mail(
-            subject=f"{sub.academy.name} - 3 days left in trial",
-            message="Your trial expires in 3 days.",
-            from_email=None,
-            recipient_list=[sub.academy.email],
-            fail_silently=True,
-        )
+        _send_trial_reminder(sub, 3, "3 days left in trial")
         sub.trial_reminder_3d_sent = True
         sub.save(update_fields=["trial_reminder_3d_sent"])
         count += 1
@@ -136,15 +148,9 @@ def send_trial_reminder_emails():
         trial_ends_at__gt=now,
         trial_ends_at__lte=now + td(days=1),
         trial_reminder_1d_sent=False,
-    )
+    ).select_related("academy")
     for sub in subs_1d:
-        send_mail(
-            subject=f"{sub.academy.name} - Last day of trial!",
-            message="Your trial expires tomorrow.",
-            from_email=None,
-            recipient_list=[sub.academy.email],
-            fail_silently=True,
-        )
+        _send_trial_reminder(sub, 1, "Last day of trial!")
         sub.trial_reminder_1d_sent = True
         sub.save(update_fields=["trial_reminder_1d_sent"])
         count += 1

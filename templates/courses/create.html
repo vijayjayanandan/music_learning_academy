@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Create Course - Music Academy{% endblock %}
 {% block extra_head %}{{ form.media }}{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto">
+<div class="max-w-2xl mx-auto" id="course-wizard">
+    <!-- Breadcrumbs -->
     <div class="breadcrumbs text-sm mb-4">
         <ul>
             <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
@@ -10,27 +12,179 @@
             <li>Create Course</li>
         </ul>
     </div>
+
     <h1 class="text-3xl font-bold mb-6">Create Course</h1>
+
+    <!-- DaisyUI Steps Indicator -->
+    <ul class="steps steps-horizontal w-full mb-8">
+        <li id="step-indicator-1" class="step step-primary" data-content="1">Basics</li>
+        <li id="step-indicator-2" class="step" data-content="2">Details</li>
+        <li id="step-indicator-3" class="step" data-content="3">Review</li>
+    </ul>
+
     <div class="card bg-base-100 shadow">
         <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
+            <form method="post" enctype="multipart/form-data" id="course-wizard-form">
                 {% csrf_token %}
-                {% for field in form %}
-                <div class="form-control mb-4">
-                    <label class="label"><span class="label-text">{{ field.label }}</span></label>
-                    {{ field }}
-                    {% if field.help_text %}<label class="label"><span class="label-text-alt">{{ field.help_text }}</span></label>{% endif %}
-                    {% for error in field.errors %}
-                    <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+
+                {# Non-field errors (e.g., course limit reached) #}
+                {% if form.non_field_errors %}
+                <div class="alert alert-error mb-4">
+                    {% for error in form.non_field_errors %}
+                    <span>{{ error }}</span>
                     {% endfor %}
                 </div>
-                {% endfor %}
-                <div class="card-actions justify-end mt-4">
-                    <a href="{% url 'course-list' %}" class="btn btn-ghost">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Create Course</button>
+                {% endif %}
+
+                {# ── STEP 1: Basics (4 fields) ── #}
+                <div id="wizard-step-1">
+                    <h2 class="text-xl font-semibold mb-1">Course Basics</h2>
+                    <p class="text-base-content/60 text-sm mb-6">Start with the essentials. You can always edit these later.</p>
+
+                    {# Title #}
+                    <div class="form-control mb-4">
+                        <label class="label" for="id_title"><span class="label-text">Title <span class="text-error">*</span></span></label>
+                        {{ form.title }}
+                        {% if form.title.help_text %}<label class="label"><span class="label-text-alt">{{ form.title.help_text }}</span></label>{% endif %}
+                        {% for error in form.title.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                        {% endfor %}
+                    </div>
+
+                    {# Instrument #}
+                    <div class="form-control mb-4">
+                        <label class="label" for="id_instrument"><span class="label-text">Instrument</span></label>
+                        {{ form.instrument }}
+                        {% if form.instrument.help_text %}<label class="label"><span class="label-text-alt">{{ form.instrument.help_text }}</span></label>{% endif %}
+                        {% for error in form.instrument.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                        {% endfor %}
+                    </div>
+
+                    {# Difficulty Level #}
+                    <div class="form-control mb-4">
+                        <label class="label" for="id_difficulty_level"><span class="label-text">Difficulty Level</span></label>
+                        {{ form.difficulty_level }}
+                        {% for error in form.difficulty_level.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                        {% endfor %}
+                    </div>
+
+                    {# Genre #}
+                    <div class="form-control mb-4">
+                        <label class="label" for="id_genre"><span class="label-text">Genre</span></label>
+                        {{ form.genre }}
+                        {% if form.genre.help_text %}<label class="label"><span class="label-text-alt">{{ form.genre.help_text }}</span></label>{% endif %}
+                        {% for error in form.genre.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# ── STEP 2: Details (5 fields) ── #}
+                <div id="wizard-step-2" class="hidden">
+                    <h2 class="text-xl font-semibold mb-1">Course Details</h2>
+                    <p class="text-base-content/60 text-sm mb-6">Add a description, prerequisites, and other details to help students understand the course.</p>
+
+                    {# Description (TinyMCE) #}
+                    <div class="form-control mb-4">
+                        <label class="label" for="id_description"><span class="label-text">Description</span></label>
+                        {{ form.description }}
+                        {% if form.description.help_text %}<label class="label"><span class="label-text-alt">{{ form.description.help_text }}</span></label>{% endif %}
+                        {% for error in form.description.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                        {% endfor %}
+                    </div>
+
+                    {# Prerequisites #}
+                    <div class="form-control mb-4">
+                        <label class="label" for="id_prerequisites"><span class="label-text">Prerequisites</span></label>
+                        {{ form.prerequisites }}
+                        {% if form.prerequisites.help_text %}<label class="label"><span class="label-text-alt">{{ form.prerequisites.help_text }}</span></label>{% endif %}
+                        {% for error in form.prerequisites.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                        {% endfor %}
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        {# Duration #}
+                        <div class="form-control">
+                            <label class="label" for="id_estimated_duration_weeks"><span class="label-text">Duration (weeks)</span></label>
+                            {{ form.estimated_duration_weeks }}
+                            {% for error in form.estimated_duration_weeks.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                            {% endfor %}
+                        </div>
+
+                        {# Max Students #}
+                        <div class="form-control">
+                            <label class="label" for="id_max_students"><span class="label-text">Max Students</span></label>
+                            {{ form.max_students }}
+                            {% for error in form.max_students.errors %}
+                            <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Thumbnail #}
+                    <div class="form-control mb-4">
+                        <label class="label" for="id_thumbnail"><span class="label-text">Thumbnail Image</span></label>
+                        {{ form.thumbnail }}
+                        {% if form.thumbnail.help_text %}<label class="label"><span class="label-text-alt">{{ form.thumbnail.help_text }}</span></label>{% endif %}
+                        {% for error in form.thumbnail.errors %}
+                        <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# ── STEP 3: Review & Publish ── #}
+                <div id="wizard-step-3" class="hidden">
+                    <h2 class="text-xl font-semibold mb-1">Review & Publish</h2>
+                    <p class="text-base-content/60 text-sm mb-6">Double-check your course details before creating.</p>
+
+                    {# Read-only summary card #}
+                    <div class="bg-base-200 rounded-lg p-5 mb-6" id="review-summary">
+                        {# Populated by JS — updateReview() #}
+                    </div>
+
+                    {# Publish toggle #}
+                    <div class="form-control mb-4">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            {{ form.is_published }}
+                            <div>
+                                <span class="label-text font-medium">Publish immediately</span>
+                                <p class="text-xs text-base-content/50 mt-0.5">If unchecked, the course will be saved as a draft. You can publish it later from the course edit page.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                {# ── Navigation Buttons ── #}
+                <div class="card-actions justify-between mt-6 pt-4 border-t border-base-300">
+                    <div>
+                        <button type="button" id="wizard-btn-prev" class="btn btn-ghost hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                            Back
+                        </button>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="{% url 'course-list' %}" class="btn btn-ghost">Cancel</a>
+                        <button type="button" id="wizard-btn-next" class="btn btn-primary">
+                            Next
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                        <button type="submit" id="wizard-btn-submit" class="btn btn-primary hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            Create Course
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/course_wizard.js' %}"></script>
 {% endblock %}

@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
@@ -11,7 +12,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from apps.academies.mixins import TenantMixin
 from apps.common.cache import invalidate_dashboard_cache
 from apps.common.validators import validate_file_upload
-from apps.enrollments.models import Enrollment
+from apps.enrollments.models import Enrollment, LessonProgress
 from .forms import CourseForm, LessonForm, LessonAttachmentForm, PracticeAssignmentForm
 from .models import Course, Lesson, LessonAttachment, PracticeAssignment
 
@@ -127,6 +128,10 @@ class CourseCreateView(TenantMixin, CreateView):
             course.published_at = timezone.now()
         course.save()
         _invalidate_dashboard_cache(course.academy.pk)
+        messages.success(
+            self.request,
+            "Course created! Now add your first lesson.",
+        )
         return redirect("course-detail", slug=course.slug)
 
 
@@ -261,6 +266,30 @@ class LessonDetailView(TenantMixin, DetailView):
             ctx["lesson_number"] = 1
             ctx["prev_lesson"] = None
             ctx["next_lesson"] = None
+
+        # For students: check enrollment and lesson progress
+        enrollment = None
+        lesson_progress = None
+        completed_count = 0
+        if self.request.user.get_role_in(self.get_academy()) == "student":
+            enrollment = Enrollment.objects.filter(
+                student=self.request.user,
+                course=self.object.course,
+                academy=self.get_academy(),
+                status="active",
+            ).first()
+            if enrollment:
+                lesson_progress = LessonProgress.objects.filter(
+                    enrollment=enrollment,
+                    lesson=self.object,
+                ).first()
+                completed_count = LessonProgress.objects.filter(
+                    enrollment=enrollment,
+                    is_completed=True,
+                ).count()
+        ctx["enrollment"] = enrollment
+        ctx["lesson_progress"] = lesson_progress
+        ctx["completed_count"] = completed_count
 
         return ctx
 

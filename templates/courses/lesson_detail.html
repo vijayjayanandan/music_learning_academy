@@ -31,6 +31,17 @@
         {% endif %}
     </div>
 
+    {% if enrollment %}
+    <!-- Course Progress Bar (enrolled students only) -->
+    <div class="bg-base-100 rounded-lg p-4 shadow">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium">Course Progress</span>
+            <span class="text-sm text-base-content/70">{{ completed_count }} of {{ total_lessons }} lessons completed</span>
+        </div>
+        <progress class="progress progress-primary w-full" value="{{ completed_count }}" max="{{ total_lessons }}"></progress>
+    </div>
+    {% endif %}
+
     <!-- Lesson Content -->
     <div class="card bg-base-100 shadow">
         <div class="card-body prose max-w-none">
@@ -156,6 +167,11 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
+
+    {% if enrollment %}
+    <!-- Mark Complete & Next Lesson CTA (enrolled students only) -->
+    {% include "courses/partials/_lesson_complete_section.html" with lesson=object %}
     {% endif %}
 
     <!-- Lesson Navigation -->

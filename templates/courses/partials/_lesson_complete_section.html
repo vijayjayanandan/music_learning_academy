@@ -1,0 +1,107 @@
+<div id="lesson-complete-section">
+    {% if enrollment %}
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            {% if lesson_progress and lesson_progress.is_completed %}
+            {# Already completed — show toggle-back button + next CTA #}
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="font-medium text-success">Lesson Completed</span>
+                </div>
+                <form method="post"
+                      action="{% url 'mark-lesson-complete' enrollment.pk lesson.pk %}?from=lesson"
+                      hx-post="{% url 'mark-lesson-complete' enrollment.pk lesson.pk %}?from=lesson"
+                      hx-target="#lesson-complete-section"
+                      hx-swap="outerHTML">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost btn-sm text-base-content/50">
+                        Mark as Incomplete
+                    </button>
+                </form>
+            </div>
+
+            {% if next_lesson %}
+            {# Next lesson CTA #}
+            <div class="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                <div class="flex items-center gap-4">
+                    <div class="text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold">Great work! Continue to the next lesson</p>
+                        <p class="text-sm text-base-content/70">{{ next_lesson.title }}</p>
+                    </div>
+                    <a href="{% url 'lesson-detail' course.slug next_lesson.pk %}" class="btn btn-primary">
+                        Next Lesson
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            {# Last lesson — celebration card #}
+            {% if completed_count >= total_lessons %}
+            <div class="mt-4 p-4 bg-success/10 rounded-lg border border-success/20">
+                <div class="flex items-center gap-4">
+                    <div class="text-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-lg">Congratulations!</p>
+                        <p class="text-base-content/70">You've completed all lessons in this course.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="{% url 'enrollment-detail' enrollment.pk %}" class="btn btn-success btn-outline">View Progress</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="mt-4 p-4 bg-info/5 rounded-lg border border-info/10">
+                <div class="flex items-center gap-4">
+                    <div class="text-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold">This is the last lesson!</p>
+                        <p class="text-sm text-base-content/70">Complete remaining lessons to finish the course.</p>
+                    </div>
+                    <a href="{% url 'enrollment-detail' enrollment.pk %}" class="btn btn-info btn-outline btn-sm">View All Lessons</a>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {% else %}
+            {# Not completed — show mark-complete button #}
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <p class="font-medium">Finished this lesson?</p>
+                    <p class="text-sm text-base-content/70">Mark it complete to track your progress.</p>
+                </div>
+                <form method="post"
+                      action="{% url 'mark-lesson-complete' enrollment.pk lesson.pk %}?from=lesson"
+                      hx-post="{% url 'mark-lesson-complete' enrollment.pk lesson.pk %}?from=lesson"
+                      hx-target="#lesson-complete-section"
+                      hx-swap="outerHTML">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Mark Lesson Complete
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>

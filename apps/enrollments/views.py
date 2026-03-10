@@ -1,5 +1,6 @@
 import logging
 
+from django.contrib import messages
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -127,8 +128,6 @@ class EnrollView(TenantMixin, View):
             ).values_list("course_id", flat=True)
             missing = prerequisites.exclude(pk__in=completed_courses)
             if missing.exists():
-                from django.contrib import messages
-
                 names = ", ".join(c.title for c in missing)
                 messages.error(
                     request, f"You must complete these courses first: {names}"
@@ -154,11 +153,22 @@ class EnrollView(TenantMixin, View):
             course=course,
             academy=self.get_academy(),
         )
-        if created:
-            invalidate_dashboard_cache(self.get_academy().pk)
 
         # Redirect to the first lesson if one exists, otherwise fall back to course detail
         first_lesson = course.lessons.order_by("order").first()
+
+        if created:
+            invalidate_dashboard_cache(self.get_academy().pk)
+            if first_lesson:
+                messages.success(
+                    request,
+                    f"You're enrolled in {course.title}! Start with your first lesson.",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"You're enrolled in {course.title}! Your instructor will add lessons soon.",
+                )
         if first_lesson:
             redirect_url = reverse(
                 "lesson-detail", kwargs={"slug": slug, "pk": first_lesson.pk}
@@ -209,6 +219,34 @@ class MarkLessonCompleteView(TenantMixin, View):
         progress.save()
 
         if request.htmx:
+            # When called from lesson detail page, return the lesson-complete section
+            if request.GET.get("from") == "lesson":
+                course = lesson.course
+                all_lessons = list(course.lessons.order_by("order"))
+                total_lessons = len(all_lessons)
+                completed_count = LessonProgress.objects.filter(
+                    enrollment=enrollment,
+                    is_completed=True,
+                ).count()
+                # Find next lesson
+                next_lesson = None
+                for i, l in enumerate(all_lessons):
+                    if l.pk == lesson.pk and i < total_lessons - 1:
+                        next_lesson = all_lessons[i + 1]
+                        break
+                return render(
+                    request,
+                    "courses/partials/_lesson_complete_section.html",
+                    {
+                        "lesson": lesson,
+                        "lesson_progress": progress,
+                        "enrollment": enrollment,
+                        "course": course,
+                        "next_lesson": next_lesson,
+                        "total_lessons": total_lessons,
+                        "completed_count": completed_count,
+                    },
+                )
             return render(
                 request,
                 "enrollments/partials/_lesson_progress_row.html",

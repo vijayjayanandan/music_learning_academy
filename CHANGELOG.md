@@ -3,6 +3,43 @@
 All notable changes to Music Learning Academy are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added
+- **Enrollment success toast messages** — students now see a context-aware success message after enrolling: "Start with your first lesson" (if course has lessons) or "Your instructor will add lessons soon" (if no lessons yet). No message on duplicate enrollment.
+- **3-step course creation wizard** — replaces the 10-field dump form with a progressive 3-step wizard (Basics, Details, Review & Publish)
+  - Step 1 "Basics": title, instrument, difficulty, genre (4 fields max per P-006 progressive form pattern)
+  - Step 2 "Details": description (TinyMCE), prerequisites, duration, max students, thumbnail
+  - Step 3 "Review & Publish": read-only summary card of all values + publish toggle
+  - DaisyUI `steps` indicator at top showing progress through the wizard
+  - Client-side validation on Step 1 (title required) before advancing
+  - Server-side errors auto-navigate to the step containing the error field
+  - Single `<form>` POST on final step (no multi-request complexity)
+  - New JS file: `static/js/course_wizard.js` (vanilla, no dependencies)
+  - Success message after creation: "Course created! Now add your first lesson."
+  - "Add Your First Lesson" priority CTA card on course detail when zero lessons (per P-002 pattern)
+  - 9 new integration tests (wizard rendering, POST creation, success message, publish, permissions, first-lesson CTA)
+- **Lesson progress tracking on lesson detail page** — enrolled students now see a progress bar, mark-complete button, and next-lesson CTA directly on each lesson page
+  - DaisyUI progress bar showing "X of Y lessons completed" below lesson header
+  - HTMX-powered "Mark Lesson Complete" toggle button (reuses existing `MarkLessonCompleteView`)
+  - After completion: "Continue to next lesson" CTA card with lesson title
+  - Last lesson completion: celebration card with "Congratulations!" and link to enrollment detail
+  - Instructors see "Edit Lesson" instead (no progress tracking for non-students)
+  - New HTMX partial: `templates/courses/partials/_lesson_complete_section.html`
+  - 9 new integration tests covering progress bar visibility, permission boundaries, and HTMX partial responses
+- **Instructor enrollment notification (HTML email + in-app)** — instructors now receive a styled HTML email and an in-app notification when a student enrolls in their course
+- **HTML email templates for assignment and trial notifications** — converted 3 remaining plain-text emails to styled HTML templates extending `base_email.html`
+  - `assignment_submitted_email.html`: instructor notification with submission details info card (assignment title, type badge, course name) and "Review Submission" CTA
+  - `assignment_graded_email.html`: student notification with grade info card (assignment, grade/see-feedback, course) and "View Feedback" CTA
+  - `trial_reminder_email.html`: academy admin notification with amber warning card (academy name, trial end date, days remaining) and "Upgrade Now" CTA
+  - `notify_submission` signal updated to render HTML templates for both submission and grading emails
+  - `send_trial_reminder_emails` task updated to render HTML templates with `_send_trial_reminder` helper
+  - 6 new integration tests covering HTML content, email preferences, and idempotent reminders
+  - HTML email template `enrollment_notification_instructor_email.html` extending `base_email.html` with course info card (instrument, difficulty, enrolled count)
+  - In-app `Notification` created with type `enrollment`, links to course detail page
+  - Email respects instructor's `wants_email("enrollment_created")` preference; in-app notification always created
+  - 4 new integration tests (HTML email content, in-app notification, email preference boundary, enrolled count accuracy)
+
 ## [1.0.0] - 2026-03-10 — First Production Release
 
 ### Changed
