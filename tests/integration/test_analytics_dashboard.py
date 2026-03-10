@@ -445,8 +445,12 @@ class TestFunnelAnalytics(TestCase):
         assert "period_days" in result
 
     def test_funnel_empty_academy(self):
-        """Empty academy should have all zeros."""
+        """Empty academy (no students) should have zero student metrics."""
+        from django.core.cache import cache
+
+        cache.clear()
         result = FunnelAnalytics.get_funnel(self.academy)
+        # Only an owner membership exists — no student memberships
         assert result["members_joined"] == 0
         assert result["enrolled"] == 0
 

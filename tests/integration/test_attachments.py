@@ -185,8 +185,10 @@ class TestAttachmentViews(TestCase):
         assert b"Upload Attachment" in response.content
 
     def test_upload_attachment(self):
+        # Use real PDF magic bytes so python-magic detects correct MIME type
+        pdf_bytes = b"%PDF-1.4 fake pdf content"
         file = SimpleUploadedFile(
-            "score.pdf", b"pdf content", content_type="application/pdf"
+            "score.pdf", pdf_bytes, content_type="application/pdf"
         )
         response = self.auth_client.post(
             reverse("attachment-upload", args=[self.course.slug, self.lesson.pk]),
