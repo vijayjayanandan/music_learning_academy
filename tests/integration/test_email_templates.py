@@ -1,7 +1,6 @@
 """Tests for HTML email templates used in assignment submission/grading and trial reminders."""
 
 from datetime import timedelta
-from unittest.mock import patch
 
 import pytest
 from django.core import mail

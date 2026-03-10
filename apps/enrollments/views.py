@@ -230,8 +230,8 @@ class MarkLessonCompleteView(TenantMixin, View):
                 ).count()
                 # Find next lesson
                 next_lesson = None
-                for i, l in enumerate(all_lessons):
-                    if l.pk == lesson.pk and i < total_lessons - 1:
+                for i, lsn in enumerate(all_lessons):
+                    if lsn.pk == lesson.pk and i < total_lessons - 1:
                         next_lesson = all_lessons[i + 1]
                         break
                 return render(
