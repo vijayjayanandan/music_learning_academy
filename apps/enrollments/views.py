@@ -1,6 +1,6 @@
 import logging
 
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
@@ -8,15 +8,13 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView, DetailView
 
-logger = logging.getLogger(__name__)
-
-from django.core.exceptions import ValidationError as DjangoValidationError
-
 from apps.academies.mixins import TenantMixin
 from apps.common.cache import invalidate_dashboard_cache
 from apps.common.validators import validate_file_upload
 from apps.courses.models import Course, Lesson
 from .models import Enrollment, LessonProgress, AssignmentSubmission
+
+logger = logging.getLogger(__name__)
 
 
 class MyEnrollmentsView(TenantMixin, ListView):
@@ -212,7 +210,7 @@ class SubmitAssignmentView(TenantMixin, View):
     def post(self, request, pk, assignment_pk):
         from apps.courses.models import PracticeAssignment
 
-        enrollment = get_object_or_404(
+        get_object_or_404(
             Enrollment, pk=pk, student=request.user, academy=self.get_academy()
         )
         # Security: ensure assignment belongs to the same academy (tenant isolation)

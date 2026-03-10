@@ -1,5 +1,7 @@
 import logging
 import secrets
+
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.mail import send_mail
 from django.http import HttpResponse, HttpResponseForbidden
@@ -11,16 +13,14 @@ from django.utils.text import slugify
 from django.views import View
 from django.views.generic import CreateView, DetailView, UpdateView
 
-logger = logging.getLogger(__name__)
-
-from django.contrib import messages
-
 from apps.accounts.models import Membership, Invitation, User
 from apps.academies.models import check_seat_limit
 from apps.common.audit import AuditEvent, log_audit_event
 from .forms import AcademyForm, InvitationForm
 from .mixins import TenantMixin
 from .models import Academy, Announcement
+
+logger = logging.getLogger(__name__)
 
 
 class AcademyCreateView(LoginRequiredMixin, CreateView):

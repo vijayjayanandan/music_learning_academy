@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev pkg-config libmagic1
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -43,6 +46,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev pkg-config libmagic1
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
