@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
-from apps.scheduling.models import LiveSession, SessionAttendance
+from apps.scheduling.models import LiveSession
 
 
 @pytest.mark.integration

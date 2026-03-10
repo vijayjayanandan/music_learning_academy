@@ -155,7 +155,7 @@ class TestEnrollmentModel:
             difficulty_level="beginner",
         )
         l1 = Lesson.objects.create(academy=academy, course=course, title="L1", order=1)
-        l2 = Lesson.objects.create(academy=academy, course=course, title="L2", order=2)
+        Lesson.objects.create(academy=academy, course=course, title="L2", order=2)
         enrollment = Enrollment.objects.create(
             student=student_user, course=course, academy=academy,
         )

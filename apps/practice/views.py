@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django import forms
 from django.db.models import Sum
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 from django.utils import timezone
 from django.views import View
 from django.views.generic import ListView

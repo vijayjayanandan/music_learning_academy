@@ -667,7 +667,7 @@ class TestNextUrlPreservation(TestCase):
         assert response.status_code == 200
         content = response.content.decode()
         # The register link should include ?next=
-        assert f"next={next_url}" in content or f"next=%2F" in content
+        assert f"next={next_url}" in content or "next=%2F" in content
 
     def test_register_page_preserves_next_in_login_link(self):
         """Register page's 'Sign In' link includes ?next= parameter."""
@@ -677,7 +677,7 @@ class TestNextUrlPreservation(TestCase):
         assert response.status_code == 200
         content = response.content.decode()
         # The login link should include ?next=
-        assert f"next={next_url}" in content or f"next=%2F" in content
+        assert f"next={next_url}" in content or "next=%2F" in content
 
     def test_register_redirects_to_next_url_after_signup(self):
         """After registration, user is redirected to the ?next= URL."""

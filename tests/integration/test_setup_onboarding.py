@@ -20,7 +20,6 @@ from django.urls import reverse
 
 from apps.academies.models import Academy
 from apps.accounts.models import User, Membership
-from apps.courses.models import Course
 
 
 # ===================================================================

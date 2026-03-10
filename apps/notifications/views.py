@@ -1,4 +1,3 @@
-from django import forms
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render, redirect
@@ -250,7 +249,7 @@ class CourseChatView(TenantMixin, View):
         from apps.courses.models import Course
         from .models import ChatMessage
 
-        course = get_object_or_404(Course, slug=slug, academy=self.get_academy())
+        get_object_or_404(Course, slug=slug, academy=self.get_academy())
         body = request.POST.get("message", "").strip()
         if body:
             ChatMessage.objects.create(

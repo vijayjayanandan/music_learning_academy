@@ -1,6 +1,5 @@
 """Tests for LiveKit service layer."""
 
-from unittest.mock import patch, MagicMock
 
 import pytest
 from django.test import override_settings
@@ -79,7 +78,7 @@ class TestGetLivekitConfig:
         instructor = User.objects.create_user(
             username="inst", email="inst@test.com", password="pass",
         )
-        student = User.objects.create_user(
+        User.objects.create_user(
             username="stu", email="stu@test.com", password="pass",
         )
         session = LiveSession.objects.create(

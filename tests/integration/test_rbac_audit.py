@@ -15,7 +15,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.models import Invitation, Membership, User
+from apps.accounts.models import Membership, User
 from apps.academies.models import Academy
 from apps.common.audit import AuditEvent, log_audit_event
 from apps.courses.models import Course
@@ -106,7 +106,7 @@ class TestAuditEventModel(TestCase):
         assert "System" in result
 
     def test_ordering_newest_first(self):
-        e1 = AuditEvent.objects.create(
+        AuditEvent.objects.create(
             academy=self.academy,
             actor=self.owner_user,
             action=AuditEvent.Action.MEMBER_INVITED,
@@ -324,7 +324,7 @@ class TestAuditLoggingIntegration(TestCase):
         )
 
     def test_invite_member_creates_audit_event(self):
-        response = self.auth_client.post(
+        self.auth_client.post(
             reverse("academy-invite", args=[self.academy.slug]),
             {"email": "newinvite@test.com", "role": "student"},
         )
@@ -347,7 +347,7 @@ class TestAuditLoggingIntegration(TestCase):
             room_name="audit-test-room",
             status="scheduled",
         )
-        response = self.auth_client.post(reverse("session-cancel", args=[session.pk]))
+        self.auth_client.post(reverse("session-cancel", args=[session.pk]))
 
         events = AuditEvent.objects.filter(
             academy=self.academy,
@@ -363,7 +363,7 @@ class TestAuditLoggingIntegration(TestCase):
         membership = Membership.objects.get(
             user=self.student_user, academy=self.academy
         )
-        response = self.auth_client.post(
+        self.auth_client.post(
             reverse(
                 "academy-remove-member", args=[self.academy.slug, membership.pk]
             ),
@@ -399,7 +399,7 @@ class TestAuditLoggingIntegration(TestCase):
                 "instructor": self.instructor_user.pk,
             },
         )
-        events = AuditEvent.objects.filter(
+        AuditEvent.objects.filter(
             action=AuditEvent.Action.COURSE_PUBLISHED,
             entity_type="course",
         )

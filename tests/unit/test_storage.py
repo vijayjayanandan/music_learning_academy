@@ -1,9 +1,9 @@
 """Tests for Cloudflare R2 storage backends and file cleanup signals."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from django.core.files.base import ContentFile
-from django.test import TestCase, override_settings
+from django.test import override_settings
 
 from apps.common.storage import (
     PublicMediaStorage,

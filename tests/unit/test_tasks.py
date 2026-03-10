@@ -5,11 +5,9 @@ from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
-from apps.courses.models import Course
 from apps.payments.models import SubscriptionPlan, Subscription, Payment
 from apps.scheduling.models import LiveSession
 

@@ -5,8 +5,7 @@ from datetime import date
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from apps.accounts.forms import RegisterForm, ProfileForm, _generate_username
-from apps.accounts.models import User
+from apps.accounts.forms import RegisterForm, _generate_username
 from apps.courses.forms import CourseForm, LessonForm, LessonAttachmentForm
 
 ADULT_DOB = date.today().replace(year=date.today().year - 20).isoformat()
@@ -160,7 +159,7 @@ class TestGenerateUsername:
         """Multiple calls produce unique usernames."""
         usernames = set()
         for i in range(20):
-            username = _generate_username(f"same@example.com")
+            username = _generate_username("same@example.com")
             usernames.add(username)
         # With 4-char alphanumeric suffix (36^4 = 1.6M possibilities),
         # 20 calls should all be unique

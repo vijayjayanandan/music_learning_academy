@@ -1,6 +1,5 @@
 """Tests for Chat with Instructor UX redesign."""
 
-import pytest
 from datetime import timedelta
 from django.test import TestCase
 from django.urls import reverse

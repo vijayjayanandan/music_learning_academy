@@ -9,7 +9,6 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from apps.academies.mixins import TenantMixin
-from apps.accounts.decorators import role_required
 from apps.common.cache import invalidate_dashboard_cache
 from apps.common.validators import validate_file_upload
 from apps.enrollments.models import Enrollment

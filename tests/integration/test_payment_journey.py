@@ -8,7 +8,7 @@ Also covers individual task validations for the payment flow sprint.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from django.test import TestCase, Client
 from django.urls import reverse
 
@@ -17,7 +17,7 @@ from apps.academies.models import Academy
 from apps.courses.models import Course
 from apps.enrollments.models import Enrollment
 from apps.payments.models import (
-    Payment, PackageDeal, SubscriptionPlan, Subscription, PackagePurchase,
+    Payment, PackageDeal,
 )
 
 

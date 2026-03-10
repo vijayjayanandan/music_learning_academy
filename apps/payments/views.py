@@ -1,8 +1,7 @@
-import json
 import logging
 
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -10,6 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView
+from django_ratelimit.decorators import ratelimit
 
 from apps.academies.mixins import TenantMixin
 from django.contrib import messages
@@ -349,8 +349,6 @@ class AcademyTierView(View):
         tiers = AcademyTier.objects.filter(is_active=True)
         return render(request, "payments/tiers.html", {"tiers": tiers})
 
-
-from django_ratelimit.decorators import ratelimit
 
 
 @method_decorator(csrf_exempt, name="dispatch")

@@ -95,7 +95,7 @@ def send_trial_reminder_emails():
     for sub in subs_7d:
         send_mail(
             subject=f"{sub.academy.name} - 7 days left in trial",
-            message=f"Your trial expires in 7 days.",
+            message="Your trial expires in 7 days.",
             from_email=None,
             recipient_list=[sub.academy.email],
             fail_silently=True,
@@ -114,7 +114,7 @@ def send_trial_reminder_emails():
     for sub in subs_3d:
         send_mail(
             subject=f"{sub.academy.name} - 3 days left in trial",
-            message=f"Your trial expires in 3 days.",
+            message="Your trial expires in 3 days.",
             from_email=None,
             recipient_list=[sub.academy.email],
             fail_silently=True,
@@ -133,7 +133,7 @@ def send_trial_reminder_emails():
     for sub in subs_1d:
         send_mail(
             subject=f"{sub.academy.name} - Last day of trial!",
-            message=f"Your trial expires tomorrow.",
+            message="Your trial expires tomorrow.",
             from_email=None,
             recipient_list=[sub.academy.email],
             fail_silently=True,

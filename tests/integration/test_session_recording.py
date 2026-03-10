@@ -13,7 +13,6 @@ from apps.scheduling.models import LiveSession
 
 def _make_live_session(academy, instructor, **kwargs):
     """Helper to create a LiveSession with required fields."""
-    from itertools import count
 
     defaults = dict(
         title="Test Session",

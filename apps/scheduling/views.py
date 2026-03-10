@@ -642,7 +642,7 @@ class RescheduleSessionView(TenantMixin, View):
         })
 
     def post(self, request, pk):
-        from datetime import datetime, date as date_type
+        from datetime import datetime
 
         # Student flow: slot + date based
         if self.user_role == "student":
@@ -784,7 +784,6 @@ class RescheduleSessionView(TenantMixin, View):
         actor_name = actor.get_full_name() or actor.email
 
         # Notify all attendees (except the person who rescheduled)
-        from apps.accounts.models import User
         for student_id in old_attendees:
             if student_id != actor.pk:
                 Notification.objects.create(

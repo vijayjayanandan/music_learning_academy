@@ -18,7 +18,6 @@ from django.urls import reverse
 
 from apps.accounts.models import Membership, User
 from apps.academies.models import Academy
-from apps.courses.models import Course
 from apps.payments.models import SubscriptionPlan, PackageDeal
 from tests.factories import (
     CourseFactory,

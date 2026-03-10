@@ -7,10 +7,9 @@ from datetime import timedelta
 
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
-from apps.courses.models import Course
 from apps.music_tools.models import (
     EarTrainingExercise, EarTrainingScore, RecitalEvent,
-    RecitalPerformer, PracticeAnalysis, RecordingArchive,
+    PracticeAnalysis, RecordingArchive,
 )
 from apps.library.models import LibraryResource
 from apps.scheduling.models import LiveSession

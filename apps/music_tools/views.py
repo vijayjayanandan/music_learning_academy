@@ -7,7 +7,7 @@ from django.views.generic import ListView
 from apps.academies.mixins import TenantMixin
 from .models import (
     EarTrainingExercise, EarTrainingScore, RecitalEvent,
-    RecitalPerformer, PracticeAnalysis, RecordingArchive,
+    PracticeAnalysis, RecordingArchive,
 )
 
 

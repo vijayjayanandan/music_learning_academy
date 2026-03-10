@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
-from apps.courses.models import Course, Lesson
+from apps.courses.models import Course
 from apps.enrollments.models import Enrollment
 
 

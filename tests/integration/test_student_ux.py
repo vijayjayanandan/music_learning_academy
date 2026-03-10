@@ -12,11 +12,10 @@ import pytest
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
-from apps.enrollments.models import AssignmentSubmission, Enrollment
+from apps.enrollments.models import AssignmentSubmission
 from apps.scheduling.models import SessionAttendance
 from tests.factories import (
     CourseFactory,

@@ -6,10 +6,9 @@ from django.utils import timezone
 
 from apps.accounts.models import User, Membership
 from apps.academies.models import Academy
-from apps.courses.models import Course
 from apps.payments.models import (
     SubscriptionPlan, Subscription, Payment, Coupon,
-    InstructorPayout, PackageDeal, PackagePurchase, AcademyTier,
+    InstructorPayout, PackageDeal, AcademyTier,
 )
 from apps.scheduling.models import InstructorAvailability
 

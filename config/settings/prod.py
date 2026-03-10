@@ -18,7 +18,7 @@ if SENTRY_DSN:
         ],
     )
 
-import dj_database_url
+import dj_database_url  # noqa: E402
 
 # Support Render's DATABASE_URL or explicit DB_* vars
 DATABASE_URL = os.environ.get("DATABASE_URL")

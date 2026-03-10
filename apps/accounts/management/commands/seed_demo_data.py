@@ -154,12 +154,12 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("\nDemo data seeded successfully!"))
         self.stdout.write(self.style.SUCCESS("\nLogin credentials:"))
-        self.stdout.write(f"  Admin:      admin@harmonymusic.com / admin123")
-        self.stdout.write(f"  Instructor: sarah@harmonymusic.com / instructor123")
-        self.stdout.write(f"  Instructor: david@harmonymusic.com / instructor123")
-        self.stdout.write(f"  Student:    alice@example.com / student123")
-        self.stdout.write(f"  Student:    bob@example.com / student123")
-        self.stdout.write(f"  Student:    carol@example.com / student123")
+        self.stdout.write("  Admin:      admin@harmonymusic.com / admin123")
+        self.stdout.write("  Instructor: sarah@harmonymusic.com / instructor123")
+        self.stdout.write("  Instructor: david@harmonymusic.com / instructor123")
+        self.stdout.write("  Student:    alice@example.com / student123")
+        self.stdout.write("  Student:    bob@example.com / student123")
+        self.stdout.write("  Student:    carol@example.com / student123")
 
     def _create_user(self, email, first_name, last_name, password):
         user, created = User.objects.get_or_create(

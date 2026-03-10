@@ -87,10 +87,10 @@ class TestSocialButtonNextUrl(TestCase):
 
         # Google button should include ?next=
         assert f"google/login/?next={next_url}" in content or \
-               f"google/login/?next=%2F" in content
+               "google/login/?next=%2F" in content
         # Facebook button should include ?next=
         assert f"facebook/login/?next={next_url}" in content or \
-               f"facebook/login/?next=%2F" in content
+               "facebook/login/?next=%2F" in content
 
     def test_register_page_social_buttons_include_next(self):
         """On the register page with ?next=, social buttons include ?next=."""
@@ -102,7 +102,7 @@ class TestSocialButtonNextUrl(TestCase):
 
         # Google button should include ?next=
         assert f"google/login/?next={next_url}" in content or \
-               f"google/login/?next=%2F" in content
+               "google/login/?next=%2F" in content
 
     def test_accept_invitation_social_buttons_include_next(self):
         """On the accept-invitation page (unauthenticated), social buttons
@@ -116,7 +116,7 @@ class TestSocialButtonNextUrl(TestCase):
         # Social buttons should include ?next= with the accept URL
         expected_next = f"/invitation/{self.invitation.token}/accept/"
         assert f"google/login/?next={expected_next}" in content or \
-               f"google/login/?next=%2Finvitation" in content
+               "google/login/?next=%2Finvitation" in content
 
     def test_accept_invitation_context_includes_accept_url(self):
         """AcceptInvitationView passes accept_url in context for social buttons."""

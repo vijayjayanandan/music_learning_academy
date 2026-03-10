@@ -1,7 +1,7 @@
 import pytest
 import os
 
-from .conftest import _do_login, _remove_debug_toolbar, click_sidebar
+from .conftest import _remove_debug_toolbar, click_sidebar
 
 
 @pytest.mark.e2e

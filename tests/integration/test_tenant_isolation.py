@@ -239,7 +239,7 @@ class TestTenantIsolation(TestCase):
         self.assertNotIn("userb-iso@test.com", response.content.decode())
 
     def test_user_cannot_switch_to_unrelated_academy(self):
-        response = self.auth_client.post(
+        self.auth_client.post(
             reverse("switch-academy", kwargs={"slug": self.academy_b.slug}),
         )
         user = User.objects.get(email="owner-iso@test.com")
