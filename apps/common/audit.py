@@ -102,19 +102,6 @@ def log_audit_event(
         if academy is None and hasattr(request, "academy"):
             academy = request.academy
 
-    event = AuditEvent.objects.create(
-        academy=academy,
-        actor=actor,
-        action=action,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        description=description,
-        before_state=before_state,
-        after_state=after_state,
-        ip_address=ip_address,
-        request_id=request_id,
-    )
-
     logger.info(
         "Audit: %s | %s | %s (id=%s) | %s",
         action,
@@ -123,4 +110,21 @@ def log_audit_event(
         entity_id,
         description,
     )
-    return event
+
+    try:
+        event = AuditEvent.objects.create(
+            academy=academy,
+            actor=actor,
+            action=action,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            description=description,
+            before_state=before_state,
+            after_state=after_state,
+            ip_address=ip_address,
+            request_id=request_id,
+        )
+        return event
+    except Exception:
+        logger.exception("Failed to persist audit event to database")
+        return None
