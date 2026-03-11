@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Setup {{ academy.name }} - Step {{ step_number }} of {{ total_steps }}{% endblock %}
+{% block title %}Setup {{ academy.name }} - {{ step|title }}{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-6">
     <!-- Header -->
@@ -60,25 +60,45 @@
             <p class="text-sm text-gray-500 mb-4">Make your academy stand out with a logo and custom colors.</p>
             <form method="post" action="{% url 'academy-setup-step' academy.slug 'branding' %}" enctype="multipart/form-data">
                 {% csrf_token %}
-                {% for field in form %}
+
+                <!-- Logo upload -->
                 <div class="form-control mb-4">
-                    <label class="label"><span class="label-text font-medium">{{ field.label }}</span></label>
-                    {{ field }}
-                    {% if field.help_text %}
-                    <label class="label"><span class="label-text-alt text-gray-400">{{ field.help_text }}</span></label>
+                    <label class="label"><span class="label-text font-medium">Academy Logo</span></label>
+                    {% if academy.logo %}
+                    <div class="flex items-center gap-4 mb-2">
+                        <img src="{{ academy.logo.url }}" alt="Current logo" class="w-16 h-16 rounded-lg object-cover border" />
+                        <span class="text-sm text-gray-500">Current logo</span>
+                    </div>
                     {% endif %}
-                    {% for error in field.errors %}
+                    {{ form.logo }}
+                    <label class="label"><span class="label-text-alt text-gray-400">Square image recommended (e.g. 200x200px). PNG or JPG.</span></label>
+                    {% for error in form.logo.errors %}
                     <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
                     {% endfor %}
                 </div>
-                {% endfor %}
 
-                {% if academy.logo %}
-                <div class="mb-4">
-                    <p class="text-sm text-gray-500 mb-1">Current logo:</p>
-                    <img src="{{ academy.logo.url }}" alt="Current logo" class="w-20 h-20 rounded-lg object-cover border" />
+                <!-- Primary color -->
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Primary color</span></label>
+                    <div class="flex items-center gap-3">
+                        {{ form.primary_color }}
+                        <span class="text-sm text-gray-500 font-mono" id="color-hex-display">{{ form.primary_color.value }}</span>
+                    </div>
+                    <label class="label"><span class="label-text-alt text-gray-400">Used for buttons, links, and accents across your academy</span></label>
+                    {% for error in form.primary_color.errors %}
+                    <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                    {% endfor %}
                 </div>
-                {% endif %}
+
+                <!-- Welcome message -->
+                <div class="form-control mb-4">
+                    <label class="label"><span class="label-text font-medium">Welcome message</span></label>
+                    {{ form.welcome_message }}
+                    <label class="label"><span class="label-text-alt text-gray-400">Shown on your branded signup page</span></label>
+                    {% for error in form.welcome_message.errors %}
+                    <label class="label"><span class="label-text-alt text-error">{{ error }}</span></label>
+                    {% endfor %}
+                </div>
 
                 <div class="card-actions justify-between mt-4">
                     <a href="{% url 'academy-setup-step' academy.slug 'basics' %}" class="btn btn-ghost">
@@ -86,7 +106,7 @@
                         Back
                     </a>
                     <div class="flex gap-2">
-                        <a href="{% url 'academy-setup-step' academy.slug 'team' %}" class="btn btn-ghost">Skip</a>
+                        <a href="{% url 'academy-setup-step' academy.slug 'team' %}" class="btn btn-ghost">Skip for now</a>
                         <button type="submit" class="btn btn-primary">
                             Next: Team
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
@@ -132,7 +152,7 @@
                         <label class="label"><span class="label-text font-medium">Role</span></label>
                         {{ invite_form.role }}
                     </div>
-                    <button type="submit" class="btn btn-secondary w-full sm:w-auto">Invite</button>
+                    <button type="submit" class="btn btn-primary w-full sm:w-auto">Invite</button>
                 </div>
             </form>
 
@@ -277,6 +297,18 @@
         </a>
     </div>
 </div>
+
+{% if step == 'branding' %}
+<script>
+(function() {
+    var picker = document.querySelector('input[type="color"]');
+    var display = document.getElementById('color-hex-display');
+    if (picker && display) {
+        picker.addEventListener('input', function() { display.textContent = picker.value; });
+    }
+})();
+</script>
+{% endif %}
 
 {% if step == 'launch' %}
 <script>

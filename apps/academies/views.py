@@ -167,6 +167,14 @@ class MemberListView(TenantMixin, DetailView):
 
 
 class InviteMemberView(TenantMixin, View):
+    def _get_redirect_url(self, request, slug):
+        """Return the redirect URL, respecting a safe ?next= or POST next field."""
+        next_url = request.POST.get("next", "")
+        # Only allow relative URLs (prevent open redirect)
+        if next_url and next_url.startswith("/"):
+            return next_url
+        return reverse("academy-members", kwargs={"slug": slug})
+
     def post(self, request, slug):
         # Security: only owners can invite members
         academy = self.get_academy()
@@ -180,6 +188,8 @@ class InviteMemberView(TenantMixin, View):
             from django.http import Http404
 
             raise Http404("Academy not found.")
+
+        redirect_url = self._get_redirect_url(request, slug)
         form = InvitationForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data["email"]
@@ -204,7 +214,7 @@ class InviteMemberView(TenantMixin, View):
                         },
                     )
                 messages.error(request, error_msg)
-                return redirect("academy-members", slug=slug)
+                return redirect(redirect_url)
             # Check if already a member
             if Membership.objects.filter(academy=academy, user__email=email).exists():
                 if request.htmx:
@@ -220,7 +230,8 @@ class InviteMemberView(TenantMixin, View):
                             "error": "This person is already a member of this academy.",
                         },
                     )
-                return redirect("academy-members", slug=slug)
+                messages.error(request, f"{email} is already a member of this academy.")
+                return redirect(redirect_url)
             # Check for existing pending invitation
             if Invitation.objects.filter(
                 academy=academy, email=email, accepted=False
@@ -238,7 +249,11 @@ class InviteMemberView(TenantMixin, View):
                             "error": "An invitation has already been sent to this email.",
                         },
                     )
-                return redirect("academy-members", slug=slug)
+                messages.warning(
+                    request,
+                    f"An invitation has already been sent to {email}.",
+                )
+                return redirect(redirect_url)
             token = secrets.token_urlsafe(48)
             invitation = Invitation.objects.create(
                 academy=academy,
@@ -258,6 +273,10 @@ class InviteMemberView(TenantMixin, View):
             )
             # Send invitation email
             _send_invitation_email(invitation, request)
+            messages.success(
+                request,
+                f"Invitation sent to {email} as {invite_role}.",
+            )
             if request.htmx:
                 invitations = Invitation.objects.filter(academy=academy, accepted=False)
                 return render(
@@ -268,7 +287,7 @@ class InviteMemberView(TenantMixin, View):
                         "academy": academy,
                     },
                 )
-        return redirect("academy-members", slug=slug)
+        return redirect(redirect_url)
 
 
 class AcceptInvitationView(View):
@@ -814,7 +833,7 @@ class SetupWizardStepView(LoginRequiredMixin, DetailView):
         elif step == "branding":
             from apps.academies.forms import AcademyBrandingForm
 
-            form = AcademyBrandingForm(request.POST, instance=academy)
+            form = AcademyBrandingForm(request.POST, request.FILES, instance=academy)
             if form.is_valid():
                 form.save()
 
